@@ -7,8 +7,8 @@
 ## 現状の結論
 - Classroomの入退室ログはAPIで直接取得不可。
 - 入退室は自社アプリでIN/OUTボタンを提供し、ClassroomのコースURLへ遷移する方式。
-- 講座一覧は Classroom API でドメイン全体を同期し、管理画面で対象講座/表示を制御。
-- Forms提出時刻はOUT補助として取得可能（Forms API）。
+- **Classroom API / Forms API連携は廃止**（OAuth審査コストが高いため）。
+- **講座・受講者情報は管理画面で手入力**。
 - 動画視聴の厳密判定はアプリ内プレイヤー前提。
 
 ## 重要な決定（ADR）
@@ -16,8 +16,9 @@
 - 主要ポイント:
   - Cloud Run中心 + Firestore/BigQuery + Scheduler/Tasks
   - 連続INは既存openセッションを返す
-  - Classroom同期はドメイン全体取得 + Course IDで対象指定
-  - FormsのForm IDは管理画面で手動登録
+  - **Classroom API連携は廃止**（ADR-0006, ADR-0008, ADR-0013改訂）
+  - **Forms API連携は廃止**（ADR-0005改訂）
+  - **講座・受講者は管理画面で手入力**
 
 ## 技術スタック（安定版）
 - 参照: `docs/tech-stack.md`
@@ -28,21 +29,19 @@
 ## リポジトリ構成
 - 参照: `docs/repo-structure.md`
 - `services/api`: REST API (Cloud Run)
-- `services/ingestion`: Classroom/Forms同期バッチ (Cloud Run)
+- ~~`services/ingestion`~~: **廃止**（Classroom/Forms連携廃止のため）
 - `services/event-collector`: 動画イベント収集 (Cloud Run)
 - `services/session`: セッション再計算 (Cloud Run)
 - `services/notification`: 通知送信 (Cloud Run)
 - `web`: Next.js (受講者/管理画面)
 
-## 実装済み範囲（GCP接続前まで）
+## 実装済み範囲
 - APIの主要エンドポイント: `services/api/src/index.ts`
   - `/api/v1/courses`
   - `/api/v1/sessions/check-in|heartbeat|check-out`
   - `/api/v1/admin/courses`
-  - `/api/v1/admin/course-targets`
-- Classroom/Forms同期ロジック: `services/ingestion/src/tasks/*.ts`
 - 認証は `AUTH_MODE=dev` でヘッダ疑似認証
-- GCP未接続。同期実行時は資格情報が必要
+- GCPプロジェクト: `classroom-checkin-279`（Firestore, Cloud Run等有効化済み）
 
 ## 環境変数
 - 参照: `docs/config.md`
@@ -57,26 +56,28 @@
 
 ## データモデル
 - 参照: `docs/data-model.md`
-- FirestoreのドキュメントIDは外部IDを使う方針
-- 主要コレクション: `courses`, `courseTargets`, `sessions`, `attendanceEvents`, `enrollments`, `users`, `formMappings`, `formResponses`, `syncRuns`
+- 主要コレクション: `courses`, `sessions`, `attendanceEvents`, `enrollments`, `users`
+- 廃止済み: ~~`courseTargets`~~（Courseに統合）, ~~`formMappings`~~, ~~`formResponses`~~, ~~`syncRuns`~~
 
-## GCP接続が必要なポイント
-- `services/ingestion` の `/run`
-  - Classroom/Forms同期実行
-  - ドメインワイドデリゲーションが必要な場合あり
+## GCP設定済み
+- プロジェクト: `classroom-checkin-279`
+- リージョン: asia-northeast1
+- Firestore: Native mode
+- サービスアカウント: `classroom-sync@classroom-checkin-279.iam.gserviceaccount.com`
+- キー: `.secrets/classroom-sync-key.json`
 
 ## 未実装/未確定
-- OAuth実装（Googleログイン）
-- 管理画面のUIとAPI接続
+- 認証方式（OAuth審査が必要なため後日検討）
+- 管理画面UI（講座・受講者の手入力）
 - 通知送信の実装（SendGrid/Gmail/SMTP）
 - セッション再計算ジョブ
 - 動画視聴トラッキングの実装
 
 ## 次の優先タスク（推奨順）
-1) Classroom同期の実運用設定（GCPプロジェクト作成 + DWD設定）
-2) OAuthログインとセッション管理
-3) 管理画面（Course ID登録/visible切替/同期状態）
-4) 通知サービスとOUT忘れ通知
+1) **管理画面UI**（講座・受講者の手入力CRUD）
+2) **受講者向けUI**（講座選択・IN/OUT）
+3) 通知サービスとOUT忘れ通知
+4) 認証方式の検討（OAuth審査 or 別方式）
 
 ## 開発メモ
 - ドキュメント更新の順序は `docs/ai-dev-guide.md` を参照

@@ -1,31 +1,26 @@
 # アーキテクチャ（確定案 / GCP想定）
 
 ## 全体像
-- 収集: Google Classroom API / Google Forms API / 動画プレイヤーイベントからの取得
+- 収集: 動画プレイヤーイベント / 手動IN/OUT入力
 - 変換: IN/OUTセッションの計算・補正・集計
 - 保管: セッション/イベントの永続化と分析用データ
 - 可視化: 教員/管理者向けの閲覧UI
 
 ```
-[Google APIs] -> [Ingestion Service] -> [Session Processor] -> [DB/Analytics] -> [Web UI]
-       |                |                    |                 |
-   Classroom         Cloud Run           Cloud Run         Firestore/SQL
-   Forms API         Cloud Scheduler     Cloud Tasks       BigQuery
-
-[Web App] -> [API Service] -> [DB/Analytics]
-   |           |
-   |       [Event Collector]
-   |           |
+[Web App] -> [API Service] -> [Session Processor] -> [DB/Analytics] -> [Web UI]
+   |              |                  |                    |
+ Next.js       Cloud Run          Cloud Run           Firestore
+   |              |               Cloud Tasks          BigQuery
+   |          [Event Collector]
+   |              |
    +-----> [Notification Service]
 ```
 
+**注**: Classroom API / Forms API連携は廃止。講座・受講者情報は管理画面で手入力。
+
 ## コンポーネント案
-- Ingestion Service (Cloud Run)
-  - 各APIからの取得・正規化
-  - バッチ実行は Cloud Scheduler + Cloud Tasks
-  - Classroomの講座一覧/参加者情報を同期
-  - ClassroomSyncConfigに基づいて同期範囲を制御
-  - `/run` で classroom-sync / forms-sync を実行
+- ~~Ingestion Service~~ **廃止**
+  - Classroom API / Forms API連携は廃止のため不要
 - API Service (Cloud Run)
   - IN/OUT打刻、講座選択、補正、管理操作のAPI
 - Event Collector (Cloud Run)
@@ -44,20 +39,21 @@
   - 教員/管理者用ダッシュボード
   - 受講者の手動IN/OUT入力
   - 動画視聴用プレイヤー（埋め込み/自前）
-  - 講座選択UI（Classroom連携または手動登録）
+  - 講座選択UI（管理画面で手動登録した講座を表示）
+  - **管理画面**: 講座・受講者の手入力管理
 - Secrets / Auth
-  - Secret Manager: OAuthクライアント/サービスアカウント
+  - Secret Manager: サービスアカウント
   - Workload Identity / IAM最小権限
-  - Google OAuth: ログイン/認可
+  - **認証方式は後日検討**（OAuth審査が必要なため）
 
 ## 同期方式
-- バッチ: Schedulerで日次/時間単位で取得
-- オンデマンド: 管理画面から再同期を実行可能
+- ~~バッチ: Schedulerで日次/時間単位で取得~~ **廃止**
 - 手動: 受講者/教員がIN/OUTを入力する
+- 手入力: 管理者が講座・受講者を管理画面で登録
 - 通知: Schedulerで未OUTセッションを検知して通知
 
 ## 決定事項
-- 講座同期はドメイン全体を取得し、Course IDで対象講座を指定
+- **講座情報は管理画面で手入力**（Classroom API連携は廃止）
 - 講座選択は入室前に必須で、選択した講座のClassroom URLへ遷移
 - OUT忘れは通知ポリシーで初回/間隔/最大日数を設定
 

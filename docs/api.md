@@ -1,16 +1,16 @@
 # API仕様（v1）
 
 ## 認証
-- Google OAuthでログインし、APIはセッションCookieまたはBearerで保護
-- 管理系APIは admin ロールのみ
+- 認証方式は後日検討（OAuth審査が必要なため）
 - `AUTH_MODE=dev` の場合は `X-User-Id` / `X-User-Role` ヘッダで疑似認証
+- 管理系APIは admin ロールのみ
 
 ## ベースURL
 - `/api/v1`
 
 ## エンドポイント
 
-### 認証
+### 認証（未実装）
 - `GET /auth/google/start`
   - Google OAuth開始
 - `GET /auth/google/callback`
@@ -23,8 +23,8 @@
 ### 講座
 - `GET /courses`
   - 受講者向け講座一覧
-  - 参加中が取得できれば参加中のみ、できなければ visible=true 全件
   - enabled=true かつ visible=true のみを返す
+  - 受講者登録がある場合は登録講座のみ、なければ全講座を返す
 
 ### 入退室
 - `POST /sessions/check-in`
@@ -38,64 +38,70 @@
   - 退室打刻（時刻補正可）
 
 ### 動画イベント
-- `POST /api/v1/events/video`
+- `POST /events/video`
   - body: `{ courseId, videoId, eventType, eventTime, positionSec, playbackRate, clientSessionId }`
   - 実装は Event Collector サービスで処理する
 
-### 管理: 講座対象
+### 管理: 講座（手入力）
 - `GET /admin/courses`
-  - 全講座一覧（同期済み）
-- `POST /admin/course-targets`
-  - body: `{ courseId, enabled, visible }`
+  - 全講座一覧
+- `POST /admin/courses`
+  - body: `{ name, classroomUrl?, description?, enabled?, visible?, note? }`
+  - 講座を新規作成
   - `enabled=false` の場合は `visible` を自動的に false に補正
-- `PATCH /admin/course-targets/{id}`
-  - body: `{ enabled?, visible? }`
+- `PATCH /admin/courses/{id}`
+  - body: `{ name?, classroomUrl?, description?, enabled?, visible?, note? }`
+- `DELETE /admin/courses/{id}`
+  - 講座を削除
 
-### 管理: 同期
-- `POST /admin/sync/classroom`
-  - 手動同期のトリガー
-- `GET /admin/sync/status`
-  - 最終同期/ステータス
-
-### 管理: セッション補正
+### 管理: セッション補正（未実装）
 - `GET /admin/sessions`
   - フィルタ可能
 - `POST /admin/sessions/{id}/close`
   - body: `{ closedAt: string, reason: string }`
 
-### 管理: 通知ポリシー
+### 管理: 通知ポリシー（未実装）
 - `GET /admin/notification-policies`
 - `POST /admin/notification-policies`
 - `PATCH /admin/notification-policies/{id}`
 
-### 管理: Forms
-- `GET /admin/forms`
-- `POST /admin/forms`
-  - body: `{ courseId, formId, title? }`
-- `PATCH /admin/forms/{id}`
-
 ## 主要レスポンス（例）
 
 ### Course
-```
+```json
 {
-  "id": "course_123",
-  "externalCourseId": "123456",
-  "name": "Math A",
+  "id": "abc123",
+  "name": "数学A",
+  "description": "数学Aの講座です",
   "classroomUrl": "https://classroom.google.com/...",
   "enabled": true,
-  "visible": true
+  "visible": true,
+  "note": "管理用メモ",
+  "createdAt": "2025-02-14T08:00:00Z",
+  "updatedAt": "2025-02-14T08:00:00Z"
 }
 ```
 
 ### Session
-```
+```json
 {
   "id": "sess_123",
-  "courseId": "course_123",
+  "courseId": "abc123",
   "userId": "user_123",
   "startTime": "2025-02-14T08:00:00Z",
   "endTime": null,
   "status": "open"
 }
 ```
+
+## 廃止されたエンドポイント
+
+以下のエンドポイントは、Classroom API / Forms API連携廃止に伴い削除されました：
+
+- ~~`POST /admin/sync/classroom`~~ - Classroom同期
+- ~~`GET /admin/sync/status`~~ - 同期ステータス
+- ~~`GET /admin/forms`~~ - Forms一覧
+- ~~`POST /admin/forms`~~ - Form登録
+- ~~`PATCH /admin/forms/{id}`~~ - Form更新
+- ~~`POST /admin/course-targets`~~ - CourseTargetはCourseに統合
+- ~~`PATCH /admin/course-targets/{id}`~~ - CourseTargetはCourseに統合

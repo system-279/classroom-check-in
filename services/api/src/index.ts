@@ -27,23 +27,21 @@ app.get("/api/v1/auth/me", requireUser, (req, res) => {
 
 // Courses (student view)
 app.get("/api/v1/courses", requireUser, async (req, res) => {
-  const courseTargetsSnap = await db
-    .collection("courseTargets")
+  // enabled=true かつ visible=true の講座を取得
+  const coursesSnap = await db
+    .collection("courses")
     .where("visible", "==", true)
     .where("enabled", "==", true)
     .get();
 
-  const courseTargetDocs = courseTargetsSnap.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  }));
-
-  let courseIds = courseTargetDocs.map((target) => target.courseId as string);
-  if (courseIds.length === 0) {
+  if (coursesSnap.empty) {
     res.json({ courses: [] });
     return;
   }
 
+  const courseIds = coursesSnap.docs.map((doc) => doc.id);
+
+  // ユーザーが登録されている講座を確認
   const enrollmentSnaps = await Promise.all(
     courseIds.map((id) =>
       db
@@ -55,34 +53,29 @@ app.get("/api/v1/courses", requireUser, async (req, res) => {
     ),
   );
 
-  const enrollmentCourseIds = new Set(
+  const enrolledCourseIds = new Set(
     enrollmentSnaps
       .filter((snap) => !snap.empty)
       .map((snap) => snap.docs[0].data().courseId as string),
   );
 
-  if (enrollmentCourseIds.size > 0) {
-    courseIds = courseIds.filter((id) => enrollmentCourseIds.has(id));
-  }
+  // 登録がある場合は登録講座のみ、なければ全講座を返す
+  const filteredDocs =
+    enrolledCourseIds.size > 0
+      ? coursesSnap.docs.filter((doc) => enrolledCourseIds.has(doc.id))
+      : coursesSnap.docs;
 
-  const courseSnaps = await Promise.all(
-    courseIds.map((id) => db.collection("courses").doc(id).get()),
-  );
-
-  const courses = courseSnaps
-    .filter((doc) => doc.exists)
-    .map((doc) => {
-      const data = doc.data() ?? {};
-      const target = courseTargetDocs.find((t) => t.courseId === doc.id);
-      return {
-        id: doc.id,
-        externalCourseId: data.externalCourseId,
-        name: data.name,
-        classroomUrl: data.classroomUrl,
-        enabled: target?.enabled ?? false,
-        visible: target?.visible ?? false,
-      };
-    });
+  const courses = filteredDocs.map((doc) => {
+    const data = doc.data();
+    return {
+      id: doc.id,
+      name: data.name,
+      description: data.description ?? null,
+      classroomUrl: data.classroomUrl,
+      enabled: data.enabled,
+      visible: data.visible,
+    };
+  });
 
   res.json({ courses });
 });
@@ -95,14 +88,9 @@ app.post("/api/v1/sessions/check-in", requireUser, async (req, res) => {
     return;
   }
 
-  const targetSnap = await db
-    .collection("courseTargets")
-    .where("courseId", "==", courseId)
-    .where("enabled", "==", true)
-    .limit(1)
-    .get();
-
-  if (targetSnap.empty) {
+  // 講座が存在し、enabled=true かを確認
+  const courseSnap = await db.collection("courses").doc(courseId).get();
+  if (!courseSnap.exists || courseSnap.data()?.enabled !== true) {
     res.status(403).json({ error: "course_not_enabled" });
     return;
   }
@@ -223,108 +211,121 @@ app.post("/api/v1/sessions/check-out", requireUser, async (req, res) => {
 // Admin: courses
 app.get("/api/v1/admin/courses", requireAdmin, async (_req, res) => {
   const coursesSnap = await db.collection("courses").get();
-  const targetsSnap = await db.collection("courseTargets").get();
-  const targetsByCourse = new Map(
-    targetsSnap.docs.map((doc) => [doc.data().courseId as string, doc]),
-  );
 
   const courses = coursesSnap.docs.map((doc) => {
     const data = doc.data();
-    const targetDoc = targetsByCourse.get(doc.id);
     return {
       id: doc.id,
-      externalCourseId: data.externalCourseId,
       name: data.name,
+      description: data.description ?? null,
       classroomUrl: data.classroomUrl,
-      enabled: targetDoc?.data()?.enabled ?? false,
-      visible: targetDoc?.data()?.visible ?? false,
-      targetId: targetDoc?.id ?? null,
+      enabled: data.enabled ?? false,
+      visible: data.visible ?? false,
+      note: data.note ?? null,
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt,
     };
   });
 
   res.json({ courses });
 });
 
-app.post("/api/v1/admin/course-targets", requireAdmin, async (req, res) => {
-  const courseId = req.body?.courseId;
+app.post("/api/v1/admin/courses", requireAdmin, async (req, res) => {
+  const name = req.body?.name;
+  const classroomUrl = req.body?.classroomUrl;
+  const description = req.body?.description ?? null;
   const enabled = req.body?.enabled ?? true;
   const visible = req.body?.visible ?? true;
+  const note = req.body?.note ?? null;
   const normalizedVisible = enabled ? visible : false;
 
-  if (!courseId) {
-    res.status(400).json({ error: "course_id_required" });
+  if (!name) {
+    res.status(400).json({ error: "name_required" });
     return;
   }
 
-  const existing = await db
-    .collection("courseTargets")
-    .where("courseId", "==", courseId)
-    .limit(1)
-    .get();
-
-  if (!existing.empty) {
-    const doc = existing.docs[0];
-    await doc.ref.update({ enabled, visible: normalizedVisible });
-    res.json({ id: doc.id, courseId, enabled, visible: normalizedVisible });
-    return;
-  }
-
-  const ref = await db.collection("courseTargets").add({
-    courseId,
+  const now = new Date();
+  const ref = await db.collection("courses").add({
+    name,
+    description,
+    classroomUrl: classroomUrl ?? null,
     enabled,
     visible: normalizedVisible,
+    note,
+    createdAt: now,
+    updatedAt: now,
   });
-  res.json({ id: ref.id, courseId, enabled, visible: normalizedVisible });
+
+  res.json({
+    id: ref.id,
+    name,
+    description,
+    classroomUrl,
+    enabled,
+    visible: normalizedVisible,
+    note,
+  });
 });
 
-app.patch("/api/v1/admin/course-targets/:id", requireAdmin, async (req, res) => {
-  const { id } = req.params;
+app.patch("/api/v1/admin/courses/:id", requireAdmin, async (req, res) => {
+  const id = req.params.id as string;
   const updates: Record<string, unknown> = {};
-  if (typeof req.body?.enabled === "boolean") {
-    updates.enabled = req.body.enabled;
-  }
-  if (typeof req.body?.visible === "boolean") {
-    updates.visible = req.body.visible;
-  }
+
+  if (typeof req.body?.name === "string") updates.name = req.body.name;
+  if (typeof req.body?.description === "string") updates.description = req.body.description;
+  if (typeof req.body?.classroomUrl === "string") updates.classroomUrl = req.body.classroomUrl;
+  if (typeof req.body?.enabled === "boolean") updates.enabled = req.body.enabled;
+  if (typeof req.body?.visible === "boolean") updates.visible = req.body.visible;
+  if (typeof req.body?.note === "string") updates.note = req.body.note;
 
   if (Object.keys(updates).length === 0) {
     res.status(400).json({ error: "no_updates" });
     return;
   }
 
-  const ref = db.collection("courseTargets").doc(id);
+  const ref = db.collection("courses").doc(id);
   const snap = await ref.get();
   if (!snap.exists) {
-    res.status(404).json({ error: "course_target_not_found" });
+    res.status(404).json({ error: "course_not_found" });
     return;
   }
 
-  const enabled = typeof updates.enabled === "boolean" ? updates.enabled : snap.data()?.enabled;
+  const currentData = snap.data() ?? {};
+  const enabled =
+    typeof updates.enabled === "boolean" ? updates.enabled : currentData.enabled;
   const visible =
-    typeof updates.visible === "boolean" ? updates.visible : snap.data()?.visible;
+    typeof updates.visible === "boolean" ? updates.visible : currentData.visible;
   const normalizedVisible = enabled ? visible : false;
 
-  await ref.update({ ...updates, visible: normalizedVisible });
-  res.json({ id, ...snap.data(), ...updates, visible: normalizedVisible });
+  updates.visible = normalizedVisible;
+  updates.updatedAt = new Date();
+
+  await ref.update(updates);
+  res.json({ id, ...currentData, ...updates });
 });
 
-// Admin: sync
-app.post("/api/v1/admin/sync/classroom", requireAdmin, notImplemented);
-app.get("/api/v1/admin/sync/status", requireAdmin, notImplemented);
+app.delete("/api/v1/admin/courses/:id", requireAdmin, async (req, res) => {
+  const id = req.params.id as string;
+  const ref = db.collection("courses").doc(id);
+  const snap = await ref.get();
 
-// Admin: sessions
+  if (!snap.exists) {
+    res.status(404).json({ error: "course_not_found" });
+    return;
+  }
+
+  await ref.delete();
+  res.json({ deleted: true, id });
+});
+
+// Admin: sessions (未実装)
 app.get("/api/v1/admin/sessions", requireAdmin, notImplemented);
 app.post("/api/v1/admin/sessions/:id/close", requireAdmin, notImplemented);
 
-// Admin: notification policies
+// Admin: notification policies (未実装)
 app.get("/api/v1/admin/notification-policies", requireAdmin, notImplemented);
 app.post("/api/v1/admin/notification-policies", requireAdmin, notImplemented);
 app.patch("/api/v1/admin/notification-policies/:id", requireAdmin, notImplemented);
-
-// Admin: forms
-app.get("/api/v1/admin/forms", requireAdmin, notImplemented);
-app.post("/api/v1/admin/forms", requireAdmin, notImplemented);
-app.patch("/api/v1/admin/forms/:id", requireAdmin, notImplemented);
 
 const port = Number(process.env.PORT || 8080);
 app.listen(port, () => {
