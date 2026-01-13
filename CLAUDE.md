@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## プロジェクト概要
 
-Google Classroomを中心に、講座単位の入退室（IN/OUT）と滞在時間を記録・可視化するシステム。Classroom APIには入退室ログがないため、自社アプリでIN/OUTボタンを提供し、動画視聴イベントやForms提出時刻を補助ソースとして活用する。
+Google Classroomを中心に、講座単位の入退室（IN/OUT）と滞在時間を記録・可視化するシステム。Classroom APIには入退室ログがないため、自社アプリでIN/OUTボタンを提供し、動画視聴イベントを補助ソースとして活用する。
+
+**注**: Classroom API / Forms API連携は廃止（OAuth審査コストが高いため）。講座・受講者情報は管理画面で手入力。
 
 ## 開発コマンド
 
@@ -14,7 +16,6 @@ npm install
 
 # 各サービスのビルド
 npm run build -w @classroom-check-in/api
-npm run build -w @classroom-check-in/ingestion
 npm run build -w @classroom-check-in/event-collector
 npm run build -w @classroom-check-in/session
 npm run build -w @classroom-check-in/notification
@@ -22,7 +23,6 @@ npm run build -w @classroom-check-in/web
 
 # 各サービスの起動
 npm run start -w @classroom-check-in/api
-npm run start -w @classroom-check-in/ingestion
 
 # Web開発サーバー
 npm run dev -w @classroom-check-in/web
@@ -31,13 +31,10 @@ npm run dev -w @classroom-check-in/web
 ## アーキテクチャ
 
 ```
-[Google APIs] → [Ingestion Service] → [Session Processor] → [Firestore/BigQuery] → [Web UI]
-                       ↓                      ↓
-                 Cloud Scheduler         Cloud Tasks
-
-[Web App] → [API Service] → [Firestore]
-    ↓            ↓
-    +--→ [Event Collector] → [Notification Service]
+[Web App] → [API Service] → [Session Processor] → [Firestore/BigQuery] → [Web UI]
+    ↓            ↓               Cloud Tasks
+    |       [Event Collector]
+    +--→ [Notification Service]
 ```
 
 ### サービス構成（すべてCloud Run）
@@ -45,7 +42,6 @@ npm run dev -w @classroom-check-in/web
 | サービス | 役割 |
 |---------|------|
 | `services/api` | REST API（認証、入退室打刻、管理操作） |
-| `services/ingestion` | Classroom/Forms同期バッチ（`/run`エンドポイント） |
 | `services/event-collector` | 動画プレイヤーイベント収集 |
 | `services/session` | セッション再計算ジョブ |
 | `services/notification` | OUT忘れ通知送信 |
@@ -55,7 +51,7 @@ npm run dev -w @classroom-check-in/web
 
 1. **入室**: 講座選択 → INボタン → Session(status=open)作成 → Classroom URLへ遷移
 2. **滞在**: heartbeatで継続確認、動画視聴イベントを収集
-3. **退室**: OUTボタン or 動画完走 or Forms提出時刻からSession.endTimeを確定
+3. **退室**: OUTボタン or 動画完走からSession.endTimeを確定
 4. **補正**: 未OUTセッションは通知ポリシーに従って通知、手動補正可能
 
 ## 技術スタック
@@ -74,16 +70,14 @@ npm run dev -w @classroom-check-in/web
 |------|------|
 | `AUTH_MODE=dev` | ヘッダ疑似認証（`X-User-Id`, `X-User-Role`）を有効化 |
 | `GOOGLE_APPLICATION_CREDENTIALS` | サービスアカウントJSONパス |
-| `GOOGLE_WORKSPACE_ADMIN_SUBJECT` | ドメインワイドデリゲーション用の管理者メール |
 
 詳細は`docs/config.md`を参照。
 
 ## 重要な設計判断
 
 - **連続IN**: 既存openセッションがあれば新規作成せず既存を返す
-- **講座同期**: ドメイン全体を取得し、CourseTargetで対象講座/表示を制御
+- **講座管理**: 管理画面で手入力（Classroom API連携は廃止）
 - **1x以外の視聴**: 完走判定から除外
-- **Forms**: Form IDは管理画面で手動登録、提出時刻をOUT補助に使用
 
 全ADRは`docs/decisions.md`を参照。
 
@@ -100,12 +94,12 @@ npm run dev -w @classroom-check-in/web
 
 **実装済み**:
 - APIの主要エンドポイント（`/courses`, `/sessions/*`, `/admin/*`）
-- Classroom/Forms同期ロジック
 - ヘッダ疑似認証（`AUTH_MODE=dev`）
+- GCPプロジェクト設定（`classroom-checkin-279`）
 
 **未実装**:
-- Google OAuthログイン
-- 管理画面UI
+- 認証方式（OAuth審査が必要なため後日検討）
+- 管理画面UI（講座・受講者の手入力）
 - 通知送信（SendGrid/Gmail/SMTP）
 - セッション再計算ジョブ
 - 動画視聴トラッキング実装

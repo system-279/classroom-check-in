@@ -1,7 +1,7 @@
 # データモデル案
 
 ## 主エンティティ
-注: FirestoreのドキュメントIDは、外部ID（Course ID / User ID）をそのまま使う方針。
+注: Classroom API / Forms API連携は廃止。講座・受講者情報は管理画面で手入力。
 
 ### User
 | フィールド | 型 | 説明 |
@@ -42,31 +42,18 @@
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
 | id | string | 内部ID |
-| externalCourseId | string | Classroom Course ID |
-| name | string | 講座名 |
-| classroomUrl | string | ClassroomのコースURL |
-| metadata | object | 任意メタ情報 |
-| courseState | string | Classroomの状態 |
-| creationTime | timestamp | 作成日時 |
-| updateTime | timestamp | 更新日時 |
-| syncedAt | timestamp | 最終同期 |
-
-### CourseTarget
-| フィールド | 型 | 説明 |
-| --- | --- | --- |
-| id | string | 内部ID |
-| courseId | string | Course参照 |
+| name | string | 講座名（手入力） |
+| description | string | 講座説明（任意） |
+| classroomUrl | string | ClassroomのコースURL（手入力） |
 | enabled | boolean | 対象講座として扱うか |
 | visible | boolean | 受講者に表示するか |
 | note | string | 管理用メモ |
+| createdAt | timestamp | 作成日時 |
+| updatedAt | timestamp | 更新日時 |
 
-### ClassroomSyncConfig
-| フィールド | 型 | 説明 |
-| --- | --- | --- |
-| id | string | 内部ID |
-| mode | string | domain_all |
-| includeArchived | boolean | アーカイブを含める |
-| lastSyncedAt | timestamp | 最終同期時刻 |
+~~### CourseTarget~~ **Courseに統合**
+
+~~### ClassroomSyncConfig~~ **廃止**（Classroom API連携廃止のため）
 
 ### Enrollment
 | フィールド | 型 | 説明 |
@@ -75,9 +62,11 @@
 | courseId | string | Course参照 |
 | userId | string | User参照 |
 | role | string | student/teacher |
-| startAt | timestamp | 参加開始 |
+| startAt | timestamp | 参加開始（手入力） |
 | endAt | timestamp | 参加終了（任意） |
-| syncedAt | timestamp | 最終同期 |
+| createdAt | timestamp | 登録日時 |
+
+注: Enrollment（受講者リスト）は管理画面で手入力。
 
 ### VideoAsset
 | フィールド | 型 | 説明 |
@@ -131,34 +120,11 @@
 | sentAt | timestamp | 送信時刻 |
 | status | string | sent/failed |
 
-### FormMapping
-| フィールド | 型 | 説明 |
-| --- | --- | --- |
-| id | string | 内部ID |
-| courseId | string | Course参照 |
-| formId | string | Google Forms ID |
-| title | string | フォーム名 |
-| active | boolean | 有効/無効 |
-| lastSyncedAt | timestamp | 最終同期 |
+~~### FormMapping~~ **廃止**（Forms API連携廃止のため）
 
-### FormResponse
-| フィールド | 型 | 説明 |
-| --- | --- | --- |
-| id | string | 内部ID |
-| formId | string | Form参照 |
-| responseId | string | 応答ID |
-| courseId | string | Course参照（任意） |
-| createTime | timestamp | 送信作成時刻 |
-| lastSubmittedTime | timestamp | 最終提出時刻 |
-| syncedAt | timestamp | 最終同期 |
+~~### FormResponse~~ **廃止**（Forms API連携廃止のため）
 
-### SyncRun
-| フィールド | 型 | 説明 |
-| --- | --- | --- |
-| id | string | 内部ID |
-| task | string | classroom-sync/forms-sync |
-| stats | object | 件数集計 |
-| completedAt | timestamp | 完了時刻 |
+~~### SyncRun~~ **廃止**（API同期廃止のため）
 
 ### AttendanceEvent
 | フィールド | 型 | 説明 |

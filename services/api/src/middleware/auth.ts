@@ -19,18 +19,18 @@ declare global {
 const authMode = process.env.AUTH_MODE ?? "dev";
 
 export const authMiddleware = (req: Request, _res: Response, next: NextFunction) => {
-  if (authMode !== "dev") {
-    next();
-    return;
-  }
+  if (authMode === "dev") {
+    // 開発モード: ヘッダ疑似認証（X-User-Id, X-User-Role, X-User-Email）
+    const id = req.header("x-user-id");
+    const role = (req.header("x-user-role") as Role | null) ?? "student";
+    const email = req.header("x-user-email") ?? undefined;
 
-  const id = req.header("x-user-id");
-  const role = (req.header("x-user-role") as Role | null) ?? "student";
-  const email = req.header("x-user-email") ?? undefined;
-
-  if (id) {
-    req.user = { id, role, email };
+    if (id) {
+      req.user = { id, role, email };
+    }
   }
+  // 本番認証は未実装（OAuth審査が必要なため後日検討）
+  // req.user が設定されない場合、requireUser/requireAdmin で 401/403 が返る
 
   next();
 };
