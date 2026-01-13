@@ -1,0 +1,11 @@
+{
+  "name": "classroom-check-in",
+  "private": true,
+  "workspaces": [
+    "services/*",
+    "web"
+  ],
+  "engines": {
+    "node": ">=24.12.0"
+  }
+}
