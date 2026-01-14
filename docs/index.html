@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Classroom Check-in - 入退室管理システム</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Noto Sans JP', sans-serif; }
+  </style>
+</head>
+<body class="bg-gray-50">
+  <!-- ヘッダー -->
+  <header class="bg-blue-600 text-white shadow-lg">
+    <div class="max-w-6xl mx-auto px-4 py-6">
+      <h1 class="text-2xl md:text-3xl font-bold">Classroom Check-in</h1>
+      <p class="mt-2 text-blue-100">オンライン講座の入退室管理システム</p>
+    </div>
+  </header>
+
+  <!-- ナビゲーション -->
+  <nav class="bg-white shadow">
+    <div class="max-w-6xl mx-auto px-4">
+      <div class="flex space-x-4 overflow-x-auto">
+        <a href="index.html" class="px-4 py-3 text-blue-600 border-b-2 border-blue-600 font-medium">ホーム</a>
+        <a href="student-guide.html" class="px-4 py-3 text-gray-600 hover:text-blue-600">受講者ガイド</a>
+        <a href="admin-guide.html" class="px-4 py-3 text-gray-600 hover:text-blue-600">管理者ガイド</a>
+        <a href="architecture.html" class="px-4 py-3 text-gray-600 hover:text-blue-600">システム構成</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- メインコンテンツ -->
+  <main class="max-w-6xl mx-auto px-4 py-8">
+
+    <!-- システム概要 -->
+    <section class="bg-white rounded-lg shadow-md p-6 mb-8">
+      <h2 class="text-2xl font-bold text-gray-800 mb-4">このシステムについて</h2>
+      <p class="text-gray-600 leading-relaxed mb-4">
+        Classroom Check-inは、オンライン講座の<strong class="text-blue-600">入室・退室を簡単に記録</strong>できるシステムです。
+        受講者がボタンを押すだけで、いつ講座に参加して、いつ退室したかを自動的に記録します。
+      </p>
+      <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+        <p class="text-blue-800">
+          <strong>主な特徴:</strong> ワンクリックで入退室を記録 / 滞在時間の自動計算 / 退室忘れの通知機能
+        </p>
+      </div>
+    </section>
+
+    <!-- 使い方の流れ -->
+    <section class="bg-white rounded-lg shadow-md p-6 mb-8">
+      <h2 class="text-2xl font-bold text-gray-800 mb-6">使い方の流れ</h2>
+
+      <div class="grid md:grid-cols-4 gap-4">
+        <!-- ステップ1 -->
+        <div class="text-center p-4 bg-green-50 rounded-lg">
+          <div class="w-12 h-12 bg-green-500 text-white rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">1</div>
+          <h3 class="font-bold text-gray-800 mb-2">講座を選ぶ</h3>
+          <p class="text-sm text-gray-600">参加する講座を一覧から選択します</p>
+        </div>
+
+        <!-- ステップ2 -->
+        <div class="text-center p-4 bg-blue-50 rounded-lg">
+          <div class="w-12 h-12 bg-blue-500 text-white rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">2</div>
+          <h3 class="font-bold text-gray-800 mb-2">INボタンを押す</h3>
+          <p class="text-sm text-gray-600">入室ボタンを押して講座に参加します</p>
+        </div>
+
+        <!-- ステップ3 -->
+        <div class="text-center p-4 bg-purple-50 rounded-lg">
+          <div class="w-12 h-12 bg-purple-500 text-white rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">3</div>
+          <h3 class="font-bold text-gray-800 mb-2">講座を受ける</h3>
+          <p class="text-sm text-gray-600">Classroomで講座を受講します</p>
+        </div>
+
+        <!-- ステップ4 -->
+        <div class="text-center p-4 bg-orange-50 rounded-lg">
+          <div class="w-12 h-12 bg-orange-500 text-white rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">4</div>
+          <h3 class="font-bold text-gray-800 mb-2">OUTボタンを押す</h3>
+          <p class="text-sm text-gray-600">退室ボタンを押して完了です</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- フロー図 -->
+    <section class="bg-white rounded-lg shadow-md p-6 mb-8">
+      <h2 class="text-2xl font-bold text-gray-800 mb-6">システムの流れ</h2>
+      <div class="overflow-x-auto">
+        <div class="mermaid">
+flowchart LR
+    subgraph 受講者の操作
+        A[講座を選択] --> B[INボタン]
+        B --> C[講座を受講]
+        C --> D[OUTボタン]
+    end
+
+    subgraph システムが自動で行うこと
+        B --> E[入室時刻を記録]
+        D --> F[退室時刻を記録]
+        F --> G[滞在時間を計算]
+    end
+
+    subgraph 管理者が確認できること
+        G --> H[出席状況]
+        G --> I[滞在時間レポート]
+    end
+        </div>
+      </div>
+    </section>
+
+    <!-- 対象ユーザー -->
+    <section class="bg-white rounded-lg shadow-md p-6 mb-8">
+      <h2 class="text-2xl font-bold text-gray-800 mb-6">ユーザー別ガイド</h2>
+
+      <div class="grid md:grid-cols-2 gap-6">
+        <!-- 受講者向け -->
+        <a href="student-guide.html" class="block p-6 bg-gradient-to-br from-green-400 to-green-600 rounded-lg text-white hover:shadow-lg transition-shadow">
+          <div class="text-4xl mb-3">&#128218;</div>
+          <h3 class="text-xl font-bold mb-2">受講者の方へ</h3>
+          <p class="text-green-100">講座への入室・退室方法を説明します。初めての方はこちらをご覧ください。</p>
+          <span class="inline-block mt-4 px-4 py-2 bg-white text-green-600 rounded-full text-sm font-medium">ガイドを見る →</span>
+        </a>
+
+        <!-- 管理者向け -->
+        <a href="admin-guide.html" class="block p-6 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg text-white hover:shadow-lg transition-shadow">
+          <div class="text-4xl mb-3">&#128736;</div>
+          <h3 class="text-xl font-bold mb-2">管理者の方へ</h3>
+          <p class="text-blue-100">講座の登録、受講者管理、出席状況の確認方法を説明します。</p>
+          <span class="inline-block mt-4 px-4 py-2 bg-white text-blue-600 rounded-full text-sm font-medium">ガイドを見る →</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- よくある質問 -->
+    <section class="bg-white rounded-lg shadow-md p-6">
+      <h2 class="text-2xl font-bold text-gray-800 mb-6">よくある質問</h2>
+
+      <div class="space-y-4">
+        <details class="border rounded-lg">
+          <summary class="px-4 py-3 cursor-pointer font-medium text-gray-800 hover:bg-gray-50">
+            OUTボタンを押し忘れたらどうなりますか？
+          </summary>
+          <div class="px-4 py-3 bg-gray-50 text-gray-600">
+            システムが自動で通知を送信し、退室時刻の入力を促します。また、管理者が手動で退室時刻を設定することもできます。
+          </div>
+        </details>
+
+        <details class="border rounded-lg">
+          <summary class="px-4 py-3 cursor-pointer font-medium text-gray-800 hover:bg-gray-50">
+            複数の講座を同時に受講できますか？
+          </summary>
+          <div class="px-4 py-3 bg-gray-50 text-gray-600">
+            いいえ、一度に参加できる講座は1つです。別の講座に参加する場合は、先に現在の講座を退室してください。
+          </div>
+        </details>
+
+        <details class="border rounded-lg">
+          <summary class="px-4 py-3 cursor-pointer font-medium text-gray-800 hover:bg-gray-50">
+            滞在時間はどのように計算されますか？
+          </summary>
+          <div class="px-4 py-3 bg-gray-50 text-gray-600">
+            INボタンを押した時刻からOUTボタンを押した時刻までの時間が自動的に計算されます。
+          </div>
+        </details>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- フッター -->
+  <footer class="bg-gray-800 text-gray-300 mt-12">
+    <div class="max-w-6xl mx-auto px-4 py-8">
+      <p class="text-center text-sm">
+        Classroom Check-in - オンライン講座の入退室管理システム
+      </p>
+    </div>
+  </footer>
+
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: 'default' });
+  </script>
+</body>
+</html>

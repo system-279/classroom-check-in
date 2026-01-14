@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>システム構成 - Classroom Check-in</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Noto Sans JP', sans-serif; }
+  </style>
+</head>
+<body class="bg-gray-50">
+  <!-- ヘッダー -->
+  <header class="bg-blue-600 text-white shadow-lg">
+    <div class="max-w-6xl mx-auto px-4 py-6">
+      <h1 class="text-2xl md:text-3xl font-bold">Classroom Check-in</h1>
+      <p class="mt-2 text-blue-100">オンライン講座の入退室管理システム</p>
+    </div>
+  </header>
+
+  <!-- ナビゲーション -->
+  <nav class="bg-white shadow">
+    <div class="max-w-6xl mx-auto px-4">
+      <div class="flex space-x-4 overflow-x-auto">
+        <a href="index.html" class="px-4 py-3 text-gray-600 hover:text-blue-600">ホーム</a>
+        <a href="student-guide.html" class="px-4 py-3 text-gray-600 hover:text-blue-600">受講者ガイド</a>
+        <a href="admin-guide.html" class="px-4 py-3 text-gray-600 hover:text-blue-600">管理者ガイド</a>
+        <a href="architecture.html" class="px-4 py-3 text-blue-600 border-b-2 border-blue-600 font-medium">システム構成</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- メインコンテンツ -->
+  <main class="max-w-6xl mx-auto px-4 py-8">
+
+    <!-- ページタイトル -->
+    <div class="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg shadow-md p-6 mb-8 text-white">
+      <h2 class="text-2xl font-bold mb-2">&#128421; システム構成</h2>
+      <p>システムがどのように動いているかを図解で説明します</p>
+    </div>
+
+    <!-- 全体構成図 -->
+    <section class="bg-white rounded-lg shadow-md p-6 mb-8">
+      <h2 class="text-2xl font-bold text-gray-800 mb-6">システム全体像</h2>
+
+      <p class="text-gray-600 mb-6">
+        Classroom Check-inは、複数のサービスが連携して動作しています。
+        下の図は、システム全体の構成を示しています。
+      </p>
+
+      <div class="overflow-x-auto mb-6">
+        <div class="mermaid">
+flowchart TB
+    subgraph ユーザー["&#128100; ユーザー"]
+        A[受講者]
+        B[管理者]
+    end
+
+    subgraph フロントエンド["&#128187; Webアプリケーション"]
+        C[受講者画面<br>講座選択・IN/OUT]
+        D[管理者画面<br>講座・受講者・セッション管理]
+    end
+
+    subgraph バックエンド["&#9881; バックエンドサービス"]
+        E[APIサービス<br>データの読み書き]
+        F[通知サービス<br>退室忘れ通知]
+    end
+
+    subgraph データベース["&#128451; データ保存"]
+        G[(Firestore<br>講座・セッション等)]
+    end
+
+    subgraph 外部サービス["&#127760; 外部サービス"]
+        H[Google Classroom]
+        I[Gmail<br>通知メール送信]
+    end
+
+    A --> C
+    B --> D
+    C --> E
+    D --> E
+    E --> G
+    F --> G
+    F --> I
+    C -.->|遷移| H
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-4">
+        <div class="p-4 bg-blue-50 rounded-lg">
+          <h4 class="font-bold text-blue-800 mb-2">&#128187; Webアプリケーション</h4>
+          <p class="text-sm text-blue-700">
+            ユーザーが直接操作する画面です。受講者用と管理者用の2種類があります。
+          </p>
+        </div>
+        <div class="p-4 bg-green-50 rounded-lg">
+          <h4 class="font-bold text-green-800 mb-2">&#9881; バックエンドサービス</h4>
+          <p class="text-sm text-green-700">
+            裏側で動作するプログラムです。データの保存や通知の送信を行います。
+          </p>
+        </div>
+        <div class="p-4 bg-purple-50 rounded-lg">
+          <h4 class="font-bold text-purple-800 mb-2">&#128451; データベース</h4>
+          <p class="text-sm text-purple-700">
+            講座情報やセッション記録など、すべてのデータを保存する場所です。
+          </p>
+        </div>
+        <div class="p-4 bg-orange-50 rounded-lg">
+          <h4 class="font-bold text-orange-800 mb-2">&#127760; 外部サービス</h4>
+          <p class="text-sm text-orange-700">
+            Google ClassroomやGmailなど、連携している外部のサービスです。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- データの流れ：入室 -->
+    <section class="bg-white rounded-lg shadow-md p-6 mb-8">
+      <h2 class="text-2xl font-bold text-gray-800 mb-6">データの流れ</h2>
+
+      <!-- 入室時 -->
+      <div class="mb-8">
+        <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+          <span class="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center mr-2 text-sm">IN</span>
+          入室時の処理
+        </h3>
+
+        <div class="overflow-x-auto mb-4">
+          <div class="mermaid">
+sequenceDiagram
+    participant U as 受講者
+    participant W as Webアプリ
+    participant A as APIサービス
+    participant D as データベース
+    participant C as Classroom
+
+    U->>W: INボタンをクリック
+    W->>A: 入室リクエスト送信
+    A->>D: セッション作成
+    D-->>A: 作成完了
+    A-->>W: 成功レスポンス
+    W->>C: Classroomへ自動遷移
+    Note over U,C: 受講者はClassroomで講座を受講
+          </div>
+        </div>
+
+        <div class="p-4 bg-gray-50 rounded-lg">
+          <ol class="text-sm text-gray-700 space-y-2">
+            <li><strong>1.</strong> 受講者がINボタンをクリック</li>
+            <li><strong>2.</strong> システムが入室時刻を記録（セッション作成）</li>
+            <li><strong>3.</strong> 自動的にGoogle Classroomの講座ページへ移動</li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- 退室時 -->
+      <div class="mb-8">
+        <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+          <span class="w-8 h-8 bg-orange-500 text-white rounded-full flex items-center justify-center mr-2 text-sm">OUT</span>
+          退室時の処理
+        </h3>
+
+        <div class="overflow-x-auto mb-4">
+          <div class="mermaid">
+sequenceDiagram
+    participant U as 受講者
+    participant W as Webアプリ
+    participant A as APIサービス
+    participant D as データベース
+
+    U->>W: OUTボタンをクリック
+    W->>A: 退室リクエスト送信
+    A->>D: セッション更新<br>(退室時刻を記録)
+    D-->>A: 更新完了
+    A-->>W: 滞在時間を返却
+    W->>U: 完了メッセージ表示
+          </div>
+        </div>
+
+        <div class="p-4 bg-gray-50 rounded-lg">
+          <ol class="text-sm text-gray-700 space-y-2">
+            <li><strong>1.</strong> 受講者がOUTボタンをクリック</li>
+            <li><strong>2.</strong> システムが退室時刻を記録</li>
+            <li><strong>3.</strong> 滞在時間が自動計算されて保存</li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- 退室忘れ通知 -->
+      <div>
+        <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+          <span class="text-2xl mr-2">&#128276;</span>
+          退室忘れ通知の処理
+        </h3>
+
+        <div class="overflow-x-auto mb-4">
+          <div class="mermaid">
+sequenceDiagram
+    participant S as スケジューラ
+    participant N as 通知サービス
+    participant D as データベース
+    participant G as Gmail
+    participant U as 受講者
+
+    S->>N: 定期実行（毎時）
+    N->>D: 未退室セッションを検索
+    D-->>N: 該当セッション一覧
+    loop 各セッション
+        N->>D: 通知ポリシーを確認
+        alt 通知条件に該当
+            N->>G: メール送信依頼
+            G->>U: 通知メール
+        end
+    end
+          </div>
+        </div>
+
+        <div class="p-4 bg-gray-50 rounded-lg">
+          <ol class="text-sm text-gray-700 space-y-2">
+            <li><strong>1.</strong> システムが1時間ごとに自動チェック</li>
+            <li><strong>2.</strong> 入室中のまま一定時間が経過したセッションを検出</li>
+            <li><strong>3.</strong> 通知ポリシーに従って受講者にメール送信</li>
+          </ol>
+        </div>
+      </div>
+    </section>
+
+    <!-- データ構造 -->
+    <section class="bg-white rounded-lg shadow-md p-6 mb-8">
+      <h2 class="text-2xl font-bold text-gray-800 mb-6">保存されるデータ</h2>
+
+      <p class="text-gray-600 mb-6">
+        システムは以下のデータを保存・管理しています。
+      </p>
+
+      <div class="grid md:grid-cols-2 gap-6">
+        <!-- 講座データ -->
+        <div class="border rounded-lg overflow-hidden">
+          <div class="bg-blue-500 text-white px-4 py-3 font-bold">
+            &#128218; 講座データ
+          </div>
+          <div class="p-4">
+            <ul class="text-sm text-gray-600 space-y-2">
+              <li class="flex items-center">
+                <span class="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                講座名
+              </li>
+              <li class="flex items-center">
+                <span class="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                説明文
+              </li>
+              <li class="flex items-center">
+                <span class="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                Classroom URL
+              </li>
+              <li class="flex items-center">
+                <span class="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                表示設定
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- 受講者データ -->
+        <div class="border rounded-lg overflow-hidden">
+          <div class="bg-green-500 text-white px-4 py-3 font-bold">
+            &#128100; 受講者データ
+          </div>
+          <div class="p-4">
+            <ul class="text-sm text-gray-600 space-y-2">
+              <li class="flex items-center">
+                <span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                メールアドレス
+              </li>
+              <li class="flex items-center">
+                <span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                表示名
+              </li>
+              <li class="flex items-center">
+                <span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                役割（受講者/管理者）
+              </li>
+              <li class="flex items-center">
+                <span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                割当講座
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- セッションデータ -->
+        <div class="border rounded-lg overflow-hidden">
+          <div class="bg-purple-500 text-white px-4 py-3 font-bold">
+            &#128203; セッションデータ
+          </div>
+          <div class="p-4">
+            <ul class="text-sm text-gray-600 space-y-2">
+              <li class="flex items-center">
+                <span class="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
+                受講者ID
+              </li>
+              <li class="flex items-center">
+                <span class="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
+                講座ID
+              </li>
+              <li class="flex items-center">
+                <span class="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
+                入室時刻
+              </li>
+              <li class="flex items-center">
+                <span class="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
+                退室時刻
+              </li>
+              <li class="flex items-center">
+                <span class="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
+                状態（入室中/完了）
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- 通知ポリシーデータ -->
+        <div class="border rounded-lg overflow-hidden">
+          <div class="bg-orange-500 text-white px-4 py-3 font-bold">
+            &#128276; 通知ポリシーデータ
+          </div>
+          <div class="p-4">
+            <ul class="text-sm text-gray-600 space-y-2">
+              <li class="flex items-center">
+                <span class="w-2 h-2 bg-orange-500 rounded-full mr-2"></span>
+                対象範囲
+              </li>
+              <li class="flex items-center">
+                <span class="w-2 h-2 bg-orange-500 rounded-full mr-2"></span>
+                通知タイミング
+              </li>
+              <li class="flex items-center">
+                <span class="w-2 h-2 bg-orange-500 rounded-full mr-2"></span>
+                有効/無効
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 技術スタック（簡易版） -->
+    <section class="bg-white rounded-lg shadow-md p-6">
+      <h2 class="text-2xl font-bold text-gray-800 mb-6">使用している技術</h2>
+
+      <p class="text-gray-600 mb-6">
+        このシステムは以下の技術を使用して構築されています。
+      </p>
+
+      <div class="grid md:grid-cols-3 gap-4">
+        <div class="p-4 border rounded-lg text-center">
+          <div class="text-4xl mb-2">&#9889;</div>
+          <h4 class="font-bold text-gray-800">Google Cloud</h4>
+          <p class="text-sm text-gray-600 mt-1">サーバー・データベース</p>
+        </div>
+        <div class="p-4 border rounded-lg text-center">
+          <div class="text-4xl mb-2">&#128736;</div>
+          <h4 class="font-bold text-gray-800">Next.js</h4>
+          <p class="text-sm text-gray-600 mt-1">Webアプリケーション</p>
+        </div>
+        <div class="p-4 border rounded-lg text-center">
+          <div class="text-4xl mb-2">&#128640;</div>
+          <h4 class="font-bold text-gray-800">Cloud Run</h4>
+          <p class="text-sm text-gray-600 mt-1">サービス実行環境</p>
+        </div>
+      </div>
+
+      <div class="mt-6 p-4 bg-gray-50 rounded-lg">
+        <h4 class="font-bold text-gray-700 mb-2">詳細な技術情報</h4>
+        <p class="text-sm text-gray-600">
+          より詳細な技術情報については、
+          <a href="https://github.com/system-279/classroom-check-in" class="text-blue-600 hover:underline" target="_blank">
+            GitHubリポジトリ
+          </a>
+          をご覧ください。
+        </p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- フッター -->
+  <footer class="bg-gray-800 text-gray-300 mt-12">
+    <div class="max-w-6xl mx-auto px-4 py-8">
+      <p class="text-center text-sm">
+        Classroom Check-in - オンライン講座の入退室管理システム
+      </p>
+    </div>
+  </footer>
+
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: 'default' });
+  </script>
+</body>
+</html>
