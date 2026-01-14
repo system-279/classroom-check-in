@@ -8,11 +8,24 @@
 
 ## API Service (`services/api`)
 - `AUTH_MODE`:
-  - `dev` ならヘッダ疑似認証が有効（現在の運用モード）
-  - OAuth認証は実装しない（ADR-0014）
+  - `dev`: ヘッダ疑似認証が有効（開発用）
+  - `firebase`: Firebase Authentication（本番用、ADR-0016）
+- `FIREBASE_PROJECT_ID`:
+  - Firebase プロジェクトID（`AUTH_MODE=firebase`時に必須）
 - `PORT` (default: 8080)
 - `CORS_ORIGIN`:
   - 本番環境では必須（カンマ区切りで複数指定可能）
+
+## Web App (`web`)
+- `NEXT_PUBLIC_AUTH_MODE`:
+  - `dev`: ヘッダ疑似認証（開発用）
+  - `firebase`: Firebase Authentication（本番用）
+- `NEXT_PUBLIC_FIREBASE_API_KEY`:
+  - Firebase Web API Key（本番用）
+- `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`:
+  - Firebase Auth Domain（本番用）
+- `NEXT_PUBLIC_FIREBASE_PROJECT_ID`:
+  - Firebase プロジェクトID（本番用）
 
 ## Notification Service (`services/notification`)
 - `PORT` (default: 8080)

@@ -7,8 +7,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Google Classroomを中心に、講座単位の入退室（IN/OUT）と滞在時間を記録・可視化するシステム。Classroom APIには入退室ログがないため、自社アプリでIN/OUTボタンを提供する。
 
 **注**:
-- Classroom API / Forms API連携は廃止（OAuth審査コストが高いため）。講座・受講者情報は管理画面で手入力
-- OAuth認証は実装しない（ADR-0014）。当面はヘッダ疑似認証で運用
+- Classroom API / Forms API連携は廃止（OAuth審査コストが高いため）。講座・受講者情報は管理画面で手入力（ADR-0014）
+- ユーザー認証はFirebase Authentication + Googleソーシャルログイン（ADR-0016）
 - 動画プレイヤー連携は実装しない（ADR-0015）。IN/OUTは手動入力のみ
 
 ## 開発コマンド
@@ -66,16 +66,17 @@ npm run dev -w @classroom-check-in/web
 
 | 変数 | 説明 |
 |------|------|
-| `AUTH_MODE=dev` | ヘッダ疑似認証（`X-User-Id`, `X-User-Role`）を有効化 |
+| `AUTH_MODE` | `dev`=ヘッダ疑似認証、`firebase`=Firebase認証（本番用） |
 | `GOOGLE_APPLICATION_CREDENTIALS` | サービスアカウントJSONパス |
+| `FIREBASE_PROJECT_ID` | Firebase プロジェクトID |
 
 詳細は`docs/config.md`を参照。
 
 ## 重要な設計判断
 
-- **連続IN**: 既存openセッションがあれば新規作成せず既存を返す
-- **講座管理**: 管理画面で手入力（Classroom API連携は廃止）
-- **認証方式**: OAuth認証は実装しない（ADR-0014）
+- **連続IN**: 既存openセッションがあれば新規作成せず既存を返す（ADR-0012）
+- **講座管理**: 管理画面で手入力（Classroom API連携は廃止）（ADR-0014）
+- **認証方式**: Firebase Authentication + Googleソーシャルログイン（ADR-0016）
 - **動画プレイヤー**: 連携は実装しない（ADR-0015）
 
 全ADRは`docs/decisions.md`を参照。
@@ -109,6 +110,9 @@ npm run dev -w @classroom-check-in/web
 
 - GitHub Pagesドキュメントサイト: https://system-279.github.io/classroom-check-in/
 
+**未実装**:
+- Firebase Authentication実装（ADR-0016で設計済み、実装待ち）
+
 **スコープ外**（実装予定なし）:
-- OAuth認証（ADR-0014: 審査コストが高いため実装しない。当面はヘッダ疑似認証で運用）
+- Google OAuth（Classroom API連携用）（ADR-0014: 審査コストが高いため実装しない）
 - 動画プレイヤー連携（ADR-0015: 埋め込みプレイヤー実装・運用コストが高いため実装しない。IN/OUTは手動入力のみ）

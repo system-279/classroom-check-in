@@ -15,8 +15,8 @@
 ```
 
 **注**:
-- Classroom API / Forms API連携は廃止。講座・受講者情報は管理画面で手入力
-- OAuth認証は実装しない（ADR-0014）。当面はヘッダ疑似認証で運用
+- Classroom API / Forms API連携は廃止。講座・受講者情報は管理画面で手入力（ADR-0014）
+- ユーザー認証はFirebase Authentication + Googleソーシャルログイン（ADR-0016）
 - 動画プレイヤー連携は実装しない（ADR-0015）。IN/OUTは手動入力のみ
 
 ## コンポーネント案
@@ -41,7 +41,8 @@
 - Secrets / Auth
   - Secret Manager: サービスアカウント
   - Workload Identity / IAM最小権限
-  - **認証**: ヘッダ疑似認証で運用（ADR-0014: OAuth認証は実装しない）
+  - **認証**: Firebase Authentication + Googleソーシャルログイン（ADR-0016）
+    - 開発時は`AUTH_MODE=dev`でヘッダ疑似認証（X-User-Id, X-User-Role）も使用可能
 
 ## 同期方式
 - ~~バッチ: Schedulerで日次/時間単位で取得~~ **廃止**
@@ -49,10 +50,32 @@
 - 手入力: 管理者が講座・受講者を管理画面で登録
 - 通知: Schedulerで未OUTセッションを検知して通知
 
+## 認証フロー（ADR-0016）
+
+```
+[ユーザー] → [Web App] → [Firebase Auth] → [Google IdP]
+                ↓                              ↓
+         ID Token取得 ←─────────────────────────┘
+                ↓
+[Web App] → Authorization: Bearer <token> → [API Service]
+                                                  ↓
+                                    Firebase Admin SDK でトークン検証
+                                                  ↓
+                                    firebaseUid → User検索 → req.user
+```
+
+1. **ログイン**: ユーザーがGoogleアカウントでFirebase Authにログイン
+2. **トークン取得**: FirebaseからID Tokenを取得
+3. **API呼び出し**: `Authorization: Bearer <ID Token>`ヘッダでAPIにアクセス
+4. **検証**: API側でFirebase Admin SDKがトークンを検証
+5. **ユーザー特定**: firebaseUidでFirestoreのUserを検索、req.userにセット
+6. **初回ログイン時**: Userが存在しなければ自動作成（role=student）
+
 ## 決定事項
 - **講座情報は管理画面で手入力**（Classroom API連携は廃止）
 - 講座選択は入室前に必須で、選択した講座のClassroom URLへ遷移
 - OUT忘れは通知ポリシーで初回/間隔/最大日数を設定
+- **ユーザー認証はFirebase Authentication + Googleソーシャルログイン**（ADR-0016）
 
 ## 技術スタック
 - 詳細は `docs/tech-stack.md` を参照

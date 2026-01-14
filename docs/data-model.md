@@ -7,13 +7,15 @@
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
 | id | string | 内部ID |
-| email | string | メールアドレス |
-| name | string | 表示名 |
+| firebaseUid | string | Firebase AuthenticationのUID |
+| email | string | メールアドレス（Firebaseから取得） |
+| name | string | 表示名（Firebaseから取得） |
 | role | string | student/teacher/admin |
 | createdAt | timestamp | 作成日時 |
 | updatedAt | timestamp | 更新日時 |
 
-注: Classroom API連携廃止に伴い、externalId/givenName/familyName/photoUrl/syncedAtは廃止。
+注: Firebase Authentication導入に伴い`firebaseUid`を追加（ADR-0016）。初回ログイン時にUser自動作成（role=student）。
+注: Classroom API連携廃止に伴い、externalId/givenName/familyName/photoUrl/syncedAtは廃止（ADR-0014）。
 
 ### UserSettings
 | フィールド | 型 | 説明 |

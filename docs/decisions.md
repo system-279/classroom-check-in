@@ -78,14 +78,38 @@
 - 判断: Classroom API連携自体を廃止。講座・受講者情報は管理画面で手入力する
 - 影響: OAuth認証は不要。講座管理は完全手動
 
-## ADR-0014: ユーザー認証方式
+## ADR-0014: Google OAuth（API連携用）の見送り
 - 状態: 採用
-- 背景: Google OAuthはGoogle審査が必要で、外部ユーザー対応のコストが高い
-- 判断: OAuth認証は実装しない。当面は開発用ヘッダ認証（`X-User-Id`, `X-User-Role`）で運用する
-- 影響: 本番運用時の認証方式は将来の課題として残る（Basic認証、独自ID/PW、招待リンク等を検討）
+- 背景:
+  - Google OAuth（Classroom API / Forms API等のGoogle APIアクセス用）はGoogle審査が必要
+  - 外部ユーザー対応のための審査コストが高い
+- 判断: Google OAuthによるAPI連携は実装しない。講座・受講者情報は管理画面で手入力する
+- 注記: **ユーザーログインにはFirebase Authenticationを採用**（ADR-0016参照）。Firebase AuthはGoogle審査不要
+- 影響: Classroom API / Forms APIとの自動同期は使用不可
 
 ## ADR-0015: 動画プレイヤー連携の廃止
 - 状態: 採用
 - 背景: 埋め込みプレイヤーの実装・運用コストが高く、外部動画（YouTube等）の計測にも制約がある
 - 判断: 動画視聴イベントの収集・完走判定機能は実装しない。IN/OUTは手動入力のみとする
 - 影響: Event Collector / Session Processorの動画関連機能は使用しない。OUT忘れ対策は通知に依存
+
+## ADR-0016: Firebase Authenticationの採用
+- 状態: 採用
+- 背景:
+  - ADR-0014で断念した「Google OAuth」はClassroom API等のGoogle APIアクセス用であり、Google審査が必要
+  - 一方、Firebase AuthenticationはGoogleの審査不要でユーザーログイン機能を提供できる
+  - 本番運用にはユーザー認証が必須であり、ヘッダ疑似認証では運用できない
+- 判断:
+  - Firebase Authentication + Googleソーシャルログインを採用する
+  - Google OAuthによるAPI連携（Classroom API等）は引き続き実装しない（ADR-0014）
+- 認証フロー:
+  1. Web: Firebase SDKでGoogleソーシャルログイン
+  2. Web: FirebaseからID Tokenを取得
+  3. Web: API呼び出し時に`Authorization: Bearer <ID Token>`ヘッダで送信
+  4. API: Firebase Admin SDKでID Tokenを検証
+  5. API: 検証成功→firebaseUidでUserを特定し、req.userにセット
+- 影響:
+  - Userエンティティに`firebaseUid`フィールドを追加
+  - 初回ログイン時にUser自動作成（role=student）、管理者が後からroleを変更
+  - 開発時は`AUTH_MODE=dev`でヘッダ疑似認証を継続利用可能
+  - Firebaseプロジェクトの設定が必要（GCPプロジェクトと同一で可）
