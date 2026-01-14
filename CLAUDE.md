@@ -110,7 +110,8 @@ npm run dev -w @classroom-check-in/web
   - Web UI: https://web-102013220292.asia-northeast1.run.app
 - Artifact Registry クリーンアップポリシー（最新2イメージ保持）
 
+- GitHub Pagesドキュメントサイト: https://system-279.github.io/classroom-check-in/
+
 **未実装**:
 - 認証方式（OAuth審査が必要なため後日検討）
 - フロントエンド動画プレイヤー連携（イベント送信UI）
-- Web UI周りの軽微なエラー修正
