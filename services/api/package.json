@@ -9,10 +9,12 @@
   },
   "dependencies": {
     "@google-cloud/firestore": "8.1.0",
+    "cors": "^2.8.5",
     "express": "5.2.1",
     "googleapis": "170.0.0"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
     "@types/express": "5.0.6",
     "@types/node": "25.0.7",
     "typescript": "5.9.3"

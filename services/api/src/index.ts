@@ -1,8 +1,13 @@
+import cors from "cors";
 import express from "express";
 import { authMiddleware, requireAdmin, requireUser } from "./middleware/auth.js";
 import { db } from "./storage/firestore.js";
 
 const app = express();
+app.use(cors({
+  origin: process.env.CORS_ORIGIN?.split(",") ?? ["http://localhost:3000", "http://localhost:3001"],
+  credentials: true,
+}));
 app.use(express.json());
 app.use(authMiddleware);
 
