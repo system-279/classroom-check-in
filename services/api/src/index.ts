@@ -364,9 +364,372 @@ app.delete("/api/v1/admin/courses/:id", requireAdmin, async (req, res) => {
   res.json({ deleted: true, id });
 });
 
-// Admin: sessions (未実装)
-app.get("/api/v1/admin/sessions", requireAdmin, notImplemented);
-app.post("/api/v1/admin/sessions/:id/close", requireAdmin, notImplemented);
+// Admin: users
+app.get("/api/v1/admin/users", requireAdmin, async (_req, res) => {
+  const usersSnap = await db.collection("users").get();
+
+  const users = usersSnap.docs.map((doc) => {
+    const data = doc.data();
+    return {
+      id: doc.id,
+      email: data.email,
+      name: data.name ?? null,
+      role: data.role ?? "student",
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt,
+    };
+  });
+
+  res.json({ users });
+});
+
+app.post("/api/v1/admin/users", requireAdmin, async (req, res) => {
+  const email = req.body?.email;
+  const name = req.body?.name ?? null;
+  const role = req.body?.role ?? "student";
+
+  if (!email) {
+    res.status(400).json({ error: "email_required" });
+    return;
+  }
+
+  // メールアドレスの重複チェック
+  const existingSnap = await db
+    .collection("users")
+    .where("email", "==", email)
+    .limit(1)
+    .get();
+
+  if (!existingSnap.empty) {
+    res.status(409).json({ error: "email_already_exists" });
+    return;
+  }
+
+  const now = new Date();
+  const ref = await db.collection("users").add({
+    email,
+    name,
+    role,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  res.json({
+    id: ref.id,
+    email,
+    name,
+    role,
+    createdAt: now,
+    updatedAt: now,
+  });
+});
+
+app.get("/api/v1/admin/users/:id", requireAdmin, async (req, res) => {
+  const id = req.params.id as string;
+  const ref = db.collection("users").doc(id);
+  const snap = await ref.get();
+
+  if (!snap.exists) {
+    res.status(404).json({ error: "user_not_found" });
+    return;
+  }
+
+  const data = snap.data() ?? {};
+  res.json({
+    id: snap.id,
+    email: data.email,
+    name: data.name ?? null,
+    role: data.role ?? "student",
+    createdAt: data.createdAt,
+    updatedAt: data.updatedAt,
+  });
+});
+
+app.patch("/api/v1/admin/users/:id", requireAdmin, async (req, res) => {
+  const id = req.params.id as string;
+  const updates: Record<string, unknown> = {};
+
+  if (typeof req.body?.email === "string") updates.email = req.body.email;
+  if (typeof req.body?.name === "string") updates.name = req.body.name;
+  if (typeof req.body?.role === "string") updates.role = req.body.role;
+
+  if (Object.keys(updates).length === 0) {
+    res.status(400).json({ error: "no_updates" });
+    return;
+  }
+
+  const ref = db.collection("users").doc(id);
+  const snap = await ref.get();
+  if (!snap.exists) {
+    res.status(404).json({ error: "user_not_found" });
+    return;
+  }
+
+  // メールアドレス変更時の重複チェック
+  if (updates.email) {
+    const existingSnap = await db
+      .collection("users")
+      .where("email", "==", updates.email)
+      .limit(1)
+      .get();
+
+    if (!existingSnap.empty && existingSnap.docs[0].id !== id) {
+      res.status(409).json({ error: "email_already_exists" });
+      return;
+    }
+  }
+
+  updates.updatedAt = new Date();
+  await ref.update(updates);
+
+  const currentData = snap.data() ?? {};
+  res.json({ id, ...currentData, ...updates });
+});
+
+app.delete("/api/v1/admin/users/:id", requireAdmin, async (req, res) => {
+  const id = req.params.id as string;
+  const ref = db.collection("users").doc(id);
+  const snap = await ref.get();
+
+  if (!snap.exists) {
+    res.status(404).json({ error: "user_not_found" });
+    return;
+  }
+
+  // 関連する受講登録を削除
+  const enrollmentsSnap = await db
+    .collection("enrollments")
+    .where("userId", "==", id)
+    .get();
+
+  const batch = db.batch();
+  enrollmentsSnap.docs.forEach((doc) => batch.delete(doc.ref));
+  batch.delete(ref);
+  await batch.commit();
+
+  res.json({ deleted: true, id });
+});
+
+// Admin: enrollments
+app.get("/api/v1/admin/enrollments", requireAdmin, async (req, res) => {
+  const courseId = req.query.courseId as string | undefined;
+  const userId = req.query.userId as string | undefined;
+
+  let query: FirebaseFirestore.Query = db.collection("enrollments");
+
+  if (courseId) {
+    query = query.where("courseId", "==", courseId);
+  }
+  if (userId) {
+    query = query.where("userId", "==", userId);
+  }
+
+  const enrollmentsSnap = await query.get();
+
+  const enrollments = enrollmentsSnap.docs.map((doc) => {
+    const data = doc.data();
+    return {
+      id: doc.id,
+      courseId: data.courseId,
+      userId: data.userId,
+      role: data.role ?? "student",
+      startAt: data.startAt,
+      endAt: data.endAt ?? null,
+      createdAt: data.createdAt,
+    };
+  });
+
+  res.json({ enrollments });
+});
+
+app.post("/api/v1/admin/enrollments", requireAdmin, async (req, res) => {
+  const courseId = req.body?.courseId;
+  const userId = req.body?.userId;
+  const role = req.body?.role ?? "student";
+  const startAt = req.body?.startAt ? new Date(req.body.startAt) : new Date();
+  const endAt = req.body?.endAt ? new Date(req.body.endAt) : null;
+
+  if (!courseId || !userId) {
+    res.status(400).json({ error: "course_id_and_user_id_required" });
+    return;
+  }
+
+  // 講座の存在確認
+  const courseSnap = await db.collection("courses").doc(courseId).get();
+  if (!courseSnap.exists) {
+    res.status(404).json({ error: "course_not_found" });
+    return;
+  }
+
+  // ユーザーの存在確認
+  const userSnap = await db.collection("users").doc(userId).get();
+  if (!userSnap.exists) {
+    res.status(404).json({ error: "user_not_found" });
+    return;
+  }
+
+  // 重複登録チェック
+  const existingSnap = await db
+    .collection("enrollments")
+    .where("courseId", "==", courseId)
+    .where("userId", "==", userId)
+    .limit(1)
+    .get();
+
+  if (!existingSnap.empty) {
+    res.status(409).json({ error: "enrollment_already_exists" });
+    return;
+  }
+
+  const now = new Date();
+  const ref = await db.collection("enrollments").add({
+    courseId,
+    userId,
+    role,
+    startAt,
+    endAt,
+    createdAt: now,
+  });
+
+  res.json({
+    id: ref.id,
+    courseId,
+    userId,
+    role,
+    startAt,
+    endAt,
+    createdAt: now,
+  });
+});
+
+app.patch("/api/v1/admin/enrollments/:id", requireAdmin, async (req, res) => {
+  const id = req.params.id as string;
+  const updates: Record<string, unknown> = {};
+
+  if (typeof req.body?.role === "string") updates.role = req.body.role;
+  if (req.body?.startAt !== undefined) {
+    updates.startAt = req.body.startAt ? new Date(req.body.startAt) : null;
+  }
+  if (req.body?.endAt !== undefined) {
+    updates.endAt = req.body.endAt ? new Date(req.body.endAt) : null;
+  }
+
+  if (Object.keys(updates).length === 0) {
+    res.status(400).json({ error: "no_updates" });
+    return;
+  }
+
+  const ref = db.collection("enrollments").doc(id);
+  const snap = await ref.get();
+  if (!snap.exists) {
+    res.status(404).json({ error: "enrollment_not_found" });
+    return;
+  }
+
+  await ref.update(updates);
+
+  const currentData = snap.data() ?? {};
+  res.json({ id, ...currentData, ...updates });
+});
+
+app.delete("/api/v1/admin/enrollments/:id", requireAdmin, async (req, res) => {
+  const id = req.params.id as string;
+  const ref = db.collection("enrollments").doc(id);
+  const snap = await ref.get();
+
+  if (!snap.exists) {
+    res.status(404).json({ error: "enrollment_not_found" });
+    return;
+  }
+
+  await ref.delete();
+  res.json({ deleted: true, id });
+});
+
+// Admin: sessions
+app.get("/api/v1/admin/sessions", requireAdmin, async (req, res) => {
+  const courseId = req.query.courseId as string | undefined;
+  const userId = req.query.userId as string | undefined;
+  const status = req.query.status as string | undefined;
+
+  let query: FirebaseFirestore.Query = db.collection("sessions");
+
+  if (courseId) {
+    query = query.where("courseId", "==", courseId);
+  }
+  if (userId) {
+    query = query.where("userId", "==", userId);
+  }
+  if (status) {
+    query = query.where("status", "==", status);
+  }
+
+  const sessionsSnap = await query.orderBy("startTime", "desc").limit(100).get();
+
+  const sessions = sessionsSnap.docs.map((doc) => {
+    const data = doc.data();
+    return {
+      id: doc.id,
+      courseId: data.courseId,
+      userId: data.userId,
+      startTime: data.startTime,
+      endTime: data.endTime ?? null,
+      durationSec: data.durationSec ?? 0,
+      source: data.source ?? "manual",
+      status: data.status,
+      lastHeartbeatAt: data.lastHeartbeatAt ?? null,
+    };
+  });
+
+  res.json({ sessions });
+});
+
+app.post("/api/v1/admin/sessions/:id/close", requireAdmin, async (req, res) => {
+  const id = req.params.id as string;
+  const closedAt = req.body?.closedAt ? new Date(req.body.closedAt) : new Date();
+  const reason = req.body?.reason ?? "admin_close";
+
+  const sessionRef = db.collection("sessions").doc(id);
+  const sessionSnap = await sessionRef.get();
+
+  if (!sessionSnap.exists) {
+    res.status(404).json({ error: "session_not_found" });
+    return;
+  }
+
+  const session = sessionSnap.data();
+  if (session?.status !== "open") {
+    res.status(409).json({ error: "session_not_open" });
+    return;
+  }
+
+  const startTime = session?.startTime?.toDate
+    ? session.startTime.toDate()
+    : session?.startTime;
+  const durationSec = startTime
+    ? Math.max(0, Math.floor((closedAt.getTime() - startTime.getTime()) / 1000))
+    : 0;
+
+  await sessionRef.update({
+    endTime: closedAt,
+    durationSec,
+    status: "adjusted",
+  });
+
+  // 補正イベントを記録
+  await db.collection("attendanceEvents").add({
+    courseId: session?.courseId,
+    userId: session?.userId,
+    eventType: "ADJUST",
+    eventTime: closedAt,
+    source: "manual",
+    sourceRef: id,
+    payload: { reason, closedBy: "admin" },
+  });
+
+  const updated = await sessionRef.get();
+  res.json({ session: { id: updated.id, ...updated.data() } });
+});
 
 // Admin: notification policies (未実装)
 app.get("/api/v1/admin/notification-policies", requireAdmin, notImplemented);

@@ -14,6 +14,22 @@ export default function AdminPage() {
             </p>
           </div>
         </Link>
+        <Link href="/admin/users">
+          <div className="rounded-lg border bg-card p-6 hover:bg-accent transition-colors">
+            <h2 className="font-semibold">受講者管理</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              ユーザーの追加・編集・講座登録
+            </p>
+          </div>
+        </Link>
+        <Link href="/admin/sessions">
+          <div className="rounded-lg border bg-card p-6 hover:bg-accent transition-colors">
+            <h2 className="font-semibold">セッション管理</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              入退室記録の確認・補正
+            </p>
+          </div>
+        </Link>
       </div>
     </div>
   );

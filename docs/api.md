@@ -59,11 +59,42 @@
 - `DELETE /admin/courses/{id}`
   - 講座を削除
 
-### 管理: セッション補正（未実装）
+### 管理: ユーザー
+- `GET /admin/users`
+  - 全ユーザー一覧
+- `POST /admin/users`
+  - body: `{ email, name?, role? }`
+  - ユーザーを新規作成
+  - メールアドレスの重複は409エラー
+- `GET /admin/users/{id}`
+  - ユーザー詳細
+- `PATCH /admin/users/{id}`
+  - body: `{ email?, name?, role? }`
+- `DELETE /admin/users/{id}`
+  - ユーザーと関連する受講登録を削除
+
+### 管理: 受講登録
+- `GET /admin/enrollments`
+  - query: `?courseId={id}&userId={id}` (optional)
+  - 受講登録一覧（フィルタ可能）
+- `POST /admin/enrollments`
+  - body: `{ courseId, userId, role?, startAt?, endAt? }`
+  - 受講登録を作成
+  - 重複登録は409エラー
+- `PATCH /admin/enrollments/{id}`
+  - body: `{ role?, startAt?, endAt? }`
+  - 受講登録を更新
+- `DELETE /admin/enrollments/{id}`
+  - 受講登録を削除
+
+### 管理: セッション
 - `GET /admin/sessions`
-  - フィルタ可能
+  - query: `?courseId={id}&userId={id}&status={open|closed|adjusted}` (optional)
+  - セッション一覧（フィルタ可能、最新100件）
 - `POST /admin/sessions/{id}/close`
-  - body: `{ closedAt: string, reason: string }`
+  - body: `{ closedAt?: string, reason?: string }`
+  - セッションを強制終了（status=adjusted）
+  - 補正イベント（ADJUST）を記録
 
 ### 管理: 通知ポリシー（未実装）
 - `GET /admin/notification-policies`
@@ -95,7 +126,35 @@
   "userId": "user_123",
   "startTime": "2025-02-14T08:00:00Z",
   "endTime": null,
-  "status": "open"
+  "durationSec": 0,
+  "source": "manual",
+  "status": "open",
+  "lastHeartbeatAt": "2025-02-14T08:05:00Z"
+}
+```
+
+### User
+```json
+{
+  "id": "user_123",
+  "email": "student@example.com",
+  "name": "山田太郎",
+  "role": "student",
+  "createdAt": "2025-02-14T08:00:00Z",
+  "updatedAt": "2025-02-14T08:00:00Z"
+}
+```
+
+### Enrollment
+```json
+{
+  "id": "enroll_123",
+  "courseId": "abc123",
+  "userId": "user_123",
+  "role": "student",
+  "startAt": "2025-02-14T08:00:00Z",
+  "endAt": null,
+  "createdAt": "2025-02-14T08:00:00Z"
 }
 ```
 

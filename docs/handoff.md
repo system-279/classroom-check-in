@@ -40,10 +40,15 @@
   - `/api/v1/courses`
   - `/api/v1/sessions/check-in|heartbeat|check-out`
   - `/api/v1/admin/courses`
+  - `/api/v1/admin/users` - ユーザー管理（CRUD）
+  - `/api/v1/admin/enrollments` - 受講登録管理
+  - `/api/v1/admin/sessions` - セッション一覧・強制終了
 - 認証は `AUTH_MODE=dev` でヘッダ疑似認証
 - GCPプロジェクト: `classroom-checkin-279`（Firestore, Cloud Run等有効化済み）
 - **管理画面UI**: `web/app/admin/`
   - 講座管理（一覧・作成・編集・削除）
+  - 受講者管理（一覧・作成・編集・削除・講座登録）
+  - セッション管理（一覧・フィルタ・強制終了）
   - Tailwind CSS v4 + shadcn/ui
 - **受講者向けUI**: `web/app/student/`
   - 講座一覧（`/student/courses`）
@@ -78,16 +83,15 @@
 
 ## 未実装/未確定
 - 認証方式（OAuth審査が必要なため後日検討）
-- 管理画面UI（受講者管理・セッション管理）
 - 通知送信の実装（SendGrid/Gmail/SMTP）
 - セッション再計算ジョブ
 - 動画視聴トラッキングの実装
 
 ## 次の優先タスク（推奨順）
-1) **管理画面UI拡張**（受講者管理・セッション管理）
-2) 通知サービスとOUT忘れ通知
-3) 認証方式の検討（OAuth審査 or 別方式）
-4) 動画視聴トラッキング
+1) 通知サービスとOUT忘れ通知
+2) 認証方式の検討（OAuth審査 or 別方式）
+3) 動画視聴トラッキング
+4) セッション再計算ジョブ
 
 ## 開発メモ
 - ドキュメント更新の順序は `docs/ai-dev-guide.md` を参照
