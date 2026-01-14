@@ -38,17 +38,20 @@
 ## 実装済み範囲
 - APIの主要エンドポイント: `services/api/src/index.ts`
   - `/api/v1/courses`
-  - `/api/v1/sessions/check-in|heartbeat|check-out`
+  - `/api/v1/sessions/active|check-in|heartbeat|check-out`
   - `/api/v1/admin/courses`
   - `/api/v1/admin/users` - ユーザー管理（CRUD）
+  - `/api/v1/admin/users/:id/settings` - ユーザー設定管理
   - `/api/v1/admin/enrollments` - 受講登録管理
   - `/api/v1/admin/sessions` - セッション一覧・強制終了
+  - `/api/v1/admin/notification-policies` - 通知ポリシー管理
 - 認証は `AUTH_MODE=dev` でヘッダ疑似認証
 - GCPプロジェクト: `classroom-checkin-279`（Firestore, Cloud Run等有効化済み）
 - **管理画面UI**: `web/app/admin/`
   - 講座管理（一覧・作成・編集・削除）
   - 受講者管理（一覧・作成・編集・削除・講座登録）
   - セッション管理（一覧・フィルタ・強制終了）
+  - 通知ポリシー管理（スコープ別設定）
   - Tailwind CSS v4 + shadcn/ui
 - **受講者向けUI**: `web/app/student/`
   - 講座一覧（`/student/courses`）
@@ -62,27 +65,36 @@
   - 通知ポリシー解決（user > course > global）
   - Gmail API / コンソール出力対応
   - 通知ログ記録・重複防止
-- **通知ポリシー管理**: `web/app/admin/notification-policies/`
-  - ポリシー一覧・作成・編集・削除
-  - スコープ別設定（グローバル/講座/ユーザー）
+- **Event Collector**: `services/event-collector/src/`
+  - 動画プレイヤーイベント収集
+  - Firestore保存（videoWatchEventsコレクション）
+- **Session Processor**: `services/session/src/`
+  - VideoWatchSession生成（連続した視聴区間の統合）
+  - 動画完走によるセッション自動クローズ
 - **Cloud Scheduler設定済み**:
   - 通知サービス: `notification-job`（毎時0分実行）
-  - Cloud Run URL: `https://notification-102013220292.asia-northeast1.run.app`
+- **Cloud Runデプロイ済み**:
+  - API: https://api-102013220292.asia-northeast1.run.app
+  - Web UI: https://web-102013220292.asia-northeast1.run.app
+- Artifact Registry クリーンアップポリシー（最新2イメージ保持）
+- **Firestoreインデックス設定済み**:
+  - sessions: status + startTime（複合インデックス）
 
 ## 環境変数
 - 参照: `docs/config.md`
 - `AUTH_MODE=dev` で `X-User-Id` / `X-User-Role` が有効
-- `GOOGLE_APPLICATION_CREDENTIALS` と `GOOGLE_WORKSPACE_ADMIN_SUBJECT` はGCP接続後に設定
+- `GOOGLE_APPLICATION_CREDENTIALS` はGCP接続に必要
 
 ## API仕様
 - 参照: `docs/api.md`
 - 注意点:
   - `enabled=false` の場合は `visible` を自動で false に補正
   - `GET /courses` は enabled=true かつ visible=true のみ返す
+  - Timestamp型はすべてISO 8601文字列で返される
 
 ## データモデル
 - 参照: `docs/data-model.md`
-- 主要コレクション: `courses`, `sessions`, `attendanceEvents`, `enrollments`, `users`
+- 主要コレクション: `courses`, `sessions`, `attendanceEvents`, `enrollments`, `users`, `userSettings`, `notificationPolicies`, `notificationLogs`, `videoWatchEvents`, `videoWatchSessions`
 - 廃止済み: ~~`courseTargets`~~（Courseに統合）, ~~`formMappings`~~, ~~`formResponses`~~, ~~`syncRuns`~~
 
 ## GCP設定済み
@@ -94,14 +106,14 @@
 
 ## 未実装/未確定
 - 認証方式（OAuth審査が必要なため後日検討）
-- セッション再計算ジョブ
-- 動画視聴トラッキングの実装
+- フロントエンド動画プレイヤー連携（イベント送信UI）
 
 ## 次の優先タスク（推奨順）
-1) 認証方式の検討（OAuth審査 or 別方式）
-2) 動画視聴トラッキング
-3) セッション再計算ジョブ
+1) 認証方式の検討（OAuth審査 or Firebase Auth等の代替）
+2) 動画プレイヤー連携UIの実装
+3) GitHub Actionsの設定（CI/CD自動化）
 
 ## 開発メモ
 - ドキュメント更新の順序は `docs/ai-dev-guide.md` を参照
 - ドキュメントと実装がズレたら必ず修正する
+- ローカル開発: APIは`npm run start -w @classroom-check-in/api`、Webは`npm run dev -w @classroom-check-in/web`

@@ -1,4 +1,11 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+// 本番環境のAPI URL（Cloud Run）
+const PRODUCTION_API_URL = "https://api-102013220292.asia-northeast1.run.app";
+
+// 環境変数またはデフォルト値を使用
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ||
+  (typeof window !== "undefined" && window.location.hostname !== "localhost"
+    ? PRODUCTION_API_URL
+    : "http://localhost:8080");
 const AUTH_MODE = process.env.NEXT_PUBLIC_AUTH_MODE ?? "dev";
 const DEV_USER_ID = process.env.NEXT_PUBLIC_USER_ID ?? "admin-dev";
 const DEV_USER_ROLE = process.env.NEXT_PUBLIC_USER_ROLE ?? "admin";

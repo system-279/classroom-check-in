@@ -15,6 +15,43 @@ function isValidTimezone(tz: string): boolean {
   return VALID_TIMEZONES.has(tz);
 }
 
+// Firestore TimestampをISO文字列に変換
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function toISOString(timestamp: any): string | null {
+  if (!timestamp) return null;
+  // Firestore Timestamp
+  if (typeof timestamp.toDate === "function") {
+    return timestamp.toDate().toISOString();
+  }
+  // JavaScript Date
+  if (timestamp instanceof Date) {
+    return timestamp.toISOString();
+  }
+  // 既にISO文字列の場合
+  if (typeof timestamp === "string") {
+    return timestamp;
+  }
+  // それ以外は変換不可
+  return null;
+}
+
+// セッションデータをシリアライズ
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function serializeSession(id: string, data: any) {
+  return {
+    id,
+    courseId: data.courseId,
+    userId: data.userId,
+    startTime: toISOString(data.startTime),
+    endTime: toISOString(data.endTime),
+    durationSec: data.durationSec ?? 0,
+    source: data.source ?? "manual",
+    confidence: data.confidence ?? null,
+    status: data.status,
+    lastHeartbeatAt: toISOString(data.lastHeartbeatAt),
+  };
+}
+
 const app = express();
 
 // CORS設定: 本番環境ではCORS_ORIGINの設定を必須とする
@@ -124,7 +161,7 @@ app.get("/api/v1/sessions/active", requireUser, async (req, res) => {
   }
 
   const doc = sessionsSnap.docs[0];
-  res.json({ session: { id: doc.id, ...doc.data() } });
+  res.json({ session: serializeSession(doc.id, doc.data()) });
 });
 
 app.post("/api/v1/sessions/check-in", requireUser, async (req, res) => {
@@ -151,7 +188,7 @@ app.post("/api/v1/sessions/check-in", requireUser, async (req, res) => {
 
   if (!openSnap.empty) {
     const doc = openSnap.docs[0];
-    res.json({ session: { id: doc.id, ...doc.data() }, alreadyOpen: true });
+    res.json({ session: serializeSession(doc.id, doc.data()), alreadyOpen: true });
     return;
   }
 
@@ -179,7 +216,7 @@ app.post("/api/v1/sessions/check-in", requireUser, async (req, res) => {
   });
 
   const sessionSnap = await sessionRef.get();
-  res.json({ session: { id: sessionSnap.id, ...sessionSnap.data() } });
+  res.json({ session: serializeSession(sessionSnap.id, sessionSnap.data()) });
 });
 
 app.post("/api/v1/sessions/heartbeat", requireUser, async (req, res) => {
@@ -251,7 +288,7 @@ app.post("/api/v1/sessions/check-out", requireUser, async (req, res) => {
   });
 
   const updated = await sessionRef.get();
-  res.json({ session: { id: updated.id, ...updated.data() } });
+  res.json({ session: serializeSession(updated.id, updated.data()) });
 });
 
 // Admin: courses
@@ -268,8 +305,8 @@ app.get("/api/v1/admin/courses", requireAdmin, async (_req, res) => {
       enabled: data.enabled ?? false,
       visible: data.visible ?? false,
       note: data.note ?? null,
-      createdAt: data.createdAt,
-      updatedAt: data.updatedAt,
+      createdAt: toISOString(data.createdAt),
+      updatedAt: toISOString(data.updatedAt),
     };
   });
 
@@ -387,8 +424,8 @@ app.get("/api/v1/admin/users", requireAdmin, async (_req, res) => {
       email: data.email,
       name: data.name ?? null,
       role: data.role ?? "student",
-      createdAt: data.createdAt,
-      updatedAt: data.updatedAt,
+      createdAt: toISOString(data.createdAt),
+      updatedAt: toISOString(data.updatedAt),
     };
   });
 
@@ -452,8 +489,8 @@ app.get("/api/v1/admin/users/:id", requireAdmin, async (req, res) => {
     email: data.email,
     name: data.name ?? null,
     role: data.role ?? "student",
-    createdAt: data.createdAt,
-    updatedAt: data.updatedAt,
+    createdAt: toISOString(data.createdAt),
+    updatedAt: toISOString(data.updatedAt),
   });
 });
 
@@ -545,9 +582,9 @@ app.get("/api/v1/admin/enrollments", requireAdmin, async (req, res) => {
       courseId: data.courseId,
       userId: data.userId,
       role: data.role ?? "student",
-      startAt: data.startAt,
-      endAt: data.endAt ?? null,
-      createdAt: data.createdAt,
+      startAt: toISOString(data.startAt),
+      endAt: toISOString(data.endAt),
+      createdAt: toISOString(data.createdAt),
     };
   });
 
@@ -678,20 +715,9 @@ app.get("/api/v1/admin/sessions", requireAdmin, async (req, res) => {
 
   const sessionsSnap = await query.orderBy("startTime", "desc").limit(100).get();
 
-  const sessions = sessionsSnap.docs.map((doc) => {
-    const data = doc.data();
-    return {
-      id: doc.id,
-      courseId: data.courseId,
-      userId: data.userId,
-      startTime: data.startTime,
-      endTime: data.endTime ?? null,
-      durationSec: data.durationSec ?? 0,
-      source: data.source ?? "manual",
-      status: data.status,
-      lastHeartbeatAt: data.lastHeartbeatAt ?? null,
-    };
-  });
+  const sessions = sessionsSnap.docs.map((doc) =>
+    serializeSession(doc.id, doc.data())
+  );
 
   res.json({ sessions });
 });
@@ -740,7 +766,7 @@ app.post("/api/v1/admin/sessions/:id/close", requireAdmin, async (req, res) => {
   });
 
   const updated = await sessionRef.get();
-  res.json({ session: { id: updated.id, ...updated.data() } });
+  res.json({ session: serializeSession(updated.id, updated.data()) });
 });
 
 // Admin: notification policies
@@ -774,8 +800,8 @@ app.get("/api/v1/admin/notification-policies", requireAdmin, async (req, res) =>
       repeatIntervalHours: data.repeatIntervalHours ?? 24,
       maxRepeatDays: data.maxRepeatDays ?? 7,
       active: data.active ?? true,
-      createdAt: data.createdAt,
-      updatedAt: data.updatedAt,
+      createdAt: toISOString(data.createdAt),
+      updatedAt: toISOString(data.updatedAt),
     };
   });
 
@@ -957,7 +983,7 @@ app.get("/api/v1/admin/users/:id/settings", requireAdmin, async (req, res) => {
     notifyEnabled: data.notifyEnabled ?? true,
     notifyEmail: data.notifyEmail ?? null,
     timezone: data.timezone ?? "Asia/Tokyo",
-    updatedAt: data.updatedAt,
+    updatedAt: toISOString(data.updatedAt),
   });
 });
 

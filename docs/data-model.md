@@ -7,24 +7,26 @@
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
 | id | string | 内部ID |
-| email | string | Googleアカウント |
-| role | string | student/teacher/admin |
-| externalId | string | GoogleのユーザーID |
+| email | string | メールアドレス |
 | name | string | 表示名 |
-| givenName | string | 名 |
-| familyName | string | 姓 |
-| photoUrl | string | アイコンURL |
-| syncedAt | timestamp | 最終同期 |
+| role | string | student/teacher/admin |
+| createdAt | timestamp | 作成日時 |
+| updatedAt | timestamp | 更新日時 |
+
+注: Classroom API連携廃止に伴い、externalId/givenName/familyName/photoUrl/syncedAtは廃止。
 
 ### UserSettings
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
 | id | string | 内部ID |
 | userId | string | User参照 |
-| timezone | string | 表示タイムゾーン |
-| notifyEmail | string | 通知先メール |
-| notifyOutMissingAfterMin | int | OUT忘れ通知までの分数 |
 | notifyEnabled | boolean | 通知有効化 |
+| notifyEmail | string | 通知先メール |
+| timezone | string | 表示タイムゾーン |
+| createdAt | timestamp | 作成日時 |
+| updatedAt | timestamp | 更新日時 |
+
+注: notifyOutMissingAfterMinはNotificationPolicy.firstNotifyAfterMinに統合。
 
 ### NotificationPolicy
 | フィールド | 型 | 説明 |
