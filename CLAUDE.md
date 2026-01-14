@@ -96,14 +96,16 @@ npm run dev -w @classroom-check-in/web
 - APIの主要エンドポイント（`/courses`, `/sessions/*`, `/admin/*`）
 - ヘッダ疑似認証（`AUTH_MODE=dev`）
 - GCPプロジェクト設定（`classroom-checkin-279`）
-- 管理画面UI（講座管理・受講者管理・セッション管理）
+- 管理画面UI（講座管理・受講者管理・セッション管理・通知ポリシー管理）
 - 受講者向けUI（講座選択・IN/OUT・heartbeat）
 - Tailwind CSS v4 + shadcn/ui セットアップ
 - 通知サービス（OUT忘れ検出・Gmail API送信・ログ記録）
+- 通知ポリシー管理API・UI（スコープ別設定）
+- Cloud Scheduler設定（通知サービス毎時実行）
+- ユーザー設定管理API（通知設定）
+- Event Collector（動画イベント収集・Firestore保存）
+- Session Processor（VideoWatchSession生成・動画完走によるセッション自動クローズ）
 
 **未実装**:
 - 認証方式（OAuth審査が必要なため後日検討）
-- 通知ポリシー管理API・UI
-- Cloud Scheduler設定（通知サービス定期実行）
-- セッション再計算ジョブ
-- 動画視聴トラッキング実装
+- フロントエンド動画プレイヤー連携（イベント送信UI）

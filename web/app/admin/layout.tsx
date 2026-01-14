@@ -19,6 +19,24 @@ export default function AdminLayout({
             >
               講座管理
             </Link>
+            <Link
+              href="/admin/users"
+              className="text-muted-foreground hover:text-foreground"
+            >
+              受講者管理
+            </Link>
+            <Link
+              href="/admin/sessions"
+              className="text-muted-foreground hover:text-foreground"
+            >
+              セッション
+            </Link>
+            <Link
+              href="/admin/notification-policies"
+              className="text-muted-foreground hover:text-foreground"
+            >
+              通知ポリシー
+            </Link>
           </nav>
         </div>
       </header>

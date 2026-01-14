@@ -62,6 +62,12 @@
   - 通知ポリシー解決（user > course > global）
   - Gmail API / コンソール出力対応
   - 通知ログ記録・重複防止
+- **通知ポリシー管理**: `web/app/admin/notification-policies/`
+  - ポリシー一覧・作成・編集・削除
+  - スコープ別設定（グローバル/講座/ユーザー）
+- **Cloud Scheduler設定済み**:
+  - 通知サービス: `notification-job`（毎時0分実行）
+  - Cloud Run URL: `https://notification-102013220292.asia-northeast1.run.app`
 
 ## 環境変数
 - 参照: `docs/config.md`
@@ -88,17 +94,13 @@
 
 ## 未実装/未確定
 - 認証方式（OAuth審査が必要なため後日検討）
-- 通知ポリシー管理API（`/api/v1/admin/notification-policies`）
-- Cloud Scheduler設定（通知サービス定期実行）
 - セッション再計算ジョブ
 - 動画視聴トラッキングの実装
 
 ## 次の優先タスク（推奨順）
-1) 通知ポリシー管理API・UI
-2) Cloud Scheduler設定（通知サービス定期実行）
-3) 認証方式の検討（OAuth審査 or 別方式）
-4) 動画視聴トラッキング
-5) セッション再計算ジョブ
+1) 認証方式の検討（OAuth審査 or 別方式）
+2) 動画視聴トラッキング
+3) セッション再計算ジョブ
 
 ## 開発メモ
 - ドキュメント更新の順序は `docs/ai-dev-guide.md` を参照

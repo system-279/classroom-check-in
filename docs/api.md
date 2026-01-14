@@ -96,10 +96,29 @@
   - セッションを強制終了（status=adjusted）
   - 補正イベント（ADJUST）を記録
 
-### 管理: 通知ポリシー（未実装）
+### 管理: 通知ポリシー
 - `GET /admin/notification-policies`
+  - query: `?scope={global|course|user}&courseId={id}&userId={id}` (optional)
+  - 通知ポリシー一覧（フィルタ可能）
 - `POST /admin/notification-policies`
+  - body: `{ scope, courseId?, userId?, firstNotifyAfterMin?, repeatIntervalHours?, maxRepeatDays?, active? }`
+  - 通知ポリシーを新規作成
+  - scope=course の場合は courseId 必須
+  - scope=user の場合は userId 必須
+  - 同じ scope/courseId/userId の組み合わせは 409 エラー
 - `PATCH /admin/notification-policies/{id}`
+  - body: `{ firstNotifyAfterMin?, repeatIntervalHours?, maxRepeatDays?, active? }`
+  - scope/courseId/userId は変更不可
+- `DELETE /admin/notification-policies/{id}`
+  - 通知ポリシーを削除
+
+### 管理: ユーザー設定
+- `GET /admin/users/{id}/settings`
+  - ユーザーの通知設定を取得
+  - 設定がない場合はデフォルト値を返す
+- `PATCH /admin/users/{id}/settings`
+  - body: `{ notifyEnabled?, notifyEmail?, timezone? }`
+  - ユーザーの通知設定を更新（未作成なら新規作成）
 
 ## 主要レスポンス（例）
 
@@ -157,6 +176,58 @@
   "createdAt": "2025-02-14T08:00:00Z"
 }
 ```
+
+### NotificationPolicy
+```json
+{
+  "id": "policy_123",
+  "scope": "global",
+  "courseId": null,
+  "userId": null,
+  "firstNotifyAfterMin": 60,
+  "repeatIntervalHours": 24,
+  "maxRepeatDays": 7,
+  "active": true,
+  "createdAt": "2025-02-14T08:00:00Z",
+  "updatedAt": "2025-02-14T08:00:00Z"
+}
+```
+
+### UserSettings
+```json
+{
+  "id": "settings_123",
+  "userId": "user_123",
+  "notifyEnabled": true,
+  "notifyEmail": "user@example.com",
+  "timezone": "Asia/Tokyo",
+  "updatedAt": "2025-02-14T08:00:00Z"
+}
+```
+
+## 内部サービスエンドポイント
+
+以下のエンドポイントは内部サービス間通信用です。
+
+### Event Collector (`services/event-collector`)
+- `POST /api/v1/events/video`
+  - body: `{ courseId, userId, videoId, eventType, eventTime?, positionSec, playbackRate?, clientSessionId?, isVisible? }`
+  - 動画視聴イベントをFirestoreに保存
+  - eventType: PLAY, PAUSE, HEARTBEAT, SEEK, RATE_CHANGE, ENDED
+- `POST /api/v1/events/video/batch`
+  - body: `{ events: VideoEventPayload[] }`
+  - 複数イベントを一括保存（最大100件）
+
+### Session Processor (`services/session`)
+- `POST /run`
+  - VideoPlaybackEventsからVideoWatchSessionを集約
+  - 動画視聴完了（1x速度でENDED）に基づいてopenセッションを自動クローズ
+  - Cloud Schedulerで定期実行（推奨: 毎時）
+
+### Notification Service (`services/notification`)
+- `POST /run`
+  - OUT忘れセッションを検出してメール通知
+  - Cloud Schedulerで毎時実行
 
 ## 廃止されたエンドポイント
 

@@ -3,6 +3,18 @@ import express from "express";
 import { authMiddleware, requireAdmin, requireUser } from "./middleware/auth.js";
 import { db } from "./storage/firestore.js";
 
+// バリデーションヘルパー
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const VALID_TIMEZONES = new Set(Intl.supportedValuesOf("timeZone"));
+
+function isValidEmail(email: string): boolean {
+  return EMAIL_REGEX.test(email);
+}
+
+function isValidTimezone(tz: string): boolean {
+  return VALID_TIMEZONES.has(tz);
+}
+
 const app = express();
 
 // CORS設定: 本番環境ではCORS_ORIGINの設定を必須とする
@@ -731,10 +743,291 @@ app.post("/api/v1/admin/sessions/:id/close", requireAdmin, async (req, res) => {
   res.json({ session: { id: updated.id, ...updated.data() } });
 });
 
-// Admin: notification policies (未実装)
-app.get("/api/v1/admin/notification-policies", requireAdmin, notImplemented);
-app.post("/api/v1/admin/notification-policies", requireAdmin, notImplemented);
-app.patch("/api/v1/admin/notification-policies/:id", requireAdmin, notImplemented);
+// Admin: notification policies
+app.get("/api/v1/admin/notification-policies", requireAdmin, async (req, res) => {
+  const scope = req.query.scope as string | undefined;
+  const courseId = req.query.courseId as string | undefined;
+  const userId = req.query.userId as string | undefined;
+
+  let query: FirebaseFirestore.Query = db.collection("notificationPolicies");
+
+  if (scope) {
+    query = query.where("scope", "==", scope);
+  }
+  if (courseId) {
+    query = query.where("courseId", "==", courseId);
+  }
+  if (userId) {
+    query = query.where("userId", "==", userId);
+  }
+
+  const policiesSnap = await query.get();
+
+  const policies = policiesSnap.docs.map((doc) => {
+    const data = doc.data();
+    return {
+      id: doc.id,
+      scope: data.scope,
+      courseId: data.courseId ?? null,
+      userId: data.userId ?? null,
+      firstNotifyAfterMin: data.firstNotifyAfterMin ?? 60,
+      repeatIntervalHours: data.repeatIntervalHours ?? 24,
+      maxRepeatDays: data.maxRepeatDays ?? 7,
+      active: data.active ?? true,
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt,
+    };
+  });
+
+  res.json({ policies });
+});
+
+app.post("/api/v1/admin/notification-policies", requireAdmin, async (req, res) => {
+  const scope = req.body?.scope as "global" | "course" | "user";
+  const courseId = req.body?.courseId ?? null;
+  const userId = req.body?.userId ?? null;
+  const firstNotifyAfterMin = req.body?.firstNotifyAfterMin ?? 60;
+  const repeatIntervalHours = req.body?.repeatIntervalHours ?? 24;
+  const maxRepeatDays = req.body?.maxRepeatDays ?? 7;
+  const active = req.body?.active ?? true;
+
+  if (!scope || !["global", "course", "user"].includes(scope)) {
+    res.status(400).json({ error: "valid_scope_required" });
+    return;
+  }
+
+  // scope=course ならcourseId必須
+  if (scope === "course" && !courseId) {
+    res.status(400).json({ error: "course_id_required_for_course_scope" });
+    return;
+  }
+
+  // scope=user ならuserId必須
+  if (scope === "user" && !userId) {
+    res.status(400).json({ error: "user_id_required_for_user_scope" });
+    return;
+  }
+
+  // 講座の存在確認（scope=course）
+  if (scope === "course" && courseId) {
+    const courseSnap = await db.collection("courses").doc(courseId).get();
+    if (!courseSnap.exists) {
+      res.status(404).json({ error: "course_not_found" });
+      return;
+    }
+  }
+
+  // ユーザーの存在確認（scope=user）
+  if (scope === "user" && userId) {
+    const userSnap = await db.collection("users").doc(userId).get();
+    if (!userSnap.exists) {
+      res.status(404).json({ error: "user_not_found" });
+      return;
+    }
+  }
+
+  // 重複チェック（同じscope/courseId/userIdの組み合わせ）
+  let duplicateQuery: FirebaseFirestore.Query = db
+    .collection("notificationPolicies")
+    .where("scope", "==", scope);
+
+  if (scope === "course") {
+    duplicateQuery = duplicateQuery.where("courseId", "==", courseId);
+  } else if (scope === "user") {
+    duplicateQuery = duplicateQuery.where("userId", "==", userId);
+  }
+
+  const duplicateSnap = await duplicateQuery.limit(1).get();
+  if (!duplicateSnap.empty) {
+    res.status(409).json({ error: "policy_already_exists" });
+    return;
+  }
+
+  const now = new Date();
+  const ref = await db.collection("notificationPolicies").add({
+    scope,
+    courseId: scope === "course" ? courseId : null,
+    userId: scope === "user" ? userId : null,
+    firstNotifyAfterMin,
+    repeatIntervalHours,
+    maxRepeatDays,
+    active,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  res.json({
+    id: ref.id,
+    scope,
+    courseId: scope === "course" ? courseId : null,
+    userId: scope === "user" ? userId : null,
+    firstNotifyAfterMin,
+    repeatIntervalHours,
+    maxRepeatDays,
+    active,
+    createdAt: now,
+    updatedAt: now,
+  });
+});
+
+app.patch("/api/v1/admin/notification-policies/:id", requireAdmin, async (req, res) => {
+  const id = req.params.id as string;
+  const updates: Record<string, unknown> = {};
+
+  if (typeof req.body?.firstNotifyAfterMin === "number") {
+    updates.firstNotifyAfterMin = req.body.firstNotifyAfterMin;
+  }
+  if (typeof req.body?.repeatIntervalHours === "number") {
+    updates.repeatIntervalHours = req.body.repeatIntervalHours;
+  }
+  if (typeof req.body?.maxRepeatDays === "number") {
+    updates.maxRepeatDays = req.body.maxRepeatDays;
+  }
+  if (typeof req.body?.active === "boolean") {
+    updates.active = req.body.active;
+  }
+
+  if (Object.keys(updates).length === 0) {
+    res.status(400).json({ error: "no_updates" });
+    return;
+  }
+
+  const ref = db.collection("notificationPolicies").doc(id);
+  const snap = await ref.get();
+  if (!snap.exists) {
+    res.status(404).json({ error: "policy_not_found" });
+    return;
+  }
+
+  updates.updatedAt = new Date();
+  await ref.update(updates);
+
+  const currentData = snap.data() ?? {};
+  res.json({ id, ...currentData, ...updates });
+});
+
+app.delete("/api/v1/admin/notification-policies/:id", requireAdmin, async (req, res) => {
+  const id = req.params.id as string;
+  const ref = db.collection("notificationPolicies").doc(id);
+  const snap = await ref.get();
+
+  if (!snap.exists) {
+    res.status(404).json({ error: "policy_not_found" });
+    return;
+  }
+
+  await ref.delete();
+  res.json({ deleted: true, id });
+});
+
+// Admin: user settings (通知設定)
+app.get("/api/v1/admin/users/:id/settings", requireAdmin, async (req, res) => {
+  const userId = req.params.id as string;
+
+  // ユーザーの存在確認
+  const userSnap = await db.collection("users").doc(userId).get();
+  if (!userSnap.exists) {
+    res.status(404).json({ error: "user_not_found" });
+    return;
+  }
+
+  // userSettings を取得（userIdで検索）
+  const settingsSnap = await db
+    .collection("userSettings")
+    .where("userId", "==", userId)
+    .limit(1)
+    .get();
+
+  if (settingsSnap.empty) {
+    // デフォルト値を返す
+    res.json({
+      userId,
+      notifyEnabled: true,
+      notifyEmail: userSnap.data()?.email ?? null,
+      timezone: "Asia/Tokyo",
+    });
+    return;
+  }
+
+  const doc = settingsSnap.docs[0];
+  const data = doc.data();
+  res.json({
+    id: doc.id,
+    userId: data.userId,
+    notifyEnabled: data.notifyEnabled ?? true,
+    notifyEmail: data.notifyEmail ?? null,
+    timezone: data.timezone ?? "Asia/Tokyo",
+    updatedAt: data.updatedAt,
+  });
+});
+
+app.patch("/api/v1/admin/users/:id/settings", requireAdmin, async (req, res) => {
+  const userId = req.params.id as string;
+
+  // ユーザーの存在確認
+  const userSnap = await db.collection("users").doc(userId).get();
+  if (!userSnap.exists) {
+    res.status(404).json({ error: "user_not_found" });
+    return;
+  }
+
+  const updates: Record<string, unknown> = {};
+
+  if (typeof req.body?.notifyEnabled === "boolean") {
+    updates.notifyEnabled = req.body.notifyEnabled;
+  }
+  if (typeof req.body?.notifyEmail === "string") {
+    if (!isValidEmail(req.body.notifyEmail)) {
+      res.status(400).json({ error: "invalid_email_format" });
+      return;
+    }
+    updates.notifyEmail = req.body.notifyEmail;
+  }
+  if (typeof req.body?.timezone === "string") {
+    if (!isValidTimezone(req.body.timezone)) {
+      res.status(400).json({ error: "invalid_timezone" });
+      return;
+    }
+    updates.timezone = req.body.timezone;
+  }
+
+  if (Object.keys(updates).length === 0) {
+    res.status(400).json({ error: "no_updates" });
+    return;
+  }
+
+  // 既存の設定を検索
+  const settingsSnap = await db
+    .collection("userSettings")
+    .where("userId", "==", userId)
+    .limit(1)
+    .get();
+
+  const now = new Date();
+  updates.updatedAt = now;
+
+  if (settingsSnap.empty) {
+    // 新規作成
+    const ref = await db.collection("userSettings").add({
+      userId,
+      notifyEnabled: updates.notifyEnabled ?? true,
+      notifyEmail: updates.notifyEmail ?? userSnap.data()?.email ?? null,
+      timezone: updates.timezone ?? "Asia/Tokyo",
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const newDoc = await ref.get();
+    res.json({ id: newDoc.id, ...newDoc.data() });
+  } else {
+    // 更新
+    const doc = settingsSnap.docs[0];
+    await doc.ref.update(updates);
+
+    const currentData = doc.data();
+    res.json({ id: doc.id, ...currentData, ...updates });
+  }
+});
 
 const port = Number(process.env.PORT || 8080);
 app.listen(port, () => {
