@@ -27,6 +27,11 @@
   - 受講者登録がある場合は登録講座のみ、なければ全講座を返す
 
 ### 入退室
+- `GET /sessions/active`
+  - query: `?courseId={courseId}` (optional)
+  - アクティブセッション（status=open）を取得
+  - courseId指定時は該当講座のみ、省略時は全講座対象
+  - セッションがない場合は `{ session: null }` を返す
 - `POST /sessions/check-in`
   - body: `{ courseId: string }`
   - 入室打刻 + セッション開始（既にopenがあれば既存を返す）

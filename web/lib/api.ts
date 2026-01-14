@@ -1,5 +1,7 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 const AUTH_MODE = process.env.NEXT_PUBLIC_AUTH_MODE ?? "dev";
+const DEV_USER_ID = process.env.NEXT_PUBLIC_USER_ID ?? "admin-dev";
+const DEV_USER_ROLE = process.env.NEXT_PUBLIC_USER_ROLE ?? "admin";
 
 export class ApiError extends Error {
   constructor(
@@ -12,16 +14,25 @@ export class ApiError extends Error {
   }
 }
 
+export type UserContext = {
+  userId: string;
+  role: "admin" | "teacher" | "student";
+};
+
 export async function apiFetch<T>(
   path: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  userContext?: UserContext
 ): Promise<T> {
+  const userId = userContext?.userId ?? DEV_USER_ID;
+  const userRole = userContext?.role ?? DEV_USER_ROLE;
+
   const headers: HeadersInit = {
     "Content-Type": "application/json",
     // 開発用疑似認証（AUTH_MODE=devの場合のみ）
     ...(AUTH_MODE === "dev" && {
-      "X-User-Id": "admin-dev",
-      "X-User-Role": "admin",
+      "X-User-Id": userId,
+      "X-User-Role": userRole,
     }),
     ...options.headers,
   };

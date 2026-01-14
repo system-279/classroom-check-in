@@ -92,6 +92,29 @@ app.get("/api/v1/courses", requireUser, async (req, res) => {
 });
 
 // Sessions
+
+// アクティブセッション確認（P1修正: check-in APIの誤用を防ぐ）
+app.get("/api/v1/sessions/active", requireUser, async (req, res) => {
+  const courseId = req.query.courseId as string | undefined;
+
+  const query = db
+    .collection("sessions")
+    .where("userId", "==", req.user?.id)
+    .where("status", "==", "open");
+
+  const sessionsSnap = courseId
+    ? await query.where("courseId", "==", courseId).limit(1).get()
+    : await query.get();
+
+  if (sessionsSnap.empty) {
+    res.json({ session: null });
+    return;
+  }
+
+  const doc = sessionsSnap.docs[0];
+  res.json({ session: { id: doc.id, ...doc.data() } });
+});
+
 app.post("/api/v1/sessions/check-in", requireUser, async (req, res) => {
   const courseId = req.body?.courseId;
   if (!courseId) {
