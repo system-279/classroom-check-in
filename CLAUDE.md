@@ -105,7 +105,12 @@ npm run dev -w @classroom-check-in/web
 - ユーザー設定管理API（通知設定）
 - Event Collector（動画イベント収集・Firestore保存）
 - Session Processor（VideoWatchSession生成・動画完走によるセッション自動クローズ）
+- **Cloud Runデプロイ**:
+  - API: https://api-up37vpqlrq-an.a.run.app
+  - Web UI: https://web-102013220292.asia-northeast1.run.app
+- Artifact Registry クリーンアップポリシー（最新2イメージ保持）
 
 **未実装**:
 - 認証方式（OAuth審査が必要なため後日検討）
 - フロントエンド動画プレイヤー連携（イベント送信UI）
+- Web UI周りの軽微なエラー修正
