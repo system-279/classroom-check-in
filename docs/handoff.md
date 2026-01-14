@@ -45,6 +45,13 @@
 - **管理画面UI**: `web/app/admin/`
   - 講座管理（一覧・作成・編集・削除）
   - Tailwind CSS v4 + shadcn/ui
+- **受講者向けUI**: `web/app/student/`
+  - 講座一覧（`/student/courses`）
+  - セッションページ（`/student/session/[courseId]`）
+    - IN/OUTボタン
+    - 経過時間タイマー
+    - heartbeat（1分間隔）
+    - Classroom新規タブ遷移
 
 ## 環境変数
 - 参照: `docs/config.md`
@@ -72,16 +79,15 @@
 ## 未実装/未確定
 - 認証方式（OAuth審査が必要なため後日検討）
 - 管理画面UI（受講者管理・セッション管理）
-- 受講者向けUI（講座選択・IN/OUT）
 - 通知送信の実装（SendGrid/Gmail/SMTP）
 - セッション再計算ジョブ
 - 動画視聴トラッキングの実装
 
 ## 次の優先タスク（推奨順）
-1) **受講者向けUI**（講座選択・IN/OUT）
-2) **管理画面UI拡張**（受講者管理・セッション管理）
-3) 通知サービスとOUT忘れ通知
-4) 認証方式の検討（OAuth審査 or 別方式）
+1) **管理画面UI拡張**（受講者管理・セッション管理）
+2) 通知サービスとOUT忘れ通知
+3) 認証方式の検討（OAuth審査 or 別方式）
+4) 動画視聴トラッキング
 
 ## 開発メモ
 - ドキュメント更新の順序は `docs/ai-dev-guide.md` を参照

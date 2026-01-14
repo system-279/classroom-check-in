@@ -97,12 +97,12 @@ npm run dev -w @classroom-check-in/web
 - ヘッダ疑似認証（`AUTH_MODE=dev`）
 - GCPプロジェクト設定（`classroom-checkin-279`）
 - 管理画面UI（講座管理: 一覧・作成・編集・削除）
+- 受講者向けUI（講座選択・IN/OUT・heartbeat）
 - Tailwind CSS v4 + shadcn/ui セットアップ
 
 **未実装**:
 - 認証方式（OAuth審査が必要なため後日検討）
 - 管理画面UI（受講者管理・セッション管理）
-- 受講者向けUI（講座選択・IN/OUT）
 - 通知送信（SendGrid/Gmail/SMTP）
 - セッション再計算ジョブ
 - 動画視聴トラッキング実装
