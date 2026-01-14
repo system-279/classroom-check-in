@@ -4,8 +4,14 @@ import { authMiddleware, requireAdmin, requireUser } from "./middleware/auth.js"
 import { db } from "./storage/firestore.js";
 
 const app = express();
+
+// CORS設定: 本番環境ではCORS_ORIGINの設定を必須とする
+const corsOrigins = process.env.CORS_ORIGIN?.split(",");
+if (!corsOrigins && process.env.NODE_ENV === "production") {
+  throw new Error("CORS_ORIGIN must be set in production");
+}
 app.use(cors({
-  origin: process.env.CORS_ORIGIN?.split(",") ?? ["http://localhost:3000", "http://localhost:3001"],
+  origin: corsOrigins ?? ["http://localhost:3000", "http://localhost:3001"],
   credentials: true,
 }));
 app.use(express.json());
@@ -316,6 +322,18 @@ app.delete("/api/v1/admin/courses/:id", requireAdmin, async (req, res) => {
 
   if (!snap.exists) {
     res.status(404).json({ error: "course_not_found" });
+    return;
+  }
+
+  // 関連するセッションがある場合は削除を拒否
+  const sessionsSnap = await db
+    .collection("sessions")
+    .where("courseId", "==", id)
+    .limit(1)
+    .get();
+
+  if (!sessionsSnap.empty) {
+    res.status(409).json({ error: "course_has_sessions" });
     return;
   }
 
