@@ -8,8 +8,8 @@
 
 ## API Service (`services/api`)
 - `AUTH_MODE`:
-  - `dev` ならヘッダ疑似認証が有効
-  - `dev` 以外はOAuth実装が必要
+  - `dev` ならヘッダ疑似認証が有効（現在の運用モード）
+  - OAuth認証は実装しない（ADR-0014）
 - `PORT` (default: 8080)
 - `CORS_ORIGIN`:
   - 本番環境では必須（カンマ区切りで複数指定可能）
@@ -23,12 +23,6 @@
 - `GMAIL_DELEGATE_USER`:
   - Gmail APIを使う場合の委任先メールアドレス
   - ドメインワイドデリゲーション設定が必要
-
-## Event Collector Service (`services/event-collector`)
-- `PORT` (default: 8080)
-
-## Session Service (`services/session`)
-- `PORT` (default: 8080)
 
 ---
 
@@ -45,8 +39,6 @@
 |-----------|--------|---------------|
 | `api` | `services/api` | `/api/v1/*` |
 | `notification` | `services/notification` | `/run`, `/healthz` |
-| `event-collector` | `services/event-collector` | `/events/*` |
-| `session` | `services/session` | `/run` |
 
 ## デプロイコマンド例
 
@@ -175,52 +167,3 @@ gcloud run services update notification \
   --timeout 600
 ```
 
----
-
-# Session Processor設定
-
-動画視聴イベントからVideoWatchSessionを生成し、動画完走時にセッションを自動クローズするジョブ。
-
-## デプロイコマンド
-
-```bash
-gcloud run deploy session \
-  --source services/session \
-  --region asia-northeast1 \
-  --platform managed \
-  --no-allow-unauthenticated \
-  --set-env-vars "FIRESTORE_PROJECT_ID=classroom-checkin-279"
-```
-
-## Schedulerジョブの作成
-
-```bash
-# セッションサービスのURLを取得
-SESSION_URL=$(gcloud run services describe session \
-  --region asia-northeast1 \
-  --format 'value(status.url)')
-
-# IAMロールを付与
-gcloud run services add-iam-policy-binding session \
-  --region asia-northeast1 \
-  --member "serviceAccount:classroom-sync@classroom-checkin-279.iam.gserviceaccount.com" \
-  --role "roles/run.invoker"
-
-# Schedulerジョブを作成（毎時30分に実行）
-gcloud scheduler jobs create http session-job \
-  --location asia-northeast1 \
-  --schedule "30 * * * *" \
-  --uri "${SESSION_URL}/run" \
-  --http-method POST \
-  --oidc-service-account-email classroom-sync@classroom-checkin-279.iam.gserviceaccount.com \
-  --oidc-token-audience "${SESSION_URL}" \
-  --time-zone "Asia/Tokyo" \
-  --description "動画視聴セッションを集約・更新"
-```
-
-## 処理内容
-
-1. **VideoWatchSession生成**: 過去24時間のVideoPlaybackEventsをユーザー・講座・動画ごとに集約
-2. **視聴区間計算**: PLAY/PAUSE/SEEKイベントから視聴区間（watchedRanges）を計算
-3. **カバレッジ計算**: coverageRatio（視聴率）、normalSpeedRatio（1x視聴率）を算出
-4. **セッション自動クローズ**: 1x速度で動画完走（ENDED）した場合、対応するopenセッションを自動クローズ

@@ -1,34 +1,31 @@
 # アーキテクチャ（確定案 / GCP想定）
 
 ## 全体像
-- 収集: 動画プレイヤーイベント / 手動IN/OUT入力
+- 収集: 手動IN/OUT入力
 - 変換: IN/OUTセッションの計算・補正・集計
 - 保管: セッション/イベントの永続化と分析用データ
 - 可視化: 教員/管理者向けの閲覧UI
 
 ```
-[Web App] -> [API Service] -> [Session Processor] -> [DB/Analytics] -> [Web UI]
-   |              |                  |                    |
- Next.js       Cloud Run          Cloud Run           Firestore
-   |              |               Cloud Tasks          BigQuery
-   |          [Event Collector]
-   |              |
+[Web App] -> [API Service] -> [DB/Analytics] -> [Web UI]
+   |              |                |
+ Next.js       Cloud Run       Firestore
+   |              |             BigQuery
    +-----> [Notification Service]
 ```
 
-**注**: Classroom API / Forms API連携は廃止。講座・受講者情報は管理画面で手入力。
+**注**:
+- Classroom API / Forms API連携は廃止。講座・受講者情報は管理画面で手入力
+- OAuth認証は実装しない（ADR-0014）。当面はヘッダ疑似認証で運用
+- 動画プレイヤー連携は実装しない（ADR-0015）。IN/OUTは手動入力のみ
 
 ## コンポーネント案
 - ~~Ingestion Service~~ **廃止**
   - Classroom API / Forms API連携は廃止のため不要
 - API Service (Cloud Run)
   - IN/OUT打刻、講座選択、補正、管理操作のAPI
-- Event Collector (Cloud Run)
-  - 動画プレイヤーのイベントをHTTPで受信
-  - 高頻度イベントはバッファリング/集約
-- Session Processor (Cloud Run / Cloud Functions)
-  - IN/OUTイベントからセッション生成
-  - 不完全なセッションの補完ロジック
+- ~~Event Collector (Cloud Run)~~ **削除済み**（ADR-0015: 動画プレイヤー連携は実装しない）
+- ~~Session Processor (Cloud Run / Cloud Functions)~~ **削除済み**（ADR-0015: 動画プレイヤー連携は実装しない）
 - Notification Service (Cloud Run)
   - OUT忘れなどのリマインドメール送信
   - 送信履歴の保存
@@ -38,13 +35,13 @@
 - Web UI
   - 教員/管理者用ダッシュボード
   - 受講者の手動IN/OUT入力
-  - 動画視聴用プレイヤー（埋め込み/自前）
+  - ~~動画視聴用プレイヤー（埋め込み/自前）~~ **スコープ外**（ADR-0015）
   - 講座選択UI（管理画面で手動登録した講座を表示）
   - **管理画面**: 講座・受講者の手入力管理
 - Secrets / Auth
   - Secret Manager: サービスアカウント
   - Workload Identity / IAM最小権限
-  - **認証方式は後日検討**（OAuth審査が必要なため）
+  - **認証**: ヘッダ疑似認証で運用（ADR-0014: OAuth認証は実装しない）
 
 ## 同期方式
 - ~~バッチ: Schedulerで日次/時間単位で取得~~ **廃止**

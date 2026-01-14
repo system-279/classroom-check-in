@@ -4,23 +4,28 @@ Google Classroomを中心に、講座単位の入退室（IN/OUT）と滞在時�
 
 ## 背景
 
-Google Classroom APIには入退室ログを取得する機能がないため、自社アプリでIN/OUTボタンを提供し、動画視聴イベントやForms提出時刻を補助ソースとして活用する。
+Google Classroom APIには入退室ログを取得する機能がないため、自社アプリでIN/OUTボタンを提供する。
+
+**注**:
+- Classroom API / Forms API連携は廃止（OAuth審査コストが高いため）
+- 講座・受講者情報は管理画面で手入力
+- OAuth認証は実装しない（ADR-0014）
+- 動画プレイヤー連携は実装しない（ADR-0015）
 
 ## 機能
 
 - 講座選択とIN/OUT打刻
-- 動画視聴イベントの収集・集計
-- Google Forms提出時刻からのOUT推定
+- Heartbeatによる滞在確認
 - OUT忘れ通知
-- 管理者向けダッシュボード
+- 管理者向け管理画面（講座・受講者・セッション・通知ポリシー）
 
 ## 技術スタック
 
 - **Runtime**: Node.js v24.12.0 (LTS)
 - **Frontend**: Next.js 16.1.1, React 19.2.3
 - **Backend**: Express 5.2.1, TypeScript 5.9.3
-- **Infrastructure**: GCP (Cloud Run, Firestore, BigQuery, Cloud Scheduler/Tasks)
-- **Auth**: Google OAuth, Domain-wide Delegation
+- **Infrastructure**: GCP (Cloud Run, Firestore, BigQuery, Cloud Scheduler)
+- **Auth**: ヘッダ疑似認証（開発用）
 
 ## プロジェクト構成
 
@@ -28,10 +33,7 @@ Google Classroom APIには入退室ログを取得する機能がないため、
 .
 ├── services/
 │   ├── api/              # REST API (Cloud Run)
-│   ├── ingestion/        # Classroom/Forms同期バッチ
-│   ├── event-collector/  # 動画イベント収集
-│   ├── session/          # セッション再計算ジョブ
-│   └── notification/     # 通知送信ジョブ
+│   └── notification/     # 通知送信ジョブ (Cloud Run)
 ├── web/                  # Next.js (受講者/管理画面)
 └── docs/                 # 設計ドキュメント
 ```
@@ -58,6 +60,12 @@ npm run dev -w @classroom-check-in/web
 - [データモデル](docs/data-model.md)
 - [API仕様](docs/api.md)
 - [設計判断（ADR）](docs/decisions.md)
+
+## デプロイ済み環境
+
+- **API**: https://api-up37vpqlrq-an.a.run.app
+- **Web UI**: https://web-102013220292.asia-northeast1.run.app
+- **ドキュメント**: https://system-279.github.io/classroom-check-in/
 
 ## ライセンス
 

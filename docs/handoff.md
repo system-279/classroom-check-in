@@ -9,16 +9,18 @@
 - 入退室は自社アプリでIN/OUTボタンを提供し、ClassroomのコースURLへ遷移する方式。
 - **Classroom API / Forms API連携は廃止**（OAuth審査コストが高いため）。
 - **講座・受講者情報は管理画面で手入力**。
-- 動画視聴の厳密判定はアプリ内プレイヤー前提。
+- **OAuth認証は実装しない**（ADR-0014）。
+- **動画プレイヤー連携は実装しない**（ADR-0015）。IN/OUTは手動入力のみ。
 
 ## 重要な決定（ADR）
 - 参照: `docs/decisions.md`
 - 主要ポイント:
-  - Cloud Run中心 + Firestore/BigQuery + Scheduler/Tasks
+  - Cloud Run中心 + Firestore/BigQuery + Scheduler
   - 連続INは既存openセッションを返す
   - **Classroom API連携は廃止**（ADR-0006, ADR-0008, ADR-0013改訂）
   - **Forms API連携は廃止**（ADR-0005改訂）
-  - **講座・受講者は管理画面で手入力**
+  - **OAuth認証は実装しない**（ADR-0014）
+  - **動画プレイヤー連携は実装しない**（ADR-0015）
 
 ## 技術スタック（安定版）
 - 参照: `docs/tech-stack.md`
@@ -29,11 +31,13 @@
 ## リポジトリ構成
 - 参照: `docs/repo-structure.md`
 - `services/api`: REST API (Cloud Run)
-- ~~`services/ingestion`~~: **廃止**（Classroom/Forms連携廃止のため）
-- `services/event-collector`: 動画イベント収集 (Cloud Run)
-- `services/session`: セッション再計算 (Cloud Run)
 - `services/notification`: 通知送信 (Cloud Run)
 - `web`: Next.js (受講者/管理画面)
+
+**削除済み**:
+- ~~`services/ingestion`~~: Classroom/Forms連携廃止のため
+- ~~`services/event-collector`~~: 動画プレイヤー連携廃止のため（ADR-0015）
+- ~~`services/session`~~: 動画プレイヤー連携廃止のため（ADR-0015）
 
 ## 実装済み範囲
 - APIの主要エンドポイント: `services/api/src/index.ts`
@@ -65,16 +69,10 @@
   - 通知ポリシー解決（user > course > global）
   - Gmail API / コンソール出力対応
   - 通知ログ記録・重複防止
-- **Event Collector**: `services/event-collector/src/`
-  - 動画プレイヤーイベント収集
-  - Firestore保存（videoWatchEventsコレクション）
-- **Session Processor**: `services/session/src/`
-  - VideoWatchSession生成（連続した視聴区間の統合）
-  - 動画完走によるセッション自動クローズ
 - **Cloud Scheduler設定済み**:
   - 通知サービス: `notification-job`（毎時0分実行）
 - **Cloud Runデプロイ済み**:
-  - API: https://api-102013220292.asia-northeast1.run.app
+  - API: https://api-up37vpqlrq-an.a.run.app
   - Web UI: https://web-102013220292.asia-northeast1.run.app
 - Artifact Registry クリーンアップポリシー（最新2イメージ保持）
 - **Firestoreインデックス設定済み**:
@@ -94,8 +92,8 @@
 
 ## データモデル
 - 参照: `docs/data-model.md`
-- 主要コレクション: `courses`, `sessions`, `attendanceEvents`, `enrollments`, `users`, `userSettings`, `notificationPolicies`, `notificationLogs`, `videoWatchEvents`, `videoWatchSessions`
-- 廃止済み: ~~`courseTargets`~~（Courseに統合）, ~~`formMappings`~~, ~~`formResponses`~~, ~~`syncRuns`~~
+- 主要コレクション: `courses`, `sessions`, `attendanceEvents`, `enrollments`, `users`, `userSettings`, `notificationPolicies`, `notificationLogs`
+- 廃止済み: ~~`courseTargets`~~（Courseに統合）, ~~`formMappings`~~, ~~`formResponses`~~, ~~`syncRuns`~~, ~~`videoWatchEvents`~~, ~~`videoWatchSessions`~~
 
 ## GCP設定済み
 - プロジェクト: `classroom-checkin-279`
@@ -104,14 +102,11 @@
 - サービスアカウント: `classroom-sync@classroom-checkin-279.iam.gserviceaccount.com`
 - キー: `.secrets/classroom-sync-key.json`
 
-## 未実装/未確定
-- 認証方式（OAuth審査が必要なため後日検討）
-- フロントエンド動画プレイヤー連携（イベント送信UI）
-
-## 次の優先タスク（推奨順）
-1) 認証方式の検討（OAuth審査 or Firebase Auth等の代替）
-2) 動画プレイヤー連携UIの実装
-3) GitHub Actionsの設定（CI/CD自動化）
+## スコープ外（実装予定なし）
+- OAuth認証（ADR-0014）
+- 動画プレイヤー連携（ADR-0015）
+- Classroom API連携
+- Forms API連携
 
 ## 開発メモ
 - ドキュメント更新の順序は `docs/ai-dev-guide.md` を参照

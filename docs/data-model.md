@@ -70,7 +70,7 @@
 
 注: Enrollment（受講者リスト）は管理画面で手入力。
 
-### VideoAsset
+### ~~VideoAsset~~ **スコープ外**（ADR-0015: 動画プレイヤー連携は実装しない）
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
 | id | string | 内部ID |
@@ -82,7 +82,7 @@
 | policy | object | 必須視聴割合/速度ルール |
 | embedUrl | string | 埋め込みURL |
 
-### VideoPlaybackEvent
+### ~~VideoPlaybackEvent~~ **スコープ外**（ADR-0015）
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
 | id | string | 内部ID |
@@ -96,7 +96,7 @@
 | sourceRef | string | クライアントセッションID |
 | payload | object | 生データ（監査用） |
 
-### VideoWatchSession
+### ~~VideoWatchSession~~ **スコープ外**（ADR-0015）
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
 | id | string | 内部ID |

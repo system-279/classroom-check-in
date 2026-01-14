@@ -4,9 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## プロジェクト概要
 
-Google Classroomを中心に、講座単位の入退室（IN/OUT）と滞在時間を記録・可視化するシステム。Classroom APIには入退室ログがないため、自社アプリでIN/OUTボタンを提供し、動画視聴イベントを補助ソースとして活用する。
+Google Classroomを中心に、講座単位の入退室（IN/OUT）と滞在時間を記録・可視化するシステム。Classroom APIには入退室ログがないため、自社アプリでIN/OUTボタンを提供する。
 
-**注**: Classroom API / Forms API連携は廃止（OAuth審査コストが高いため）。講座・受講者情報は管理画面で手入力。
+**注**:
+- Classroom API / Forms API連携は廃止（OAuth審査コストが高いため）。講座・受講者情報は管理画面で手入力
+- OAuth認証は実装しない（ADR-0014）。当面はヘッダ疑似認証で運用
+- 動画プレイヤー連携は実装しない（ADR-0015）。IN/OUTは手動入力のみ
 
 ## 開発コマンド
 
@@ -16,8 +19,6 @@ npm install
 
 # 各サービスのビルド
 npm run build -w @classroom-check-in/api
-npm run build -w @classroom-check-in/event-collector
-npm run build -w @classroom-check-in/session
 npm run build -w @classroom-check-in/notification
 npm run build -w @classroom-check-in/web
 
@@ -31,9 +32,8 @@ npm run dev -w @classroom-check-in/web
 ## アーキテクチャ
 
 ```
-[Web App] → [API Service] → [Session Processor] → [Firestore/BigQuery] → [Web UI]
-    ↓            ↓               Cloud Tasks
-    |       [Event Collector]
+[Web App] → [API Service] → [Firestore/BigQuery] → [Web UI]
+    |
     +--→ [Notification Service]
 ```
 
@@ -42,16 +42,14 @@ npm run dev -w @classroom-check-in/web
 | サービス | 役割 |
 |---------|------|
 | `services/api` | REST API（認証、入退室打刻、管理操作） |
-| `services/event-collector` | 動画プレイヤーイベント収集 |
-| `services/session` | セッション再計算ジョブ |
 | `services/notification` | OUT忘れ通知送信 |
 | `web` | Next.js（受講者/管理画面） |
 
 ### データフロー
 
 1. **入室**: 講座選択 → INボタン → Session(status=open)作成 → Classroom URLへ遷移
-2. **滞在**: heartbeatで継続確認、動画視聴イベントを収集
-3. **退室**: OUTボタン or 動画完走からSession.endTimeを確定
+2. **滞在**: heartbeatで継続確認
+3. **退室**: OUTボタンでSession.endTimeを確定
 4. **補正**: 未OUTセッションは通知ポリシーに従って通知、手動補正可能
 
 ## 技術スタック
@@ -77,7 +75,8 @@ npm run dev -w @classroom-check-in/web
 
 - **連続IN**: 既存openセッションがあれば新規作成せず既存を返す
 - **講座管理**: 管理画面で手入力（Classroom API連携は廃止）
-- **1x以外の視聴**: 完走判定から除外
+- **認証方式**: OAuth認証は実装しない（ADR-0014）
+- **動画プレイヤー**: 連携は実装しない（ADR-0015）
 
 全ADRは`docs/decisions.md`を参照。
 
@@ -103,8 +102,6 @@ npm run dev -w @classroom-check-in/web
 - 通知ポリシー管理API・UI（スコープ別設定）
 - Cloud Scheduler設定（通知サービス毎時実行）
 - ユーザー設定管理API（通知設定）
-- Event Collector（動画イベント収集・Firestore保存）
-- Session Processor（VideoWatchSession生成・動画完走によるセッション自動クローズ）
 - **Cloud Runデプロイ**:
   - API: https://api-up37vpqlrq-an.a.run.app
   - Web UI: https://web-102013220292.asia-northeast1.run.app
@@ -112,6 +109,6 @@ npm run dev -w @classroom-check-in/web
 
 - GitHub Pagesドキュメントサイト: https://system-279.github.io/classroom-check-in/
 
-**未実装**:
-- 認証方式（OAuth審査が必要なため後日検討）
-- フロントエンド動画プレイヤー連携（イベント送信UI）
+**スコープ外**（実装予定なし）:
+- OAuth認証（ADR-0014: 審査コストが高いため実装しない。当面はヘッダ疑似認証で運用）
+- 動画プレイヤー連携（ADR-0015: 埋め込みプレイヤー実装・運用コストが高いため実装しない。IN/OUTは手動入力のみ）

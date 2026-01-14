@@ -209,21 +209,6 @@
 
 以下のエンドポイントは内部サービス間通信用です。
 
-### Event Collector (`services/event-collector`)
-- `POST /api/v1/events/video`
-  - body: `{ courseId, userId, videoId, eventType, eventTime?, positionSec, playbackRate?, clientSessionId?, isVisible? }`
-  - 動画視聴イベントをFirestoreに保存
-  - eventType: PLAY, PAUSE, HEARTBEAT, SEEK, RATE_CHANGE, ENDED
-- `POST /api/v1/events/video/batch`
-  - body: `{ events: VideoEventPayload[] }`
-  - 複数イベントを一括保存（最大100件）
-
-### Session Processor (`services/session`)
-- `POST /run`
-  - VideoPlaybackEventsからVideoWatchSessionを集約
-  - 動画視聴完了（1x速度でENDED）に基づいてopenセッションを自動クローズ
-  - Cloud Schedulerで定期実行（推奨: 毎時）
-
 ### Notification Service (`services/notification`)
 - `POST /run`
   - OUT忘れセッションを検出してメール通知
