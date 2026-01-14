@@ -42,6 +42,9 @@
   - `/api/v1/admin/courses`
 - 認証は `AUTH_MODE=dev` でヘッダ疑似認証
 - GCPプロジェクト: `classroom-checkin-279`（Firestore, Cloud Run等有効化済み）
+- **管理画面UI**: `web/app/admin/`
+  - 講座管理（一覧・作成・編集・削除）
+  - Tailwind CSS v4 + shadcn/ui
 
 ## 環境変数
 - 参照: `docs/config.md`
@@ -68,14 +71,15 @@
 
 ## 未実装/未確定
 - 認証方式（OAuth審査が必要なため後日検討）
-- 管理画面UI（講座・受講者の手入力）
+- 管理画面UI（受講者管理・セッション管理）
+- 受講者向けUI（講座選択・IN/OUT）
 - 通知送信の実装（SendGrid/Gmail/SMTP）
 - セッション再計算ジョブ
 - 動画視聴トラッキングの実装
 
 ## 次の優先タスク（推奨順）
-1) **管理画面UI**（講座・受講者の手入力CRUD）
-2) **受講者向けUI**（講座選択・IN/OUT）
+1) **受講者向けUI**（講座選択・IN/OUT）
+2) **管理画面UI拡張**（受講者管理・セッション管理）
 3) 通知サービスとOUT忘れ通知
 4) 認証方式の検討（OAuth審査 or 別方式）
 
