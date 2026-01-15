@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { apiFetch, type ApiError } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 
 const AUTH_MODE = process.env.NEXT_PUBLIC_AUTH_MODE ?? "dev";
