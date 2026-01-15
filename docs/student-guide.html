@@ -59,9 +59,11 @@
             <h3 class="font-bold text-gray-800 mb-2">システムにログイン</h3>
             <p class="text-gray-600">
               お使いのGoogleアカウントでシステムにログインします。
+              「Googleでログイン」ボタンをクリックして認証を行います。
             </p>
             <div class="mt-3 p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-800">
-              <strong>ポイント:</strong> 講座に登録されているメールアドレスと同じGoogleアカウントを使用してください。
+              <strong>ポイント:</strong> 管理者から事前に登録されたメールアドレスのGoogleアカウントでログインしてください。
+              登録されていないメールアドレスではログインできません。
             </div>
           </div>
         </div>
@@ -242,8 +244,12 @@ flowchart TD
             ログインできません
           </summary>
           <div class="px-4 py-3 bg-gray-50 text-gray-600">
-            講座に登録されているメールアドレスと同じGoogleアカウントでログインしているか確認してください。
-            それでもログインできない場合は、管理者にお問い合わせください。
+            <p class="mb-2">以下を確認してください:</p>
+            <ul class="list-disc list-inside space-y-1">
+              <li>管理者にメールアドレスが登録されているか（アクセス許可リスト）</li>
+              <li>登録されたメールアドレスと同じGoogleアカウントでログインしているか</li>
+            </ul>
+            <p class="mt-2">登録されていない場合はログインできません。管理者にお問い合わせください。</p>
           </div>
         </details>
 
