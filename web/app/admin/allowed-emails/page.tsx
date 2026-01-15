@@ -62,10 +62,21 @@ export default function AllowedEmailsPage() {
         <div>
           <h1 className="text-2xl font-bold">アクセス許可</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            ログインを許可するメールアドレスを管理します。既存ユーザーは引き続きアクセス可能です。
+            この管理画面にログインできるアカウントを管理します。
+            <br />
+            ここに登録されたメールアドレスのみが新規ログイン可能です。
           </p>
         </div>
         <Button onClick={handleCreate}>追加</Button>
+      </div>
+
+      {/* 管理者アカウント */}
+      <div className="rounded-md border bg-muted/50 p-4">
+        <h2 className="text-sm font-medium mb-2">管理者アカウント（固定）</h2>
+        <p className="text-sm text-muted-foreground">
+          <code className="bg-background px-1.5 py-0.5 rounded">system@279279.net</code>
+          {" "}— システム管理者（常にアクセス可能）
+        </p>
       </div>
 
       {error && (
@@ -74,14 +85,17 @@ export default function AllowedEmailsPage() {
         </div>
       )}
 
-      {loading ? (
-        <div className="text-muted-foreground">読み込み中...</div>
-      ) : (
-        <AllowedEmailTable
-          allowedEmails={allowedEmails}
-          onDelete={fetchAllowedEmails}
-        />
-      )}
+      <div>
+        <h2 className="text-sm font-medium mb-2">許可されたアカウント</h2>
+        {loading ? (
+          <div className="text-muted-foreground">読み込み中...</div>
+        ) : (
+          <AllowedEmailTable
+            allowedEmails={allowedEmails}
+            onDelete={fetchAllowedEmails}
+          />
+        )}
+      </div>
 
       <AddEmailDialog
         open={dialogOpen}
