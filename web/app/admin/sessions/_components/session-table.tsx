@@ -62,7 +62,7 @@ export function SessionTable({ sessions, courses, users, onClose }: Props) {
   }
 
   return (
-    <div className="rounded-lg border">
+    <div className="relative z-0 rounded-lg border">
       <Table>
         <TableHeader>
           <TableRow>
