@@ -2,6 +2,7 @@ import cors from "cors";
 import express from "express";
 import { authMiddleware, requireAdmin, requireUser } from "./middleware/auth.js";
 import { db } from "./storage/firestore.js";
+import { demoRouter } from "./routes/demo.js";
 
 // バリデーションヘルパー
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -68,30 +69,7 @@ app.use(express.json());
 // デモモード設定（環境変数で制御）
 const DEMO_ENABLED = process.env.DEMO_ENABLED === "true";
 
-// デモ用固定ユーザー設定ミドルウェア
-const demoUserMiddleware = (req: express.Request, _res: express.Response, next: express.NextFunction) => {
-  req.user = {
-    id: "demo-admin",
-    role: "admin" as const,
-    email: "admin@demo.example.com",
-  };
-  next();
-};
-
-// デモ用読み取り専用ミドルウェア（POST/PATCH/DELETE/PUTをブロック）
-const demoReadOnlyMiddleware = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  const readOnlyMethods = ["POST", "PATCH", "DELETE", "PUT"];
-  if (readOnlyMethods.includes(req.method)) {
-    res.status(403).json({
-      error: "demo_read_only",
-      message: "デモモードでは変更操作はできません",
-    });
-    return;
-  }
-  next();
-};
-
-// APIルーター（本番・デモ共通）
+// APIルーター（本番用）
 const apiRouter = express.Router();
 
 // ヘルスチェック（認証不要）
@@ -1227,12 +1205,11 @@ apiRouter.delete("/admin/allowed-emails/:id", requireAdmin, async (req, res) => 
   res.json({ deleted: true, id });
 });
 
-// ルーターをマウント: デモパス（固定ユーザー・読み取り専用）と本番パス（認証付き）
-// 注意: より具体的なパスを先にマウントする必要がある
+// ルーターをマウント: デモパス（モックデータ）と本番パス（認証付き）
 if (DEMO_ENABLED) {
-  // デモモードが有効な場合のみデモルートをマウント（読み取り専用）
-  app.use("/api/v1/demo", demoUserMiddleware, demoReadOnlyMiddleware, apiRouter);
-  console.log("Demo mode enabled (read-only)");
+  // デモモードが有効な場合のみデモルートをマウント（Firestoreを使用しないモックデータ）
+  app.use("/api/v1/demo", demoRouter);
+  console.log("Demo mode enabled (mock data, read-only)");
 }
 app.use("/api/v1", authMiddleware, apiRouter);
 
