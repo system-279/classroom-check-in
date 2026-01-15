@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { apiFetch } from "@/lib/api";
+import { useAuthFetch } from "@/lib/auth-fetch-context";
 import type { User, UserInput } from "@/types/user";
 
 type Props = {
@@ -33,6 +33,7 @@ export function UserFormDialog({
   user,
   onSuccess,
 }: Props) {
+  const authFetch = useAuthFetch();
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [role, setRole] = useState<"admin" | "teacher" | "student">("student");
@@ -69,12 +70,12 @@ export function UserFormDialog({
 
     try {
       if (isEditing) {
-        await apiFetch(`/api/v1/admin/users/${user.id}`, {
+        await authFetch(`/api/v1/admin/users/${user.id}`, {
           method: "PATCH",
           body: JSON.stringify(payload),
         });
       } else {
-        await apiFetch("/api/v1/admin/users", {
+        await authFetch("/api/v1/admin/users", {
           method: "POST",
           body: JSON.stringify(payload),
         });

@@ -104,7 +104,7 @@ npm run dev -w @classroom-check-in/web
 - Cloud Scheduler設定（通知サービス毎時実行）
 - ユーザー設定管理API（通知設定）
 - **Cloud Runデプロイ**:
-  - API: https://api-up37vpqlrq-an.a.run.app
+  - API: https://api-102013220292.asia-northeast1.run.app
   - Web UI: https://web-102013220292.asia-northeast1.run.app
 - Artifact Registry クリーンアップポリシー（最新2イメージ保持）
 - Firebase Authentication（ADR-0016）

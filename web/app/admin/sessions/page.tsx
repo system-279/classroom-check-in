@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { apiFetch } from "@/lib/api";
+import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { useAuthFetch } from "@/lib/auth-fetch-context";
+import { useAuth } from "@/lib/auth-context";
 import type { Session } from "@/types/session";
 import type { Course } from "@/types/course";
 import type { User } from "@/types/user";
@@ -15,7 +17,12 @@ import {
 import { SessionTable } from "./_components/session-table";
 import { CloseSessionDialog } from "./_components/close-session-dialog";
 
+const AUTH_MODE = process.env.NEXT_PUBLIC_AUTH_MODE ?? "dev";
+
 export default function SessionsPage() {
+  const router = useRouter();
+  const authFetch = useAuthFetch();
+  const { user: authUser, loading: authLoading } = useAuth();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -27,7 +34,7 @@ export default function SessionsPage() {
   const [filterUserId, setFilterUserId] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -40,9 +47,9 @@ export default function SessionsPage() {
       const sessionsPath = `/api/v1/admin/sessions${queryString ? `?${queryString}` : ""}`;
 
       const [sessionsData, coursesData, usersData] = await Promise.all([
-        apiFetch<{ sessions: Session[] }>(sessionsPath),
-        apiFetch<{ courses: Course[] }>("/api/v1/admin/courses"),
-        apiFetch<{ users: User[] }>("/api/v1/admin/users"),
+        authFetch<{ sessions: Session[] }>(sessionsPath),
+        authFetch<{ courses: Course[] }>("/api/v1/admin/courses"),
+        authFetch<{ users: User[] }>("/api/v1/admin/users"),
       ]);
       setSessions(sessionsData.sessions);
       setCourses(coursesData.courses);
@@ -52,11 +59,18 @@ export default function SessionsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [authFetch, filterCourseId, filterUserId, filterStatus]);
 
   useEffect(() => {
+    if (AUTH_MODE === "firebase" && !authLoading && !authUser) {
+      router.push("/");
+      return;
+    }
+    if (AUTH_MODE === "firebase" && authLoading) {
+      return;
+    }
     fetchData();
-  }, [filterCourseId, filterUserId, filterStatus]);
+  }, [authLoading, authUser, router, fetchData]);
 
   const handleClose = (session: Session) => {
     setClosingSession(session);

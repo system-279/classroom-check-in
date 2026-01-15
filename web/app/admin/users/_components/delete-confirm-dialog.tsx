@@ -9,7 +9,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { apiFetch } from "@/lib/api";
+import { useAuthFetch } from "@/lib/auth-fetch-context";
 import type { User } from "@/types/user";
 
 type Props = {
@@ -19,6 +19,7 @@ type Props = {
 };
 
 export function DeleteConfirmDialog({ user, onClose, onDeleted }: Props) {
+  const authFetch = useAuthFetch();
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,7 +30,7 @@ export function DeleteConfirmDialog({ user, onClose, onDeleted }: Props) {
     setError(null);
 
     try {
-      await apiFetch(`/api/v1/admin/users/${user.id}`, {
+      await authFetch(`/api/v1/admin/users/${user.id}`, {
         method: "DELETE",
       });
       onClose();

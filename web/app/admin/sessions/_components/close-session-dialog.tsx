@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { apiFetch } from "@/lib/api";
+import { useAuthFetch } from "@/lib/auth-fetch-context";
 import type { Session } from "@/types/session";
 import type { Course } from "@/types/course";
 import type { User } from "@/types/user";
@@ -32,6 +32,7 @@ export function CloseSessionDialog({
   onClose,
   onSuccess,
 }: Props) {
+  const authFetch = useAuthFetch();
   const [closedAt, setClosedAt] = useState("");
   const [reason, setReason] = useState("");
   const [closing, setClosing] = useState(false);
@@ -53,7 +54,7 @@ export function CloseSessionDialog({
     setError(null);
 
     try {
-      await apiFetch(`/api/v1/admin/sessions/${session.id}/close`, {
+      await authFetch(`/api/v1/admin/sessions/${session.id}/close`, {
         method: "POST",
         body: JSON.stringify({
           closedAt: closedAt || undefined,

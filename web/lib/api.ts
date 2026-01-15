@@ -80,6 +80,12 @@ export function createAuthenticatedFetcher(getIdToken: () => Promise<string | nu
     options: RequestInit = {}
   ): Promise<T> {
     const idToken = await getIdToken();
+
+    // Firebase認証モードでトークンがない場合はエラー
+    if (AUTH_MODE === "firebase" && !idToken) {
+      throw new Error("認証トークンを取得できませんでした。再ログインしてください。");
+    }
+
     return apiFetch<T>(path, { ...options, idToken: idToken ?? undefined });
   };
 }

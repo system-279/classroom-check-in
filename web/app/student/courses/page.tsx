@@ -1,21 +1,41 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
+import { useAuth } from "@/lib/auth-context";
 import type { Course } from "@/types/course";
 import { CourseCard } from "./_components/course-card";
 
+const AUTH_MODE = process.env.NEXT_PUBLIC_AUTH_MODE ?? "dev";
+
 export default function StudentCoursesPage() {
+  const router = useRouter();
+  const { user, loading: authLoading, getIdToken } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Firebase認証モードで未認証の場合はホームへリダイレクト
+    if (AUTH_MODE === "firebase" && !authLoading && !user) {
+      router.push("/");
+      return;
+    }
+
+    // 認証確認中は待機
+    if (AUTH_MODE === "firebase" && authLoading) {
+      return;
+    }
+
     const fetchCourses = async () => {
       setLoading(true);
       setError(null);
       try {
-        const data = await apiFetch<{ courses: Course[] }>("/api/v1/courses");
+        const idToken = await getIdToken();
+        const data = await apiFetch<{ courses: Course[] }>("/api/v1/courses", {
+          idToken: idToken ?? undefined,
+        });
         setCourses(data.courses);
       } catch (e) {
         setError(
@@ -26,7 +46,7 @@ export default function StudentCoursesPage() {
       }
     };
     fetchCourses();
-  }, []);
+  }, [authLoading, user, router, getIdToken]);
 
   if (loading) {
     return (

@@ -9,7 +9,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { apiFetch } from "@/lib/api";
+import { useAuthFetch } from "@/lib/auth-fetch-context";
 import type { NotificationPolicy } from "@/types/notification-policy";
 
 type Props = {
@@ -31,6 +31,7 @@ export function DeleteConfirmDialog({
   policy,
   onSuccess,
 }: Props) {
+  const authFetch = useAuthFetch();
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,7 +42,7 @@ export function DeleteConfirmDialog({
     setError(null);
 
     try {
-      await apiFetch(`/api/v1/admin/notification-policies/${policy.id}`, {
+      await authFetch(`/api/v1/admin/notification-policies/${policy.id}`, {
         method: "DELETE",
       });
       onSuccess();
