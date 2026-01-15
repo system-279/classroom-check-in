@@ -34,3 +34,5 @@ npm-debug.log*
 # TypeScript
 *.tsbuildinfo
 .secrets/
+test-results/
+playwright-report/
