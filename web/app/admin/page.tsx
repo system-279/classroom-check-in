@@ -29,6 +29,22 @@ export default function AdminPage() {
             </p>
           </div>
         </Link>
+        <Link href="/admin/notification-policies">
+          <div className="rounded-lg border bg-card p-6 hover:bg-accent transition-colors">
+            <h2 className="font-semibold">通知ポリシー</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              OUT忘れ通知の設定
+            </p>
+          </div>
+        </Link>
+        <Link href="/admin/allowed-emails">
+          <div className="rounded-lg border bg-card p-6 hover:bg-accent transition-colors">
+            <h2 className="font-semibold">アクセス許可</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              ログイン許可メールの管理
+            </p>
+          </div>
+        </Link>
       </div>
     </div>
   );
