@@ -27,3 +27,9 @@ body {
   background-color: var(--color-background);
   color: var(--color-foreground);
 }
+
+/* Radix UI Popper (Select, Dropdown等) のz-index修正 */
+/* 参考: https://github.com/radix-ui/primitives/issues/1317 */
+[data-radix-popper-content-wrapper] {
+  z-index: 50 !important;
+}
