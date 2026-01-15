@@ -124,7 +124,7 @@ npm run dev -w @classroom-check-in/web
   - `/demo/*` パスで管理画面・受講者画面を閲覧可能
   - `DEMO_ENABLED=true` で有効化
   - POST/PATCH/DELETE/PUT はブロック（403）
-  - シードデータ: `scripts/seed-demo.ts`
+  - インメモリモックデータ使用（Firestore不使用）: `services/api/src/demo-data.ts`
 
 **スコープ外**（実装予定なし）:
 - Google OAuth（Classroom API連携用）（ADR-0014: 審査コストが高いため実装しない）
