@@ -77,6 +77,7 @@ npm run dev -w @classroom-check-in/web
 - **連続IN**: 既存openセッションがあれば新規作成せず既存を返す（ADR-0012）
 - **講座管理**: 管理画面で手入力（Classroom API連携は廃止）（ADR-0014）
 - **認証方式**: Firebase Authentication + Googleソーシャルログイン（ADR-0016）
+- **アクセス許可リスト**: 新規ユーザーは事前登録されたメールのみログイン可能（ADR-0017）
 - **動画プレイヤー**: 連携は実装しない（ADR-0015）
 
 全ADRは`docs/decisions.md`を参照。
