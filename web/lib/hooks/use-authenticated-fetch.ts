@@ -10,13 +10,20 @@ type FetchOptions = RequestInit;
 /**
  * 認証付きAPIフェッチフック
  * Firebase認証モードの場合、自動的にIDトークンを付与する
+ * デモモードの場合は /api/v1/demo/* パスを使用
  */
 export function useAuthenticatedFetch() {
   const router = useRouter();
-  const { user, loading: authLoading, getIdToken } = useAuth();
+  const { user, loading: authLoading, getIdToken, isDemo } = useAuth();
 
   const authFetch = useCallback(
     async <T>(path: string, options: FetchOptions = {}): Promise<T> => {
+      // デモモードの場合はパスを変換し、認証チェックをスキップ
+      if (isDemo) {
+        const demoPath = path.replace("/api/v1/", "/api/v1/demo/");
+        return apiFetch<T>(demoPath, options);
+      }
+
       // Firebase認証モードで未認証の場合はホームへリダイレクト
       if (AUTH_MODE === "firebase" && !authLoading && !user) {
         router.push("/");
@@ -35,13 +42,14 @@ export function useAuthenticatedFetch() {
         idToken: idToken ?? undefined,
       });
     },
-    [user, authLoading, getIdToken, router]
+    [user, authLoading, getIdToken, router, isDemo]
   );
 
   return {
     authFetch,
     user,
     authLoading,
-    isAuthenticated: AUTH_MODE !== "firebase" || !!user,
+    isAuthenticated: isDemo || AUTH_MODE !== "firebase" || !!user,
+    isDemo,
   };
 }

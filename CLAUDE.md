@@ -69,6 +69,7 @@ npm run dev -w @classroom-check-in/web
 | `AUTH_MODE` | `dev`=ヘッダ疑似認証、`firebase`=Firebase認証（本番用） |
 | `GOOGLE_APPLICATION_CREDENTIALS` | サービスアカウントJSONパス |
 | `FIREBASE_PROJECT_ID` | Firebase プロジェクトID |
+| `DEMO_ENABLED` | `true`=デモモード有効（読み取り専用） |
 
 詳細は`docs/config.md`を参照。
 
@@ -119,6 +120,11 @@ npm run dev -w @classroom-check-in/web
   - CD: Cloud Run自動デプロイ（main push時）
   - Workload Identity Federation認証
 - **ESLint設定**: TypeScript + React + Next.js対応
+- **デモモード**: 認証不要の読み取り専用モード
+  - `/demo/*` パスで管理画面・受講者画面を閲覧可能
+  - `DEMO_ENABLED=true` で有効化
+  - POST/PATCH/DELETE/PUT はブロック（403）
+  - シードデータ: `scripts/seed-demo.ts`
 
 **スコープ外**（実装予定なし）:
 - Google OAuth（Classroom API連携用）（ADR-0014: 審査コストが高いため実装しない）

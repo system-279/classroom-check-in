@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { useAuthFetch } from "@/lib/auth-fetch-context";
 import type { Course } from "@/types/course";
 import { CourseCard } from "./_components/course-card";
 
@@ -11,12 +11,34 @@ const AUTH_MODE = process.env.NEXT_PUBLIC_AUTH_MODE ?? "dev";
 
 export default function StudentCoursesPage() {
   const router = useRouter();
-  const { user, loading: authLoading, getIdToken } = useAuth();
+  const { user, loading: authLoading, isDemo } = useAuth();
+  const authFetch = useAuthFetch();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const fetchCourses = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await authFetch<{ courses: Course[] }>("/api/v1/courses");
+      setCourses(data.courses);
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "講座の取得に失敗しました"
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [authFetch]);
+
   useEffect(() => {
+    // デモモードでは認証チェックをスキップ
+    if (isDemo) {
+      fetchCourses();
+      return;
+    }
+
     // Firebase認証モードで未認証の場合はホームへリダイレクト
     if (AUTH_MODE === "firebase" && !authLoading && !user) {
       router.push("/");
@@ -28,25 +50,8 @@ export default function StudentCoursesPage() {
       return;
     }
 
-    const fetchCourses = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const idToken = await getIdToken();
-        const data = await apiFetch<{ courses: Course[] }>("/api/v1/courses", {
-          idToken: idToken ?? undefined,
-        });
-        setCourses(data.courses);
-      } catch (e) {
-        setError(
-          e instanceof Error ? e.message : "講座の取得に失敗しました"
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchCourses();
-  }, [authLoading, user, router, getIdToken]);
+  }, [authLoading, user, router, isDemo, fetchCourses]);
 
   if (loading) {
     return (

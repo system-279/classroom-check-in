@@ -64,8 +64,37 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json());
-app.use(authMiddleware);
 
+// デモモード設定（環境変数で制御）
+const DEMO_ENABLED = process.env.DEMO_ENABLED === "true";
+
+// デモ用固定ユーザー設定ミドルウェア
+const demoUserMiddleware = (req: express.Request, _res: express.Response, next: express.NextFunction) => {
+  req.user = {
+    id: "demo-admin",
+    role: "admin" as const,
+    email: "admin@demo.example.com",
+  };
+  next();
+};
+
+// デモ用読み取り専用ミドルウェア（POST/PATCH/DELETE/PUTをブロック）
+const demoReadOnlyMiddleware = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  const readOnlyMethods = ["POST", "PATCH", "DELETE", "PUT"];
+  if (readOnlyMethods.includes(req.method)) {
+    res.status(403).json({
+      error: "demo_read_only",
+      message: "デモモードでは変更操作はできません",
+    });
+    return;
+  }
+  next();
+};
+
+// APIルーター（本番・デモ共通）
+const apiRouter = express.Router();
+
+// ヘルスチェック（認証不要）
 app.get("/healthz", (_req, res) => {
   res.json({ status: "ok" });
 });
@@ -78,15 +107,15 @@ const notImplemented = (req: express.Request, res: express.Response) => {
 };
 
 // Auth (OAuth is not wired yet)
-app.get("/api/v1/auth/google/start", notImplemented);
-app.get("/api/v1/auth/google/callback", notImplemented);
-app.post("/api/v1/auth/logout", notImplemented);
-app.get("/api/v1/auth/me", requireUser, (req, res) => {
+apiRouter.get("/auth/google/start", notImplemented);
+apiRouter.get("/auth/google/callback", notImplemented);
+apiRouter.post("/auth/logout", notImplemented);
+apiRouter.get("/auth/me", requireUser, (req, res) => {
   res.json({ user: req.user });
 });
 
 // Courses (student view)
-app.get("/api/v1/courses", requireUser, async (req, res) => {
+apiRouter.get("/courses", requireUser, async (req, res) => {
   // enabled=true かつ visible=true の講座を取得
   const coursesSnap = await db
     .collection("courses")
@@ -214,7 +243,7 @@ app.get("/api/v1/courses", requireUser, async (req, res) => {
 // Sessions
 
 // アクティブセッション確認（P1修正: check-in APIの誤用を防ぐ）
-app.get("/api/v1/sessions/active", requireUser, async (req, res) => {
+apiRouter.get("/sessions/active", requireUser, async (req, res) => {
   const courseId = req.query.courseId as string | undefined;
 
   const query = db
@@ -235,7 +264,7 @@ app.get("/api/v1/sessions/active", requireUser, async (req, res) => {
   res.json({ session: serializeSession(doc.id, doc.data()) });
 });
 
-app.post("/api/v1/sessions/check-in", requireUser, async (req, res) => {
+apiRouter.post("/sessions/check-in", requireUser, async (req, res) => {
   const courseId = req.body?.courseId;
   if (!courseId) {
     res.status(400).json({ error: "course_id_required" });
@@ -290,7 +319,7 @@ app.post("/api/v1/sessions/check-in", requireUser, async (req, res) => {
   res.json({ session: serializeSession(sessionSnap.id, sessionSnap.data()) });
 });
 
-app.post("/api/v1/sessions/heartbeat", requireUser, async (req, res) => {
+apiRouter.post("/sessions/heartbeat", requireUser, async (req, res) => {
   const sessionId = req.body?.sessionId;
   if (!sessionId) {
     res.status(400).json({ error: "session_id_required" });
@@ -314,7 +343,7 @@ app.post("/api/v1/sessions/heartbeat", requireUser, async (req, res) => {
   res.json({ status: "ok" });
 });
 
-app.post("/api/v1/sessions/check-out", requireUser, async (req, res) => {
+apiRouter.post("/sessions/check-out", requireUser, async (req, res) => {
   const sessionId = req.body?.sessionId;
   if (!sessionId) {
     res.status(400).json({ error: "session_id_required" });
@@ -363,7 +392,7 @@ app.post("/api/v1/sessions/check-out", requireUser, async (req, res) => {
 });
 
 // Admin: courses
-app.get("/api/v1/admin/courses", requireAdmin, async (_req, res) => {
+apiRouter.get("/admin/courses", requireAdmin, async (_req, res) => {
   const coursesSnap = await db.collection("courses").get();
 
   const courses = coursesSnap.docs.map((doc) => {
@@ -384,7 +413,7 @@ app.get("/api/v1/admin/courses", requireAdmin, async (_req, res) => {
   res.json({ courses });
 });
 
-app.post("/api/v1/admin/courses", requireAdmin, async (req, res) => {
+apiRouter.post("/admin/courses", requireAdmin, async (req, res) => {
   const name = req.body?.name;
   const classroomUrl = req.body?.classroomUrl;
   const description = req.body?.description ?? null;
@@ -421,7 +450,7 @@ app.post("/api/v1/admin/courses", requireAdmin, async (req, res) => {
   });
 });
 
-app.patch("/api/v1/admin/courses/:id", requireAdmin, async (req, res) => {
+apiRouter.patch("/admin/courses/:id", requireAdmin, async (req, res) => {
   const id = req.params.id as string;
   const updates: Record<string, unknown> = {};
 
@@ -458,7 +487,7 @@ app.patch("/api/v1/admin/courses/:id", requireAdmin, async (req, res) => {
   res.json({ id, ...currentData, ...updates });
 });
 
-app.delete("/api/v1/admin/courses/:id", requireAdmin, async (req, res) => {
+apiRouter.delete("/admin/courses/:id", requireAdmin, async (req, res) => {
   const id = req.params.id as string;
   const ref = db.collection("courses").doc(id);
   const snap = await ref.get();
@@ -485,7 +514,7 @@ app.delete("/api/v1/admin/courses/:id", requireAdmin, async (req, res) => {
 });
 
 // Admin: users
-app.get("/api/v1/admin/users", requireAdmin, async (_req, res) => {
+apiRouter.get("/admin/users", requireAdmin, async (_req, res) => {
   const usersSnap = await db.collection("users").get();
 
   const users = usersSnap.docs.map((doc) => {
@@ -503,7 +532,7 @@ app.get("/api/v1/admin/users", requireAdmin, async (_req, res) => {
   res.json({ users });
 });
 
-app.post("/api/v1/admin/users", requireAdmin, async (req, res) => {
+apiRouter.post("/admin/users", requireAdmin, async (req, res) => {
   const email = req.body?.email;
   const name = req.body?.name ?? null;
   const role = req.body?.role ?? "student";
@@ -544,7 +573,7 @@ app.post("/api/v1/admin/users", requireAdmin, async (req, res) => {
   });
 });
 
-app.get("/api/v1/admin/users/:id", requireAdmin, async (req, res) => {
+apiRouter.get("/admin/users/:id", requireAdmin, async (req, res) => {
   const id = req.params.id as string;
   const ref = db.collection("users").doc(id);
   const snap = await ref.get();
@@ -565,7 +594,7 @@ app.get("/api/v1/admin/users/:id", requireAdmin, async (req, res) => {
   });
 });
 
-app.patch("/api/v1/admin/users/:id", requireAdmin, async (req, res) => {
+apiRouter.patch("/admin/users/:id", requireAdmin, async (req, res) => {
   const id = req.params.id as string;
   const updates: Record<string, unknown> = {};
 
@@ -606,7 +635,7 @@ app.patch("/api/v1/admin/users/:id", requireAdmin, async (req, res) => {
   res.json({ id, ...currentData, ...updates });
 });
 
-app.delete("/api/v1/admin/users/:id", requireAdmin, async (req, res) => {
+apiRouter.delete("/admin/users/:id", requireAdmin, async (req, res) => {
   const id = req.params.id as string;
   const ref = db.collection("users").doc(id);
   const snap = await ref.get();
@@ -631,7 +660,7 @@ app.delete("/api/v1/admin/users/:id", requireAdmin, async (req, res) => {
 });
 
 // Admin: enrollments
-app.get("/api/v1/admin/enrollments", requireAdmin, async (req, res) => {
+apiRouter.get("/admin/enrollments", requireAdmin, async (req, res) => {
   const courseId = req.query.courseId as string | undefined;
   const userId = req.query.userId as string | undefined;
 
@@ -662,7 +691,7 @@ app.get("/api/v1/admin/enrollments", requireAdmin, async (req, res) => {
   res.json({ enrollments });
 });
 
-app.post("/api/v1/admin/enrollments", requireAdmin, async (req, res) => {
+apiRouter.post("/admin/enrollments", requireAdmin, async (req, res) => {
   const courseId = req.body?.courseId;
   const userId = req.body?.userId;
   const role = req.body?.role ?? "student";
@@ -722,7 +751,7 @@ app.post("/api/v1/admin/enrollments", requireAdmin, async (req, res) => {
   });
 });
 
-app.patch("/api/v1/admin/enrollments/:id", requireAdmin, async (req, res) => {
+apiRouter.patch("/admin/enrollments/:id", requireAdmin, async (req, res) => {
   const id = req.params.id as string;
   const updates: Record<string, unknown> = {};
 
@@ -752,7 +781,7 @@ app.patch("/api/v1/admin/enrollments/:id", requireAdmin, async (req, res) => {
   res.json({ id, ...currentData, ...updates });
 });
 
-app.delete("/api/v1/admin/enrollments/:id", requireAdmin, async (req, res) => {
+apiRouter.delete("/admin/enrollments/:id", requireAdmin, async (req, res) => {
   const id = req.params.id as string;
   const ref = db.collection("enrollments").doc(id);
   const snap = await ref.get();
@@ -767,7 +796,7 @@ app.delete("/api/v1/admin/enrollments/:id", requireAdmin, async (req, res) => {
 });
 
 // Admin: sessions
-app.get("/api/v1/admin/sessions", requireAdmin, async (req, res) => {
+apiRouter.get("/admin/sessions", requireAdmin, async (req, res) => {
   const courseId = req.query.courseId as string | undefined;
   const userId = req.query.userId as string | undefined;
   const status = req.query.status as string | undefined;
@@ -793,7 +822,7 @@ app.get("/api/v1/admin/sessions", requireAdmin, async (req, res) => {
   res.json({ sessions });
 });
 
-app.post("/api/v1/admin/sessions/:id/close", requireAdmin, async (req, res) => {
+apiRouter.post("/admin/sessions/:id/close", requireAdmin, async (req, res) => {
   const id = req.params.id as string;
   const closedAt = req.body?.closedAt ? new Date(req.body.closedAt) : new Date();
   const reason = req.body?.reason ?? "admin_close";
@@ -841,7 +870,7 @@ app.post("/api/v1/admin/sessions/:id/close", requireAdmin, async (req, res) => {
 });
 
 // Admin: notification policies
-app.get("/api/v1/admin/notification-policies", requireAdmin, async (req, res) => {
+apiRouter.get("/admin/notification-policies", requireAdmin, async (req, res) => {
   const scope = req.query.scope as string | undefined;
   const courseId = req.query.courseId as string | undefined;
   const userId = req.query.userId as string | undefined;
@@ -879,7 +908,7 @@ app.get("/api/v1/admin/notification-policies", requireAdmin, async (req, res) =>
   res.json({ policies });
 });
 
-app.post("/api/v1/admin/notification-policies", requireAdmin, async (req, res) => {
+apiRouter.post("/admin/notification-policies", requireAdmin, async (req, res) => {
   const scope = req.body?.scope as "global" | "course" | "user";
   const courseId = req.body?.courseId ?? null;
   const userId = req.body?.userId ?? null;
@@ -967,7 +996,7 @@ app.post("/api/v1/admin/notification-policies", requireAdmin, async (req, res) =
   });
 });
 
-app.patch("/api/v1/admin/notification-policies/:id", requireAdmin, async (req, res) => {
+apiRouter.patch("/admin/notification-policies/:id", requireAdmin, async (req, res) => {
   const id = req.params.id as string;
   const updates: Record<string, unknown> = {};
 
@@ -1003,7 +1032,7 @@ app.patch("/api/v1/admin/notification-policies/:id", requireAdmin, async (req, r
   res.json({ id, ...currentData, ...updates });
 });
 
-app.delete("/api/v1/admin/notification-policies/:id", requireAdmin, async (req, res) => {
+apiRouter.delete("/admin/notification-policies/:id", requireAdmin, async (req, res) => {
   const id = req.params.id as string;
   const ref = db.collection("notificationPolicies").doc(id);
   const snap = await ref.get();
@@ -1018,7 +1047,7 @@ app.delete("/api/v1/admin/notification-policies/:id", requireAdmin, async (req, 
 });
 
 // Admin: user settings (通知設定)
-app.get("/api/v1/admin/users/:id/settings", requireAdmin, async (req, res) => {
+apiRouter.get("/admin/users/:id/settings", requireAdmin, async (req, res) => {
   const userId = req.params.id as string;
 
   // ユーザーの存在確認
@@ -1058,7 +1087,7 @@ app.get("/api/v1/admin/users/:id/settings", requireAdmin, async (req, res) => {
   });
 });
 
-app.patch("/api/v1/admin/users/:id/settings", requireAdmin, async (req, res) => {
+apiRouter.patch("/admin/users/:id/settings", requireAdmin, async (req, res) => {
   const userId = req.params.id as string;
 
   // ユーザーの存在確認
@@ -1127,7 +1156,7 @@ app.patch("/api/v1/admin/users/:id/settings", requireAdmin, async (req, res) => 
 });
 
 // Admin: allowed emails (許可リスト)
-app.get("/api/v1/admin/allowed-emails", requireAdmin, async (_req, res) => {
+apiRouter.get("/admin/allowed-emails", requireAdmin, async (_req, res) => {
   const allowedSnap = await db.collection("allowedEmails").orderBy("createdAt", "desc").get();
 
   const allowedEmails = allowedSnap.docs.map((doc) => {
@@ -1143,7 +1172,7 @@ app.get("/api/v1/admin/allowed-emails", requireAdmin, async (_req, res) => {
   res.json({ allowedEmails });
 });
 
-app.post("/api/v1/admin/allowed-emails", requireAdmin, async (req, res) => {
+apiRouter.post("/admin/allowed-emails", requireAdmin, async (req, res) => {
   const email = req.body?.email;
   const note = req.body?.note ?? null;
 
@@ -1184,7 +1213,7 @@ app.post("/api/v1/admin/allowed-emails", requireAdmin, async (req, res) => {
   });
 });
 
-app.delete("/api/v1/admin/allowed-emails/:id", requireAdmin, async (req, res) => {
+apiRouter.delete("/admin/allowed-emails/:id", requireAdmin, async (req, res) => {
   const id = req.params.id as string;
   const ref = db.collection("allowedEmails").doc(id);
   const snap = await ref.get();
@@ -1197,6 +1226,15 @@ app.delete("/api/v1/admin/allowed-emails/:id", requireAdmin, async (req, res) =>
   await ref.delete();
   res.json({ deleted: true, id });
 });
+
+// ルーターをマウント: デモパス（固定ユーザー・読み取り専用）と本番パス（認証付き）
+// 注意: より具体的なパスを先にマウントする必要がある
+if (DEMO_ENABLED) {
+  // デモモードが有効な場合のみデモルートをマウント（読み取り専用）
+  app.use("/api/v1/demo", demoUserMiddleware, demoReadOnlyMiddleware, apiRouter);
+  console.log("Demo mode enabled (read-only)");
+}
+app.use("/api/v1", authMiddleware, apiRouter);
 
 const port = Number(process.env.PORT || 8080);
 app.listen(port, () => {

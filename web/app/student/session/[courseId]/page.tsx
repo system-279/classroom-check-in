@@ -33,27 +33,30 @@ export default function SessionPage() {
     ? params.courseId[0]
     : params.courseId;
 
-  const { authFetch, authLoading, isAuthenticated } = useAuthenticatedFetch();
+  const { authFetch, authLoading, isAuthenticated, isDemo } = useAuthenticatedFetch();
   const [course, setCourse] = useState<Course | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // heartbeat: セッションがopenの場合のみ送信
+  // heartbeat: セッションがopenの場合のみ送信（デモモードでも有効）
   useHeartbeat(session?.status === "open" ? session.id : null);
 
   // 講座情報を取得し、既存のopenセッションがあるか確認
   useEffect(() => {
-    // Firebase認証モードで未認証の場合はホームへリダイレクト
-    if (AUTH_MODE === "firebase" && !authLoading && !isAuthenticated) {
-      router.push("/");
-      return;
-    }
+    // デモモードでは認証チェックをスキップ
+    if (!isDemo) {
+      // Firebase認証モードで未認証の場合はホームへリダイレクト
+      if (AUTH_MODE === "firebase" && !authLoading && !isAuthenticated) {
+        router.push("/");
+        return;
+      }
 
-    // 認証確認中は待機
-    if (AUTH_MODE === "firebase" && authLoading) {
-      return;
+      // 認証確認中は待機
+      if (AUTH_MODE === "firebase" && authLoading) {
+        return;
+      }
     }
 
     if (!courseId) {
@@ -95,7 +98,7 @@ export default function SessionPage() {
     };
 
     fetchData();
-  }, [courseId, authLoading, isAuthenticated, router, authFetch]);
+  }, [courseId, authLoading, isAuthenticated, router, authFetch, isDemo]);
 
   const handleCheckIn = async () => {
     if (!course || !courseId) return;
@@ -152,12 +155,13 @@ export default function SessionPage() {
   }
 
   if (error && !course) {
+    const errorCoursesPath = isDemo ? "/demo/student/courses" : "/student/courses";
     return (
       <div className="space-y-4">
         <div className="rounded-lg bg-destructive/10 p-4 text-destructive">
           {error}
         </div>
-        <Link href="/student/courses">
+        <Link href={errorCoursesPath}>
           <Button variant="outline">講座一覧に戻る</Button>
         </Link>
       </div>
@@ -165,12 +169,13 @@ export default function SessionPage() {
   }
 
   const isSessionActive = session?.status === "open";
+  const coursesPath = isDemo ? "/demo/student/courses" : "/student/courses";
 
   return (
     <div className="space-y-6">
       <div>
         <Link
-          href="/student/courses"
+          href={coursesPath}
           className="text-sm text-muted-foreground hover:text-foreground"
         >
           ← 講座一覧に戻る

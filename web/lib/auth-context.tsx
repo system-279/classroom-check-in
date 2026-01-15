@@ -15,6 +15,7 @@ import {
   type User,
 } from "firebase/auth";
 import { getFirebaseAuth } from "./firebase";
+import { useDemoMode } from "./demo-mode-context";
 
 type AuthState = {
   user: User | null;
@@ -26,20 +27,43 @@ type AuthContextType = AuthState & {
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   getIdToken: () => Promise<string | null>;
+  isDemo?: boolean;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
 const AUTH_MODE = process.env.NEXT_PUBLIC_AUTH_MODE ?? "dev";
 
+// デモ用固定ユーザー（Firebase User互換のモック）
+const DEMO_USER = {
+  uid: "demo-admin",
+  email: "admin@demo.example.com",
+  displayName: "管理者デモ",
+  getIdToken: async () => null,
+} as unknown as User;
+
 export function AuthProvider({ children }: { children: ReactNode }) {
+  // デモモードかどうかを安全に取得（DemoModeProvider外ではfalse）
+  let isDemo = false;
+  try {
+    isDemo = useDemoMode();
+  } catch {
+    // DemoModeProvider外では例外が発生しないが、念のため
+  }
+
   const [state, setState] = useState<AuthState>({
-    user: null,
-    loading: AUTH_MODE === "firebase",
+    user: isDemo ? DEMO_USER : null,
+    loading: isDemo ? false : AUTH_MODE === "firebase",
     error: null,
   });
 
   useEffect(() => {
+    // デモモードでは認証状態の監視をスキップ
+    if (isDemo) {
+      setState({ user: DEMO_USER, loading: false, error: null });
+      return;
+    }
+
     if (AUTH_MODE !== "firebase") {
       return;
     }
@@ -56,10 +80,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     return () => unsubscribe();
-  }, []);
+  }, [isDemo]);
 
   const signInWithGoogle = async () => {
-    if (AUTH_MODE !== "firebase") {
+    // デモモードでは何もしない
+    if (isDemo || AUTH_MODE !== "firebase") {
       return;
     }
 
@@ -76,7 +101,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    if (AUTH_MODE !== "firebase") {
+    // デモモードでは何もしない
+    if (isDemo || AUTH_MODE !== "firebase") {
       return;
     }
 
@@ -91,7 +117,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const getIdToken = async (): Promise<string | null> => {
-    if (AUTH_MODE !== "firebase" || !state.user) {
+    // デモモードではトークン不要
+    if (isDemo || AUTH_MODE !== "firebase" || !state.user) {
       return null;
     }
 
@@ -108,6 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ...state,
         signInWithGoogle,
         signOut,
+        isDemo,
         getIdToken,
       }}
     >

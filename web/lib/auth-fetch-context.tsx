@@ -13,12 +13,32 @@ const AuthFetchContext = createContext<AuthFetchFunction | null>(null);
 /**
  * 認証付きフェッチ関数を提供するプロバイダー
  * 子コンポーネントでuseAuthFetchを使用可能にする
+ * デモモードの場合は /api/v1/demo/* パスを使用
  */
 export function AuthFetchProvider({ children }: { children: ReactNode }) {
-  const { getIdToken } = useAuth();
+  const { getIdToken, isDemo } = useAuth();
 
   const authFetch = useCallback(
     async <T,>(path: string, options: RequestInit = {}): Promise<T> => {
+      // デモモードの場合はパスを変換（より堅牢な実装）
+      let actualPath = path;
+      if (isDemo) {
+        // 既にdemoパスの場合はそのまま
+        if (!path.includes("/api/v1/demo")) {
+          // /api/v1 または /api/v1/ で始まるパスを変換
+          if (path.startsWith("/api/v1/")) {
+            actualPath = path.replace("/api/v1/", "/api/v1/demo/");
+          } else if (path === "/api/v1") {
+            actualPath = "/api/v1/demo";
+          }
+        }
+      }
+
+      // デモモードではトークン不要
+      if (isDemo) {
+        return apiFetch<T>(actualPath, options);
+      }
+
       const idToken = await getIdToken();
 
       // Firebase認証モードでトークンがない場合はエラー
@@ -26,12 +46,12 @@ export function AuthFetchProvider({ children }: { children: ReactNode }) {
         throw new Error("認証トークンを取得できませんでした。再ログインしてください。");
       }
 
-      return apiFetch<T>(path, {
+      return apiFetch<T>(actualPath, {
         ...options,
         idToken: idToken ?? undefined,
       });
     },
-    [getIdToken]
+    [getIdToken, isDemo]
   );
 
   return (

@@ -8,6 +8,7 @@ import {
   CardDescription,
   CardContent,
 } from "@/components/ui/card";
+import { useAuth } from "@/lib/auth-context";
 import type { Course } from "@/types/course";
 
 type Props = {
@@ -34,10 +35,12 @@ function formatDate(isoString: string | null): string {
 }
 
 export function CourseCard({ course }: Props) {
+  const { isDemo } = useAuth();
   const summary = course.sessionSummary;
+  const basePath = isDemo ? "/demo/student/session" : "/student/session";
 
   return (
-    <Link href={`/student/session/${course.id}`}>
+    <Link href={`${basePath}/${course.id}`}>
       <Card className="cursor-pointer transition-shadow hover:shadow-md">
         <CardHeader>
           <div className="flex items-start justify-between gap-2">
