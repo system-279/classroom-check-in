@@ -5,7 +5,6 @@ import type {
   User,
   UserSettings,
   Course,
-  NotificationPolicy,
   NotificationTarget,
 } from "../types.js";
 import { resolvePolicy } from "./policy-resolver.js";
@@ -75,7 +74,7 @@ export async function processSession(
   db: Firestore,
   mailer: Mailer,
   session: Session,
-  mailFrom: string,
+  _mailFrom: string,
 ): Promise<{ result: ProcessResult; error?: string }> {
   const policy = await resolvePolicy(db, session.userId, session.courseId);
 

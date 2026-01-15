@@ -1,0 +1,144 @@
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  GCP_REGION: asia-northeast1
+  GCP_PROJECT_ID: classroom-checkin-279
+  ARTIFACT_REGISTRY: asia-northeast1-docker.pkg.dev/classroom-checkin-279/classroom-check-in
+
+jobs:
+  # CI checks must pass before deployment
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  deploy-api:
+    name: Deploy API
+    needs: ci
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
+
+      - name: Build and push API image
+        working-directory: services/api
+        run: |
+          docker build -t ${{ env.ARTIFACT_REGISTRY }}/api:${{ github.sha }} -t ${{ env.ARTIFACT_REGISTRY }}/api:latest .
+          docker push ${{ env.ARTIFACT_REGISTRY }}/api:${{ github.sha }}
+          docker push ${{ env.ARTIFACT_REGISTRY }}/api:latest
+
+      - name: Deploy API to Cloud Run
+        run: |
+          gcloud run deploy api \
+            --image=${{ env.ARTIFACT_REGISTRY }}/api:${{ github.sha }} \
+            --region=${{ env.GCP_REGION }} \
+            --platform=managed \
+            --allow-unauthenticated
+
+  deploy-web:
+    name: Deploy Web
+    needs: ci
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
+
+      - name: Build and push Web image
+        working-directory: web
+        run: |
+          docker build \
+            --build-arg NEXT_PUBLIC_API_URL=https://api-102013220292.asia-northeast1.run.app \
+            --build-arg NEXT_PUBLIC_AUTH_MODE=firebase \
+            --build-arg NEXT_PUBLIC_FIREBASE_API_KEY=${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }} \
+            --build-arg NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }} \
+            --build-arg NEXT_PUBLIC_FIREBASE_PROJECT_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }} \
+            -t ${{ env.ARTIFACT_REGISTRY }}/web:${{ github.sha }} \
+            -t ${{ env.ARTIFACT_REGISTRY }}/web:latest \
+            .
+          docker push ${{ env.ARTIFACT_REGISTRY }}/web:${{ github.sha }}
+          docker push ${{ env.ARTIFACT_REGISTRY }}/web:latest
+
+      - name: Deploy Web to Cloud Run
+        run: |
+          gcloud run deploy web \
+            --image=${{ env.ARTIFACT_REGISTRY }}/web:${{ github.sha }} \
+            --region=${{ env.GCP_REGION }} \
+            --platform=managed \
+            --allow-unauthenticated
+
+  deploy-notification:
+    name: Deploy Notification
+    needs: ci
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
+
+      - name: Build and push Notification image
+        working-directory: services/notification
+        run: |
+          docker build -t ${{ env.ARTIFACT_REGISTRY }}/notification:${{ github.sha }} -t ${{ env.ARTIFACT_REGISTRY }}/notification:latest .
+          docker push ${{ env.ARTIFACT_REGISTRY }}/notification:${{ github.sha }}
+          docker push ${{ env.ARTIFACT_REGISTRY }}/notification:latest
+
+      - name: Deploy Notification to Cloud Run
+        run: |
+          gcloud run deploy notification \
+            --image=${{ env.ARTIFACT_REGISTRY }}/notification:${{ github.sha }} \
+            --region=${{ env.GCP_REGION }} \
+            --platform=managed \
+            --no-allow-unauthenticated
