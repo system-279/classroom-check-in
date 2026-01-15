@@ -26,27 +26,37 @@ export type UserContext = {
   role: "admin" | "teacher" | "student";
 };
 
+type ApiFetchOptions = RequestInit & {
+  /** Firebase認証モード時のIDトークン */
+  idToken?: string;
+};
+
 export async function apiFetch<T>(
   path: string,
-  options: RequestInit = {},
+  options: ApiFetchOptions = {},
   userContext?: UserContext
 ): Promise<T> {
+  const { idToken, ...fetchOptions } = options;
   const userId = userContext?.userId ?? DEV_USER_ID;
   const userRole = userContext?.role ?? DEV_USER_ROLE;
 
   const headers: HeadersInit = {
     "Content-Type": "application/json",
-    // 開発用疑似認証（AUTH_MODE=devの場合のみ）
     ...(AUTH_MODE === "dev" && {
+      // 開発用疑似認証
       "X-User-Id": userId,
       "X-User-Role": userRole,
     }),
-    ...options.headers,
+    ...(AUTH_MODE === "firebase" && idToken && {
+      // Firebase認証
+      Authorization: `Bearer ${idToken}`,
+    }),
+    ...fetchOptions.headers,
   };
 
   let res: Response;
   try {
-    res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+    res = await fetch(`${API_BASE}${path}`, { ...fetchOptions, headers });
   } catch {
     throw new ApiError(0, "network_error", "ネットワークエラーが発生しました");
   }
@@ -58,4 +68,18 @@ export async function apiFetch<T>(
 
   const text = await res.text();
   return text ? JSON.parse(text) : ({} as T);
+}
+
+/**
+ * 認証付きAPIフェッチ用ヘルパー
+ * useAuth().getIdToken()で取得したトークンを渡す
+ */
+export function createAuthenticatedFetcher(getIdToken: () => Promise<string | null>) {
+  return async function authenticatedFetch<T>(
+    path: string,
+    options: RequestInit = {}
+  ): Promise<T> {
+    const idToken = await getIdToken();
+    return apiFetch<T>(path, { ...options, idToken: idToken ?? undefined });
+  };
 }

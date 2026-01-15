@@ -39,6 +39,66 @@
 
 ---
 
+# Firebase Authentication設定
+
+ADR-0016に基づく認証設定手順。
+
+## 前提条件
+
+- GCPプロジェクト: `classroom-checkin-279`
+- Firebase追加済み
+
+## 1. Firebase Authenticationの有効化
+
+1. [Firebaseコンソール](https://console.firebase.google.com/project/classroom-checkin-279/authentication) を開く
+2. 「Authentication」→「始める」をクリック
+3. 「Sign-in method」タブでGoogleプロバイダを有効化:
+   - 「Google」をクリック
+   - 「有効にする」をオンに
+   - プロジェクトのサポートメール: `system@279279.net`
+   - 「保存」
+
+## 2. 承認済みドメインの追加
+
+「Settings」→「承認済みドメイン」に以下を追加:
+- `classroom-checkin-279.firebaseapp.com`（自動追加）
+- `localhost`（開発用、自動追加）
+- `web-102013220292.asia-northeast1.run.app`（Cloud Run Web）
+
+## 3. 環境変数の設定
+
+### Web（Next.js）
+
+```bash
+# .env.local
+NEXT_PUBLIC_AUTH_MODE=firebase
+NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyBLzeF9rlVntz-GVSicleF5fnjAJeIygyk
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=classroom-checkin-279.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=classroom-checkin-279
+```
+
+### API（Express）
+
+```bash
+# 環境変数
+AUTH_MODE=firebase
+FIREBASE_PROJECT_ID=classroom-checkin-279
+```
+
+## 4. Cloud Runへの反映
+
+```bash
+# API
+gcloud run services update api \
+  --region asia-northeast1 \
+  --set-env-vars "AUTH_MODE=firebase,FIREBASE_PROJECT_ID=classroom-checkin-279"
+
+# Web（ビルド時に環境変数を埋め込む）
+# cloudbuild.yamlで--build-argを使用
+```
+
+---
+
 # Cloud Runデプロイ設定
 
 ## プロジェクト情報

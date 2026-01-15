@@ -110,8 +110,12 @@ npm run dev -w @classroom-check-in/web
 
 - GitHub Pagesドキュメントサイト: https://system-279.github.io/classroom-check-in/
 
-**未実装**:
-- Firebase Authentication実装（ADR-0016で設計済み、実装待ち）
+**実装済み（コンソール設定待ち）**:
+- Firebase Authentication実装（ADR-0016）
+  - API: Firebase Admin SDK導入、トークン検証ミドルウェア
+  - Web: Firebase SDK導入、ログインUI、AuthContext
+  - **残り**: Firebaseコンソールで「Authentication → Googleプロバイダ」を有効化する必要あり
+  - 設定手順: `docs/config.md`の「Firebase Authentication設定」セクション参照
 
 **スコープ外**（実装予定なし）:
 - Google OAuth（Classroom API連携用）（ADR-0014: 審査コストが高いため実装しない）
