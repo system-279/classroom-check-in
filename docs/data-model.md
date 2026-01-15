@@ -3,6 +3,16 @@
 ## 主エンティティ
 注: Classroom API / Forms API連携は廃止。講座・受講者情報は管理画面で手入力。
 
+### AllowedEmail
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| id | string | 内部ID |
+| email | string | 許可するメールアドレス |
+| note | string | 管理用メモ（任意） |
+| createdAt | timestamp | 作成日時 |
+
+注: 新規ユーザーのログインを制限するための許可リスト。このリストに含まれるメールアドレスのみ新規登録が可能。既存ユーザーは許可リストに関係なくアクセス可能。
+
 ### User
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
@@ -14,7 +24,7 @@
 | createdAt | timestamp | 作成日時 |
 | updatedAt | timestamp | 更新日時 |
 
-注: Firebase Authentication導入に伴い`firebaseUid`を追加（ADR-0016）。初回ログイン時にUser自動作成（role=student）。
+注: Firebase Authentication導入に伴い`firebaseUid`を追加（ADR-0016）。初回ログイン時にUser自動作成（role=student）。新規ユーザーはAllowedEmailに登録されている場合のみ作成可能。
 注: Classroom API連携廃止に伴い、externalId/givenName/familyName/photoUrl/syncedAtは廃止（ADR-0014）。
 
 ### UserSettings

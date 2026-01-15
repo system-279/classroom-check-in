@@ -1055,6 +1055,78 @@ app.patch("/api/v1/admin/users/:id/settings", requireAdmin, async (req, res) => 
   }
 });
 
+// Admin: allowed emails (許可リスト)
+app.get("/api/v1/admin/allowed-emails", requireAdmin, async (_req, res) => {
+  const allowedSnap = await db.collection("allowedEmails").orderBy("createdAt", "desc").get();
+
+  const allowedEmails = allowedSnap.docs.map((doc) => {
+    const data = doc.data();
+    return {
+      id: doc.id,
+      email: data.email,
+      note: data.note ?? null,
+      createdAt: toISOString(data.createdAt),
+    };
+  });
+
+  res.json({ allowedEmails });
+});
+
+app.post("/api/v1/admin/allowed-emails", requireAdmin, async (req, res) => {
+  const email = req.body?.email;
+  const note = req.body?.note ?? null;
+
+  if (!email) {
+    res.status(400).json({ error: "email_required" });
+    return;
+  }
+
+  if (!isValidEmail(email)) {
+    res.status(400).json({ error: "invalid_email_format" });
+    return;
+  }
+
+  // 重複チェック
+  const existingSnap = await db
+    .collection("allowedEmails")
+    .where("email", "==", email)
+    .limit(1)
+    .get();
+
+  if (!existingSnap.empty) {
+    res.status(409).json({ error: "email_already_allowed" });
+    return;
+  }
+
+  const now = new Date();
+  const ref = await db.collection("allowedEmails").add({
+    email,
+    note,
+    createdAt: now,
+  });
+
+  res.json({
+    id: ref.id,
+    email,
+    note,
+    createdAt: now,
+  });
+});
+
+app.delete("/api/v1/admin/allowed-emails/:id", requireAdmin, async (req, res) => {
+  const id = req.params.id as string;
+  const ref = db.collection("allowedEmails").doc(id);
+  const snap = await ref.get();
+
+  if (!snap.exists) {
+    res.status(404).json({ error: "allowed_email_not_found" });
+    return;
+  }
+
+  await ref.delete();
+  res.json({ deleted: true, id });
+});
+
 const port = Number(process.env.PORT || 8080);
 app.listen(port, () => {
   console.log(`API service listening on :${port}`);

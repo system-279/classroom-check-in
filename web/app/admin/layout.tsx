@@ -37,6 +37,12 @@ export default function AdminLayout({
             >
               通知ポリシー
             </Link>
+            <Link
+              href="/admin/allowed-emails"
+              className="text-muted-foreground hover:text-foreground"
+            >
+              アクセス許可
+            </Link>
           </nav>
         </div>
       </header>

@@ -39,12 +39,39 @@ if (authMode === "firebase" && getApps().length === 0) {
 }
 
 /**
+ * メールアドレスが許可リストに含まれているかチェック
+ */
+async function isEmailAllowed(email: string | undefined): Promise<boolean> {
+  if (!email) return false;
+
+  // 許可リストをチェック
+  const allowedSnap = await db
+    .collection("allowedEmails")
+    .where("email", "==", email)
+    .limit(1)
+    .get();
+
+  return !allowedSnap.empty;
+}
+
+/**
+ * アクセス拒否エラー
+ */
+export class AccessDeniedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "AccessDeniedError";
+  }
+}
+
+/**
  * firebaseUidからユーザーを検索、なければ自動作成
+ * 許可リストに含まれていない場合はエラー
  */
 async function findOrCreateUser(decodedToken: DecodedIdToken): Promise<AuthUser> {
   const { uid, email } = decodedToken;
 
-  // firebaseUidでユーザーを検索
+  // firebaseUidでユーザーを検索（既存ユーザーは常に許可）
   const usersSnap = await db
     .collection("users")
     .where("firebaseUid", "==", uid)
@@ -82,6 +109,14 @@ async function findOrCreateUser(decodedToken: DecodedIdToken): Promise<AuthUser>
         firebaseUid: uid,
       };
     }
+  }
+
+  // 新規ユーザーの場合、許可リストをチェック
+  const allowed = await isEmailAllowed(email);
+  if (!allowed) {
+    throw new AccessDeniedError(
+      `このメールアドレス (${email ?? "未設定"}) はアクセスが許可されていません。管理者に連絡してください。`
+    );
   }
 
   // 新規ユーザー作成（初回ログイン）
@@ -128,6 +163,10 @@ export const authMiddleware = async (req: Request, _res: Response, next: NextFun
       const decodedToken = await getAuth().verifyIdToken(idToken);
       req.user = await findOrCreateUser(decodedToken);
     } catch (error) {
+      if (error instanceof AccessDeniedError) {
+        // 許可リストに含まれていない場合は403
+        return _res.status(403).json({ error: "access_denied", message: error.message });
+      }
       // トークン検証失敗時は req.user を設定しない（401はrequireUserで処理）
       console.error("Firebase token verification failed:", error);
     }
