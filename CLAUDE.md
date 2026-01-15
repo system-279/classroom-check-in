@@ -107,15 +107,12 @@ npm run dev -w @classroom-check-in/web
   - API: https://api-up37vpqlrq-an.a.run.app
   - Web UI: https://web-102013220292.asia-northeast1.run.app
 - Artifact Registry クリーンアップポリシー（最新2イメージ保持）
+- Firebase Authentication（ADR-0016）
+  - Googleソーシャルログイン有効
+  - API: Firebase Admin SDK、トークン検証
+  - Web: Firebase SDK、AuthContext、ログインUI
 
 - GitHub Pagesドキュメントサイト: https://system-279.github.io/classroom-check-in/
-
-**実装済み（コンソール設定待ち）**:
-- Firebase Authentication実装（ADR-0016）
-  - API: Firebase Admin SDK導入、トークン検証ミドルウェア
-  - Web: Firebase SDK導入、ログインUI、AuthContext
-  - **残り**: Firebaseコンソールで「Authentication → Googleプロバイダ」を有効化する必要あり
-  - 設定手順: `docs/config.md`の「Firebase Authentication設定」セクション参照
 
 **スコープ外**（実装予定なし）:
 - Google OAuth（Classroom API連携用）（ADR-0014: 審査コストが高いため実装しない）
