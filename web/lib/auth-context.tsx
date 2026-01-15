@@ -43,13 +43,8 @@ const DEMO_USER = {
 } as unknown as User;
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  // デモモードかどうかを安全に取得（DemoModeProvider外ではfalse）
-  let isDemo = false;
-  try {
-    isDemo = useDemoMode();
-  } catch {
-    // DemoModeProvider外では例外が発生しないが、念のため
-  }
+  // デモモードかどうかを取得（DemoModeProvider外ではデフォルト値false）
+  const isDemo = useDemoMode();
 
   const [state, setState] = useState<AuthState>({
     user: isDemo ? DEMO_USER : null,
