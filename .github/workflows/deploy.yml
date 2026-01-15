@@ -53,7 +53,8 @@ jobs:
             --image=${{ env.ARTIFACT_REGISTRY }}/api:${{ github.sha }} \
             --region=${{ env.GCP_REGION }} \
             --platform=managed \
-            --allow-unauthenticated
+            --allow-unauthenticated \
+            --set-env-vars="DEMO_ENABLED=true,AUTH_MODE=firebase,CORS_ORIGIN=https://web-102013220292.asia-northeast1.run.app"
 
   deploy-web:
     name: Deploy Web
