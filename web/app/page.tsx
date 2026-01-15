@@ -26,6 +26,17 @@ export default function HomePage() {
           >
             Googleでログイン
           </button>
+          <div className="mt-4 pt-4 border-t">
+            <p className="text-xs text-muted-foreground mb-2">
+              ログインせずに試してみる
+            </p>
+            <Link
+              href="/demo/admin"
+              className="text-sm text-primary hover:underline"
+            >
+              デモを見る →
+            </Link>
+          </div>
         </section>
       </main>
     );
@@ -84,6 +95,15 @@ export default function HomePage() {
             開発モード（認証なし）
           </p>
         )}
+
+        <div className="mt-4 pt-4 border-t">
+          <Link
+            href="/demo/admin"
+            className="text-sm text-muted-foreground hover:text-primary hover:underline"
+          >
+            デモを見る →
+          </Link>
+        </div>
       </section>
     </main>
   );
