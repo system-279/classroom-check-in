@@ -113,6 +113,11 @@ npm run dev -w @classroom-check-in/web
   - Web: Firebase SDK、AuthContext、ログインUI
 
 - GitHub Pagesドキュメントサイト: https://system-279.github.io/classroom-check-in/
+- **GitHub Actions CI/CD**:
+  - CI: lint, type-check, build（PRとmain push時）
+  - CD: Cloud Run自動デプロイ（main push時）
+  - Workload Identity Federation認証
+- **ESLint設定**: TypeScript + React + Next.js対応
 
 **スコープ外**（実装予定なし）:
 - Google OAuth（Classroom API連携用）（ADR-0014: 審査コストが高いため実装しない）
