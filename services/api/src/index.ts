@@ -125,8 +125,73 @@ app.get("/api/v1/courses", requireUser, async (req, res) => {
       ? coursesSnap.docs.filter((doc) => enrolledCourseIds.has(doc.id))
       : coursesSnap.docs;
 
+  const filteredCourseIds = new Set(filteredDocs.map((doc) => doc.id));
+
+  // ユーザーのセッション履歴を取得（対象講座のみ、inクエリは最大30件）
+  type SessionSummary = {
+    lastSessionAt: string | null;
+    totalDurationSec: number;
+    sessionCount: number;
+    hasActiveSession: boolean;
+  };
+  const sessionSummaryMap = new Map<string, SessionSummary>();
+
+  const courseIdArray = Array.from(filteredCourseIds);
+  const BATCH_SIZE = 30; // Firestore in query limit
+
+  for (let i = 0; i < courseIdArray.length; i += BATCH_SIZE) {
+    const batch = courseIdArray.slice(i, i + BATCH_SIZE);
+    const sessionsSnap = await db
+      .collection("sessions")
+      .where("userId", "==", req.user!.id)
+      .where("courseId", "in", batch)
+      .get();
+
+    for (const doc of sessionsSnap.docs) {
+      const data = doc.data();
+      const courseId = data.courseId as string;
+
+      const summary = sessionSummaryMap.get(courseId) ?? {
+        lastSessionAt: null,
+        totalDurationSec: 0,
+        sessionCount: 0,
+        hasActiveSession: false,
+      };
+
+      summary.sessionCount++;
+
+      const startTime = data.startTime?.toDate?.() ?? null;
+      if (startTime) {
+        const startTimeStr = startTime.toISOString();
+        if (!summary.lastSessionAt || startTimeStr > summary.lastSessionAt) {
+          summary.lastSessionAt = startTimeStr;
+        }
+      }
+
+      if (data.status === "open") {
+        summary.hasActiveSession = true;
+      }
+
+      // durationSecがある場合は使用、なければ計算（closedセッションのみ）
+      if (data.status === "closed") {
+        if (typeof data.durationSec === "number") {
+          summary.totalDurationSec += data.durationSec;
+        } else if (data.startTime && data.endTime) {
+          const start = data.startTime.toDate?.() ?? new Date(data.startTime);
+          const end = data.endTime.toDate?.() ?? new Date(data.endTime);
+          summary.totalDurationSec += Math.floor(
+            (end.getTime() - start.getTime()) / 1000,
+          );
+        }
+      }
+
+      sessionSummaryMap.set(courseId, summary);
+    }
+  }
+
   const courses = filteredDocs.map((doc) => {
     const data = doc.data();
+    const summary = sessionSummaryMap.get(doc.id);
     return {
       id: doc.id,
       name: data.name,
@@ -134,6 +199,12 @@ app.get("/api/v1/courses", requireUser, async (req, res) => {
       classroomUrl: data.classroomUrl,
       enabled: data.enabled,
       visible: data.visible,
+      sessionSummary: summary ?? {
+        lastSessionAt: null,
+        totalDurationSec: 0,
+        sessionCount: 0,
+        hasActiveSession: false,
+      },
     };
   });
 

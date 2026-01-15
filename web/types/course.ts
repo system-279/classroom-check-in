@@ -1,3 +1,10 @@
+export type SessionSummary = {
+  lastSessionAt: string | null;
+  totalDurationSec: number;
+  sessionCount: number;
+  hasActiveSession: boolean;
+};
+
 export type Course = {
   id: string;
   name: string;
@@ -8,6 +15,7 @@ export type Course = {
   note: string | null;
   createdAt?: string;
   updatedAt?: string;
+  sessionSummary?: SessionSummary;
 };
 
 export type CourseInput = {
