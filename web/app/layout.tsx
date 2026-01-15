@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { AuthProvider } from "../lib/auth-context";
+import { AuthFetchProvider } from "../lib/auth-fetch-context";
 import "./globals.css";
 
 export const metadata = {
@@ -15,7 +16,9 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <AuthFetchProvider>{children}</AuthFetchProvider>
+        </AuthProvider>
       </body>
     </html>
   );

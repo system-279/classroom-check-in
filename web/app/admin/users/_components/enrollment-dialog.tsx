@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { apiFetch } from "@/lib/api";
+import { useAuthFetch } from "@/lib/auth-fetch-context";
 import type { User } from "@/types/user";
 import type { Course } from "@/types/course";
 import type { Enrollment } from "@/types/enrollment";
@@ -36,6 +36,7 @@ export function EnrollmentDialog({
   onClose,
   onSuccess,
 }: Props) {
+  const authFetch = useAuthFetch();
   const [selectedCourseId, setSelectedCourseId] = useState<string>("");
   const [adding, setAdding] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
@@ -51,7 +52,7 @@ export function EnrollmentDialog({
     setError(null);
 
     try {
-      await apiFetch("/api/v1/admin/enrollments", {
+      await authFetch("/api/v1/admin/enrollments", {
         method: "POST",
         body: JSON.stringify({
           courseId: selectedCourseId,
@@ -72,7 +73,7 @@ export function EnrollmentDialog({
     setError(null);
 
     try {
-      await apiFetch(`/api/v1/admin/enrollments/${enrollmentId}`, {
+      await authFetch(`/api/v1/admin/enrollments/${enrollmentId}`, {
         method: "DELETE",
       });
       onSuccess();

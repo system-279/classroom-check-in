@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { apiFetch } from "@/lib/api";
+import { useAuthenticatedFetch } from "@/lib/hooks/use-authenticated-fetch";
 import { useHeartbeat } from "@/lib/hooks/use-heartbeat";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,13 +23,17 @@ import type {
 import { SessionTimer } from "./_components/session-timer";
 import { ClassroomLink } from "./_components/classroom-link";
 
+const AUTH_MODE = process.env.NEXT_PUBLIC_AUTH_MODE ?? "dev";
+
 export default function SessionPage() {
   const params = useParams();
+  const router = useRouter();
   // P2-1.3修正: useParamsの型を安全に処理
   const courseId = Array.isArray(params.courseId)
     ? params.courseId[0]
     : params.courseId;
 
+  const { authFetch, authLoading, isAuthenticated } = useAuthenticatedFetch();
   const [course, setCourse] = useState<Course | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -41,6 +45,17 @@ export default function SessionPage() {
 
   // 講座情報を取得し、既存のopenセッションがあるか確認
   useEffect(() => {
+    // Firebase認証モードで未認証の場合はホームへリダイレクト
+    if (AUTH_MODE === "firebase" && !authLoading && !isAuthenticated) {
+      router.push("/");
+      return;
+    }
+
+    // 認証確認中は待機
+    if (AUTH_MODE === "firebase" && authLoading) {
+      return;
+    }
+
     if (!courseId) {
       setError("講座IDが指定されていません");
       setLoading(false);
@@ -53,7 +68,7 @@ export default function SessionPage() {
 
       try {
         // 講座一覧から該当講座を取得
-        const coursesData = await apiFetch<{ courses: Course[] }>(
+        const coursesData = await authFetch<{ courses: Course[] }>(
           "/api/v1/courses"
         );
         const targetCourse = coursesData.courses.find((c) => c.id === courseId);
@@ -64,7 +79,7 @@ export default function SessionPage() {
         setCourse(targetCourse);
 
         // P1修正: サーバー側でアクティブセッションを確認（LocalStorage依存を削除）
-        const activeData = await apiFetch<ActiveSessionResponse>(
+        const activeData = await authFetch<ActiveSessionResponse>(
           `/api/v1/sessions/active?courseId=${courseId}`
         );
         if (activeData.session) {
@@ -80,7 +95,7 @@ export default function SessionPage() {
     };
 
     fetchData();
-  }, [courseId]);
+  }, [courseId, authLoading, isAuthenticated, router, authFetch]);
 
   const handleCheckIn = async () => {
     if (!course || !courseId) return;
@@ -89,7 +104,7 @@ export default function SessionPage() {
     setError(null);
 
     try {
-      const data = await apiFetch<CheckInResponse>(
+      const data = await authFetch<CheckInResponse>(
         "/api/v1/sessions/check-in",
         {
           method: "POST",
@@ -116,7 +131,7 @@ export default function SessionPage() {
     setError(null);
 
     try {
-      await apiFetch<CheckOutResponse>("/api/v1/sessions/check-out", {
+      await authFetch<CheckOutResponse>("/api/v1/sessions/check-out", {
         method: "POST",
         body: JSON.stringify({ sessionId: session.id }),
       });

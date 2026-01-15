@@ -1,15 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { apiFetch } from "@/lib/api";
+import { useAuthFetch } from "@/lib/auth-fetch-context";
+import { useAuth } from "@/lib/auth-context";
 import type { NotificationPolicy } from "@/types/notification-policy";
 import type { Course } from "@/types/course";
 import type { User } from "@/types/user";
 import { PolicyTable } from "./_components/policy-table";
 import { PolicyFormDialog } from "./_components/policy-form-dialog";
 
+const AUTH_MODE = process.env.NEXT_PUBLIC_AUTH_MODE ?? "dev";
+
 export default function NotificationPoliciesPage() {
+  const router = useRouter();
+  const authFetch = useAuthFetch();
+  const { user: authUser, loading: authLoading } = useAuth();
   const [policies, setPolicies] = useState<NotificationPolicy[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -20,16 +27,16 @@ export default function NotificationPoliciesPage() {
     null
   );
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const [policiesRes, coursesRes, usersRes] = await Promise.all([
-        apiFetch<{ policies: NotificationPolicy[] }>(
+        authFetch<{ policies: NotificationPolicy[] }>(
           "/api/v1/admin/notification-policies"
         ),
-        apiFetch<{ courses: Course[] }>("/api/v1/admin/courses"),
-        apiFetch<{ users: User[] }>("/api/v1/admin/users"),
+        authFetch<{ courses: Course[] }>("/api/v1/admin/courses"),
+        authFetch<{ users: User[] }>("/api/v1/admin/users"),
       ]);
       setPolicies(policiesRes.policies);
       setCourses(coursesRes.courses);
@@ -39,11 +46,18 @@ export default function NotificationPoliciesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [authFetch]);
 
   useEffect(() => {
+    if (AUTH_MODE === "firebase" && !authLoading && !authUser) {
+      router.push("/");
+      return;
+    }
+    if (AUTH_MODE === "firebase" && authLoading) {
+      return;
+    }
     fetchData();
-  }, []);
+  }, [authLoading, authUser, router, fetchData]);
 
   const handleCreate = () => {
     setEditingPolicy(null);

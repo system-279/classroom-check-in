@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { apiFetch } from "@/lib/api";
+import { useAuthFetch } from "@/lib/auth-fetch-context";
+import { useAuth } from "@/lib/auth-context";
 import type { User } from "@/types/user";
 import type { Course } from "@/types/course";
 import type { Enrollment } from "@/types/enrollment";
@@ -11,7 +13,12 @@ import { UserTable } from "./_components/user-table";
 import { UserFormDialog } from "./_components/user-form-dialog";
 import { EnrollmentDialog } from "./_components/enrollment-dialog";
 
+const AUTH_MODE = process.env.NEXT_PUBLIC_AUTH_MODE ?? "dev";
+
 export default function UsersPage() {
+  const router = useRouter();
+  const authFetch = useAuthFetch();
+  const { user: authUser, loading: authLoading } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
@@ -22,15 +29,15 @@ export default function UsersPage() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [enrollmentDialogUser, setEnrollmentDialogUser] = useState<User | null>(null);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const [usersData, coursesData, enrollmentsData, sessionsData] = await Promise.all([
-        apiFetch<{ users: User[] }>("/api/v1/admin/users"),
-        apiFetch<{ courses: Course[] }>("/api/v1/admin/courses"),
-        apiFetch<{ enrollments: Enrollment[] }>("/api/v1/admin/enrollments"),
-        apiFetch<{ sessions: Session[] }>("/api/v1/admin/sessions?status=open"),
+        authFetch<{ users: User[] }>("/api/v1/admin/users"),
+        authFetch<{ courses: Course[] }>("/api/v1/admin/courses"),
+        authFetch<{ enrollments: Enrollment[] }>("/api/v1/admin/enrollments"),
+        authFetch<{ sessions: Session[] }>("/api/v1/admin/sessions?status=open"),
       ]);
       setUsers(usersData.users);
       setCourses(coursesData.courses);
@@ -41,11 +48,18 @@ export default function UsersPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [authFetch]);
 
   useEffect(() => {
+    if (AUTH_MODE === "firebase" && !authLoading && !authUser) {
+      router.push("/");
+      return;
+    }
+    if (AUTH_MODE === "firebase" && authLoading) {
+      return;
+    }
     fetchData();
-  }, []);
+  }, [authLoading, authUser, router, fetchData]);
 
   const handleCreate = () => {
     setEditingUser(null);

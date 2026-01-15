@@ -1,35 +1,50 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { apiFetch } from "@/lib/api";
+import { useAuthFetch } from "@/lib/auth-fetch-context";
+import { useAuth } from "@/lib/auth-context";
 import type { Course } from "@/types/course";
 import { CourseTable } from "./_components/course-table";
 import { CourseFormDialog } from "./_components/course-form-dialog";
 
+const AUTH_MODE = process.env.NEXT_PUBLIC_AUTH_MODE ?? "dev";
+
 export default function CoursesPage() {
+  const router = useRouter();
+  const authFetch = useAuthFetch();
+  const { user, loading: authLoading } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
 
-  const fetchCourses = async () => {
+  const fetchCourses = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await apiFetch<{ courses: Course[] }>("/api/v1/admin/courses");
+      const data = await authFetch<{ courses: Course[] }>("/api/v1/admin/courses");
       setCourses(data.courses);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to fetch courses");
     } finally {
       setLoading(false);
     }
-  };
+  }, [authFetch]);
 
   useEffect(() => {
+    // Firebase認証モードで未認証の場合はホームへリダイレクト
+    if (AUTH_MODE === "firebase" && !authLoading && !user) {
+      router.push("/");
+      return;
+    }
+    if (AUTH_MODE === "firebase" && authLoading) {
+      return;
+    }
     fetchCourses();
-  }, []);
+  }, [authLoading, user, router, fetchCourses]);
 
   const handleCreate = () => {
     setEditingCourse(null);

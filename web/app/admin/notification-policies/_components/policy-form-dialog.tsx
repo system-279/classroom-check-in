@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { apiFetch } from "@/lib/api";
+import { useAuthFetch } from "@/lib/auth-fetch-context";
 import type {
   NotificationPolicy,
   NotificationPolicyInput,
@@ -44,6 +44,7 @@ export function PolicyFormDialog({
   users,
   onSuccess,
 }: Props) {
+  const authFetch = useAuthFetch();
   const [scope, setScope] = useState<PolicyScope>("global");
   const [courseId, setCourseId] = useState<string>("");
   const [userId, setUserId] = useState<string>("");
@@ -96,7 +97,7 @@ export function PolicyFormDialog({
 
     try {
       if (isEditing) {
-        await apiFetch(`/api/v1/admin/notification-policies/${policy.id}`, {
+        await authFetch(`/api/v1/admin/notification-policies/${policy.id}`, {
           method: "PATCH",
           body: JSON.stringify({
             firstNotifyAfterMin,
@@ -106,7 +107,7 @@ export function PolicyFormDialog({
           }),
         });
       } else {
-        await apiFetch("/api/v1/admin/notification-policies", {
+        await authFetch("/api/v1/admin/notification-policies", {
           method: "POST",
           body: JSON.stringify(payload),
         });

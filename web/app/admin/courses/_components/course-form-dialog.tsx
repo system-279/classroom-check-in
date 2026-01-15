@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { apiFetch } from "@/lib/api";
+import { useAuthFetch } from "@/lib/auth-fetch-context";
 import type { Course, CourseInput } from "@/types/course";
 
 type Props = {
@@ -28,6 +28,7 @@ export function CourseFormDialog({
   course,
   onSuccess,
 }: Props) {
+  const authFetch = useAuthFetch();
   const [name, setName] = useState("");
   const [classroomUrl, setClassroomUrl] = useState("");
   const [description, setDescription] = useState("");
@@ -83,12 +84,12 @@ export function CourseFormDialog({
 
     try {
       if (isEditing) {
-        await apiFetch(`/api/v1/admin/courses/${course.id}`, {
+        await authFetch(`/api/v1/admin/courses/${course.id}`, {
           method: "PATCH",
           body: JSON.stringify(payload),
         });
       } else {
-        await apiFetch("/api/v1/admin/courses", {
+        await authFetch("/api/v1/admin/courses", {
           method: "POST",
           body: JSON.stringify(payload),
         });
