@@ -10,6 +10,7 @@ import {
 } from "./middleware/tenant.js";
 import { createSharedRouter } from "./routes/shared/index.js";
 import { tenantsRouter } from "./routes/tenants.js";
+import { isValidEmail, isValidTimezone } from "./utils/validation.js";
 
 // 旧デモルーター（後方互換性のため一時的に維持）
 import { demoRouter } from "./routes/demo.js";
@@ -1004,18 +1005,6 @@ legacyApiRouter.delete("/admin/notification-policies/:id", requireAdmin, async (
   await ref.delete();
   res.json({ deleted: true, id });
 });
-
-// バリデーション
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const VALID_TIMEZONES = new Set(Intl.supportedValuesOf("timeZone"));
-
-function isValidEmail(email: string): boolean {
-  return EMAIL_REGEX.test(email);
-}
-
-function isValidTimezone(tz: string): boolean {
-  return VALID_TIMEZONES.has(tz);
-}
 
 // Admin: user settings
 legacyApiRouter.get("/admin/users/:id/settings", requireAdmin, async (req, res) => {

@@ -5,13 +5,9 @@
 
 import { Router, Request, Response } from "express";
 import { requireAdmin } from "../../middleware/auth.js";
+import { toISOString } from "../../utils/date.js";
 
 const router = Router();
-
-// ヘルパー: DateをISO文字列に変換
-function toISOString(date: Date | null): string | null {
-  return date ? date.toISOString() : null;
-}
 
 /**
  * 管理者向け: 通知ポリシー一覧取得

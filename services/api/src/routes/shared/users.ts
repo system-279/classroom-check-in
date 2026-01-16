@@ -5,25 +5,14 @@
 
 import { Router, Request, Response } from "express";
 import { requireUser, requireAdmin } from "../../middleware/auth.js";
+import { toISOString } from "../../utils/date.js";
+import {
+  isValidEmail,
+  isValidTimezone,
+  VALID_ROLES,
+} from "../../utils/validation.js";
 
 const router = Router();
-
-// ヘルパー: DateをISO文字列に変換
-function toISOString(date: Date | null): string | null {
-  return date ? date.toISOString() : null;
-}
-
-// バリデーション
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const VALID_TIMEZONES = new Set(Intl.supportedValuesOf("timeZone"));
-
-function isValidEmail(email: string): boolean {
-  return EMAIL_REGEX.test(email);
-}
-
-function isValidTimezone(tz: string): boolean {
-  return VALID_TIMEZONES.has(tz);
-}
 
 /**
  * 認証ユーザー情報取得
@@ -72,8 +61,7 @@ router.post("/admin/users", requireAdmin, async (req: Request, res: Response) =>
       return;
     }
 
-    const validRoles = ["admin", "teacher", "student"];
-    if (role && !validRoles.includes(role)) {
+    if (role && !VALID_ROLES.includes(role)) {
       res.status(400).json({ error: "invalid_role", message: "Role must be admin, teacher, or student" });
       return;
     }
@@ -154,8 +142,7 @@ router.patch("/admin/users/:id", requireAdmin, async (req: Request, res: Respons
       return;
     }
 
-    const validRoles = ["admin", "teacher", "student"];
-    if (role && !validRoles.includes(role)) {
+    if (role && !VALID_ROLES.includes(role)) {
       res.status(400).json({ error: "invalid_role", message: "Role must be admin, teacher, or student" });
       return;
     }
