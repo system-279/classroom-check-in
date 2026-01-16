@@ -139,6 +139,11 @@ async function findOrCreateUser(decodedToken: DecodedIdToken): Promise<AuthUser>
 }
 
 export const authMiddleware = async (req: Request, _res: Response, next: NextFunction) => {
+  // Skip if user is already set (e.g., demo mode)
+  if (req.user) {
+    return next();
+  }
+
   if (authMode === "dev") {
     // 開発モード: ヘッダ疑似認証（X-User-Id, X-User-Role, X-User-Email）
     const id = req.header("x-user-id");
