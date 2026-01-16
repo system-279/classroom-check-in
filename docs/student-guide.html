@@ -59,6 +59,45 @@
       </a>
     </div>
 
+    <!-- はじめに：テナントURLについて -->
+    <section class="bg-white rounded-lg shadow-md p-6 mb-8">
+      <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+        <span class="text-2xl mr-3">&#127970;</span>
+        はじめに
+      </h2>
+
+      <p class="text-gray-600 mb-4">
+        Classroom Check-inを利用するには、まず管理者から案内された<strong class="text-indigo-600">テナントURL</strong>にアクセスする必要があります。
+      </p>
+
+      <div class="p-4 bg-indigo-50 border border-indigo-200 rounded-lg mb-4">
+        <div class="flex items-start space-x-3">
+          <span class="text-xl">&#128161;</span>
+          <div>
+            <h4 class="font-bold text-indigo-800">テナントURLとは？</h4>
+            <p class="mt-1 text-indigo-700 text-sm">
+              組織ごとに専用のURLが発行されています。
+              管理者から案内されたURLにアクセスしてログインしてください。<br>
+              例: <code class="bg-white px-2 py-0.5 rounded text-sm">https://web-...run.app/<strong>your-org</strong>/student/courses</code>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+        <div class="flex items-start space-x-3">
+          <span class="text-xl">&#9888;</span>
+          <div>
+            <h4 class="font-bold text-yellow-800">URLがわからない場合</h4>
+            <p class="mt-1 text-yellow-700 text-sm">
+              テナントURLは管理者（講座担当者）からメールやチャットで案内されます。
+              不明な場合は管理者にお問い合わせください。
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- 入室の手順 -->
     <section class="bg-white rounded-lg shadow-md p-6 mb-8">
       <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
@@ -71,9 +110,9 @@
         <div class="flex items-start space-x-4 p-4 bg-gray-50 rounded-lg">
           <div class="flex-shrink-0 w-10 h-10 bg-green-100 text-green-600 rounded-full flex items-center justify-center font-bold">1</div>
           <div class="flex-1">
-            <h3 class="font-bold text-gray-800 mb-2">システムにログイン</h3>
+            <h3 class="font-bold text-gray-800 mb-2">テナントURLにアクセスしてログイン</h3>
             <p class="text-gray-600">
-              お使いのGoogleアカウントでシステムにログインします。
+              管理者から案内されたテナントURLにアクセスし、お使いのGoogleアカウントでログインします。
               「Googleでログイン」ボタンをクリックして認証を行います。
             </p>
             <div class="mt-3 p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-800">
@@ -256,11 +295,26 @@ flowchart TD
       <div class="space-y-4">
         <details class="border rounded-lg" open>
           <summary class="px-4 py-3 cursor-pointer font-medium text-gray-800 hover:bg-gray-50">
+            テナントURLがわかりません
+          </summary>
+          <div class="px-4 py-3 bg-gray-50 text-gray-600">
+            <p class="mb-2">テナントURLは管理者（講座担当者）から案内されます。</p>
+            <ul class="list-disc list-inside space-y-1">
+              <li>メールやチャットで案内されていないか確認してください</li>
+              <li>不明な場合は管理者にお問い合わせください</li>
+            </ul>
+            <p class="mt-2">URLは通常 <code class="bg-gray-200 px-1 rounded">/組織名/student/courses</code> の形式です。</p>
+          </div>
+        </details>
+
+        <details class="border rounded-lg">
+          <summary class="px-4 py-3 cursor-pointer font-medium text-gray-800 hover:bg-gray-50">
             ログインできません
           </summary>
           <div class="px-4 py-3 bg-gray-50 text-gray-600">
             <p class="mb-2">以下を確認してください:</p>
             <ul class="list-disc list-inside space-y-1">
+              <li>正しいテナントURLにアクセスしているか</li>
               <li>管理者にメールアドレスが登録されているか（アクセス許可リスト）</li>
               <li>登録されたメールアドレスと同じGoogleアカウントでログインしているか</li>
             </ul>

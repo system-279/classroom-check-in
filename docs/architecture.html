@@ -44,6 +44,69 @@
       <p>システムがどのように動いているかを図解で説明します</p>
     </div>
 
+    <!-- マルチテナント構成 -->
+    <section class="bg-white rounded-lg shadow-md p-6 mb-8">
+      <h2 class="text-2xl font-bold text-gray-800 mb-6">マルチテナント構成</h2>
+
+      <p class="text-gray-600 mb-6">
+        Classroom Check-inは<strong class="text-indigo-600">マルチテナント対応</strong>のシステムです。
+        組織・学校ごとに独立したテナントを持ち、データは完全に分離されています。
+      </p>
+
+      <div class="overflow-x-auto mb-6">
+        <div class="mermaid">
+flowchart TB
+    subgraph テナントA["テナントA（○○学校）"]
+        A1[管理者A]
+        A2[受講者A1]
+        A3[受講者A2]
+        DA[(データA<br>講座・セッション)]
+    end
+
+    subgraph テナントB["テナントB（△△塾）"]
+        B1[管理者B]
+        B2[受講者B1]
+        B3[受講者B2]
+        DB[(データB<br>講座・セッション)]
+    end
+
+    subgraph 共通基盤["共通基盤"]
+        API[APIサービス]
+        WEB[Webアプリ]
+        NTF[通知サービス]
+    end
+
+    A1 --> WEB
+    A2 --> WEB
+    A3 --> WEB
+    B1 --> WEB
+    B2 --> WEB
+    B3 --> WEB
+
+    WEB --> API
+    API --> DA
+    API --> DB
+    NTF --> DA
+    NTF --> DB
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-4 mb-4">
+        <div class="p-4 bg-indigo-50 rounded-lg">
+          <h4 class="font-bold text-indigo-800 mb-2">&#127970; テナント分離</h4>
+          <p class="text-sm text-indigo-700">
+            各テナントのデータは完全に分離されており、他のテナントからアクセスすることはできません。
+          </p>
+        </div>
+        <div class="p-4 bg-green-50 rounded-lg">
+          <h4 class="font-bold text-green-800 mb-2">&#128279; 専用URL</h4>
+          <p class="text-sm text-green-700">
+            各テナントには専用のURL（<code>/tenant-id/admin</code>）が発行されます。
+          </p>
+        </div>
+      </div>
+    </section>
+
     <!-- 全体構成図 -->
     <section class="bg-white rounded-lg shadow-md p-6 mb-8">
       <h2 class="text-2xl font-bold text-gray-800 mb-6">システム全体像</h2>
@@ -64,6 +127,7 @@ flowchart TB
     subgraph フロントエンド["&#128187; Webアプリケーション"]
         C[受講者画面<br>講座選択・IN/OUT]
         D[管理者画面<br>講座・受講者・セッション管理]
+        R[テナント登録画面]
     end
 
     subgraph バックエンド["&#9881; バックエンドサービス"]
@@ -72,30 +136,43 @@ flowchart TB
     end
 
     subgraph データベース["&#128451; データ保存"]
-        G[(Firestore<br>講座・セッション等)]
+        G[(Firestore<br>テナント・講座・セッション等)]
     end
 
     subgraph 外部サービス["&#127760; 外部サービス"]
         H[Google Classroom]
         I[Gmail<br>通知メール送信]
+        J[Firebase Auth<br>認証]
+    end
+
+    subgraph 監視["&#128202; 監視"]
+        M[Uptime Check]
+        N[アラート通知]
     end
 
     A --> C
     B --> D
+    B --> R
     C --> E
     D --> E
+    R --> E
     E --> G
     F --> G
     F --> I
     C -.->|遷移| H
+    E --> J
+    M --> E
+    M --> C
+    M --> F
+    M -.->|障害検知| N
         </div>
       </div>
 
-      <div class="grid md:grid-cols-2 gap-4">
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div class="p-4 bg-blue-50 rounded-lg">
           <h4 class="font-bold text-blue-800 mb-2">&#128187; Webアプリケーション</h4>
           <p class="text-sm text-blue-700">
-            ユーザーが直接操作する画面です。受講者用と管理者用の2種類があります。
+            ユーザーが直接操作する画面です。受講者用、管理者用、テナント登録用があります。
           </p>
         </div>
         <div class="p-4 bg-green-50 rounded-lg">
@@ -107,13 +184,19 @@ flowchart TB
         <div class="p-4 bg-purple-50 rounded-lg">
           <h4 class="font-bold text-purple-800 mb-2">&#128451; データベース</h4>
           <p class="text-sm text-purple-700">
-            講座情報やセッション記録など、すべてのデータを保存する場所です。
+            テナント、講座、セッション記録など、すべてのデータを保存する場所です。
           </p>
         </div>
         <div class="p-4 bg-orange-50 rounded-lg">
           <h4 class="font-bold text-orange-800 mb-2">&#127760; 外部サービス</h4>
           <p class="text-sm text-orange-700">
-            Google ClassroomやGmailなど、連携している外部のサービスです。
+            Google Classroom、Gmail、Firebase Authなど、連携している外部のサービスです。
+          </p>
+        </div>
+        <div class="p-4 bg-red-50 rounded-lg">
+          <h4 class="font-bold text-red-800 mb-2">&#128202; 監視</h4>
+          <p class="text-sm text-red-700">
+            システムの稼働状況を監視し、障害時にアラートを送信します。
           </p>
         </div>
       </div>
@@ -235,10 +318,37 @@ sequenceDiagram
       <h2 class="text-2xl font-bold text-gray-800 mb-6">保存されるデータ</h2>
 
       <p class="text-gray-600 mb-6">
-        システムは以下のデータを保存・管理しています。
+        システムは以下のデータを保存・管理しています。すべてのデータはテナントごとに分離されています。
       </p>
 
       <div class="grid md:grid-cols-2 gap-6">
+        <!-- テナントデータ -->
+        <div class="border rounded-lg overflow-hidden">
+          <div class="bg-indigo-500 text-white px-4 py-3 font-bold">
+            &#127970; テナントデータ
+          </div>
+          <div class="p-4">
+            <ul class="text-sm text-gray-600 space-y-2">
+              <li class="flex items-center">
+                <span class="w-2 h-2 bg-indigo-500 rounded-full mr-2"></span>
+                テナントID
+              </li>
+              <li class="flex items-center">
+                <span class="w-2 h-2 bg-indigo-500 rounded-full mr-2"></span>
+                組織名
+              </li>
+              <li class="flex items-center">
+                <span class="w-2 h-2 bg-indigo-500 rounded-full mr-2"></span>
+                オーナー（管理者）
+              </li>
+              <li class="flex items-center">
+                <span class="w-2 h-2 bg-indigo-500 rounded-full mr-2"></span>
+                作成日時
+              </li>
+            </ul>
+          </div>
+        </div>
+
         <!-- 講座データ -->
         <div class="border rounded-lg overflow-hidden">
           <div class="bg-blue-500 text-white px-4 py-3 font-bold">
@@ -349,6 +459,59 @@ sequenceDiagram
       </div>
     </section>
 
+    <!-- 運用監視 -->
+    <section class="bg-white rounded-lg shadow-md p-6 mb-8">
+      <h2 class="text-2xl font-bold text-gray-800 mb-6">運用監視</h2>
+
+      <p class="text-gray-600 mb-6">
+        システムの安定稼働のため、24時間体制で監視を行っています。
+      </p>
+
+      <div class="grid md:grid-cols-3 gap-4 mb-6">
+        <div class="border rounded-lg overflow-hidden">
+          <div class="bg-red-500 text-white px-4 py-3 font-bold">
+            &#128202; Uptime Check
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-gray-600 mb-2">5分間隔でサービスの稼働状況を確認</p>
+            <ul class="text-xs text-gray-500 space-y-1">
+              <li>・APIサービス</li>
+              <li>・Webアプリケーション</li>
+              <li>・通知サービス</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="border rounded-lg overflow-hidden">
+          <div class="bg-yellow-500 text-white px-4 py-3 font-bold">
+            &#128276; アラート通知
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-gray-600 mb-2">障害検知時にメール通知</p>
+            <ul class="text-xs text-gray-500 space-y-1">
+              <li>・サービス停止検知</li>
+              <li>・レスポンス遅延検知</li>
+              <li>・エラー率上昇検知</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="border rounded-lg overflow-hidden">
+          <div class="bg-blue-500 text-white px-4 py-3 font-bold">
+            &#128337; 定期テスト
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-gray-600 mb-2">毎日自動でスモークテストを実行</p>
+            <ul class="text-xs text-gray-500 space-y-1">
+              <li>・ヘルスチェック</li>
+              <li>・API疎通確認</li>
+              <li>・GitHub Actions連携</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- 技術スタック（簡易版） -->
     <section class="bg-white rounded-lg shadow-md p-6">
       <h2 class="text-2xl font-bold text-gray-800 mb-6">使用している技術</h2>
@@ -357,7 +520,7 @@ sequenceDiagram
         このシステムは以下の技術を使用して構築されています。
       </p>
 
-      <div class="grid md:grid-cols-3 gap-4">
+      <div class="grid md:grid-cols-4 gap-4">
         <div class="p-4 border rounded-lg text-center">
           <div class="text-4xl mb-2">&#9889;</div>
           <h4 class="font-bold text-gray-800">Google Cloud</h4>
@@ -372,6 +535,11 @@ sequenceDiagram
           <div class="text-4xl mb-2">&#128640;</div>
           <h4 class="font-bold text-gray-800">Cloud Run</h4>
           <p class="text-sm text-gray-600 mt-1">サービス実行環境</p>
+        </div>
+        <div class="p-4 border rounded-lg text-center">
+          <div class="text-4xl mb-2">&#128274;</div>
+          <h4 class="font-bold text-gray-800">Firebase Auth</h4>
+          <p class="text-sm text-gray-600 mt-1">ユーザー認証</p>
         </div>
       </div>
 
