@@ -63,7 +63,7 @@ npm run dev -w @classroom-check-in/web
 
 ## デプロイ済み環境
 
-- **API**: https://api-up37vpqlrq-an.a.run.app
+- **API**: https://api-102013220292.asia-northeast1.run.app
 - **Web UI**: https://web-102013220292.asia-northeast1.run.app
 - **ドキュメント**: https://system-279.github.io/classroom-check-in/
 

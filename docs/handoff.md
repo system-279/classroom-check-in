@@ -72,7 +72,7 @@
 - **Cloud Scheduler設定済み**:
   - 通知サービス: `notification-job`（毎時0分実行）
 - **Cloud Runデプロイ済み**:
-  - API: https://api-up37vpqlrq-an.a.run.app
+  - API: https://api-102013220292.asia-northeast1.run.app
   - Web UI: https://web-102013220292.asia-northeast1.run.app
 - Artifact Registry クリーンアップポリシー（最新2イメージ保持）
 - **Firestoreインデックス設定済み**:
