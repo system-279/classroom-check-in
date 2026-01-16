@@ -32,7 +32,8 @@ app.use(express.json());
 const DEMO_ENABLED = process.env.DEMO_ENABLED === "true";
 
 // ヘルスチェック（認証不要）
-app.get("/healthz", (_req, res) => {
+// 複数パスで提供（/healthzはGCPで予約されている可能性があるため）
+app.get(["/health", "/healthz", "/api/health"], (_req, res) => {
   res.json({ status: "ok" });
 });
 
@@ -1220,7 +1221,7 @@ const port = Number(process.env.PORT || 8080);
 app.listen(port, () => {
   console.log(`API service listening on :${port}`);
   console.log("Routes:");
-  console.log("  - /healthz (health check)");
+  console.log("  - /health, /healthz, /api/health (health check)");
   console.log("  - /api/v1/* (legacy API)");
   if (DEMO_ENABLED) {
     console.log("  - /api/v1/demo/* (legacy demo)");
