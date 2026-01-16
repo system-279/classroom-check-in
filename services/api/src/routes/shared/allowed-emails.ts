@@ -5,20 +5,10 @@
 
 import { Router, Request, Response } from "express";
 import { requireAdmin } from "../../middleware/auth.js";
+import { toISOString } from "../../utils/date.js";
+import { isValidEmail } from "../../utils/validation.js";
 
 const router = Router();
-
-// ヘルパー: DateをISO文字列に変換
-function toISOString(date: Date | null): string | null {
-  return date ? date.toISOString() : null;
-}
-
-// バリデーション
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-function isValidEmail(email: string): boolean {
-  return EMAIL_REGEX.test(email);
-}
 
 /**
  * 管理者向け: 許可メール一覧取得
