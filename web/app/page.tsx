@@ -26,16 +26,29 @@ export default function HomePage() {
           >
             Googleでログイン
           </button>
-          <div className="mt-4 pt-4 border-t">
-            <p className="text-xs text-muted-foreground mb-2">
-              ログインせずに試してみる
-            </p>
-            <Link
-              href="/demo/admin"
-              className="text-sm text-primary hover:underline"
-            >
-              デモを見る →
-            </Link>
+          <div className="mt-4 pt-4 border-t space-y-3">
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">
+                新しく利用を始める
+              </p>
+              <Link
+                href="/register"
+                className="text-sm text-primary hover:underline font-medium"
+              >
+                組織を登録する →
+              </Link>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">
+                ログインせずに試してみる
+              </p>
+              <Link
+                href="/demo/admin"
+                className="text-sm text-muted-foreground hover:text-primary hover:underline"
+              >
+                デモを見る →
+              </Link>
+            </div>
           </div>
         </section>
       </main>
@@ -96,10 +109,16 @@ export default function HomePage() {
           </p>
         )}
 
-        <div className="mt-4 pt-4 border-t">
+        <div className="mt-4 pt-4 border-t space-y-2">
+          <Link
+            href="/register"
+            className="block text-sm text-primary hover:underline font-medium"
+          >
+            新しい組織を登録する →
+          </Link>
           <Link
             href="/demo/admin"
-            className="text-sm text-muted-foreground hover:text-primary hover:underline"
+            className="block text-sm text-muted-foreground hover:text-primary hover:underline"
           >
             デモを見る →
           </Link>

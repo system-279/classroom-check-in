@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuthenticatedFetch } from "@/lib/hooks/use-authenticated-fetch";
 import { useHeartbeat } from "@/lib/hooks/use-heartbeat";
+import { useTenantOptional } from "@/lib/tenant-context";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -34,6 +35,7 @@ export default function SessionPage() {
     : params.courseId;
 
   const { authFetch, authLoading, isAuthenticated, isDemo } = useAuthenticatedFetch();
+  const tenant = useTenantOptional();
   const [course, setCourse] = useState<Course | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -42,6 +44,13 @@ export default function SessionPage() {
 
   // heartbeat: セッションがopenの場合のみ送信（デモモードでも有効）
   useHeartbeat(session?.status === "open" ? session.id : null);
+
+  // TenantContext配下の場合はtenantIdを使用、それ以外は旧形式
+  const coursesPath = tenant
+    ? `/${tenant.tenantId}/student/courses`
+    : isDemo
+      ? "/demo/student/courses"
+      : "/student/courses";
 
   // 講座情報を取得し、既存のopenセッションがあるか確認
   useEffect(() => {
@@ -155,13 +164,12 @@ export default function SessionPage() {
   }
 
   if (error && !course) {
-    const errorCoursesPath = isDemo ? "/demo/student/courses" : "/student/courses";
     return (
       <div className="space-y-4">
         <div className="rounded-lg bg-destructive/10 p-4 text-destructive">
           {error}
         </div>
-        <Link href={errorCoursesPath}>
+        <Link href={coursesPath}>
           <Button variant="outline">講座一覧に戻る</Button>
         </Link>
       </div>
@@ -169,7 +177,6 @@ export default function SessionPage() {
   }
 
   const isSessionActive = session?.status === "open";
-  const coursesPath = isDemo ? "/demo/student/courses" : "/student/courses";
 
   return (
     <div className="space-y-6">

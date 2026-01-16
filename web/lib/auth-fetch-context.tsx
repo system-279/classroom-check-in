@@ -3,6 +3,7 @@
 import { createContext, useContext, useCallback, type ReactNode } from "react";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { useTenantOptional } from "@/lib/tenant-context";
 
 const AUTH_MODE = process.env.NEXT_PUBLIC_AUTH_MODE ?? "dev";
 
@@ -13,24 +14,50 @@ const AuthFetchContext = createContext<AuthFetchFunction | null>(null);
 /**
  * 認証付きフェッチ関数を提供するプロバイダー
  * 子コンポーネントでuseAuthFetchを使用可能にする
- * デモモードの場合は /api/v1/demo/* パスを使用
+ *
+ * テナントコンテキスト配下の場合:
+ *   /admin/* → /api/v2/:tenant/admin/*
+ *   /sessions/* → /api/v2/:tenant/sessions/*
+ *
+ * テナントコンテキスト外の場合:
+ *   /api/v1/* をそのまま使用
+ *
+ * 後方互換性:
+ *   /api/v1/demo/* → /api/v2/demo/* に変換（デモモード）
+ *   /api/v1/* → /api/v2/:tenant/* に変換（テナントコンテキスト配下）
  */
 export function AuthFetchProvider({ children }: { children: ReactNode }) {
-  const { getIdToken, isDemo } = useAuth();
+  const { getIdToken, isDemo: authIsDemo } = useAuth();
+  const tenant = useTenantOptional();
 
   const authFetch = useCallback(
     async <T,>(path: string, options: RequestInit = {}): Promise<T> => {
-      // デモモードの場合はパスを変換（より堅牢な実装）
+      // テナントIDの決定
+      // TenantContext が利用可能な場合はそちらを優先
+      // 後方互換性のため AuthContext の isDemo もフォールバックとして使用
+      const tenantId = tenant?.tenantId ?? (authIsDemo ? "demo" : null);
+      const isDemo = tenant?.isDemo ?? authIsDemo;
+
       let actualPath = path;
-      if (isDemo) {
-        // 既にdemoパスの場合はそのまま
-        if (!path.includes("/api/v1/demo")) {
-          // /api/v1 または /api/v1/ で始まるパスを変換
-          if (path.startsWith("/api/v1/")) {
-            actualPath = path.replace("/api/v1/", "/api/v1/demo/");
-          } else if (path === "/api/v1") {
-            actualPath = "/api/v1/demo";
-          }
+
+      // パス変換ロジック
+      if (tenantId) {
+        // テナントコンテキスト配下の場合
+        if (path.startsWith("/api/v1/demo/")) {
+          // 旧デモAPIパス → 新テナントAPIパス
+          actualPath = path.replace("/api/v1/demo/", `/api/v2/${tenantId}/`);
+        } else if (path.startsWith("/api/v1/")) {
+          // 旧APIパス → 新テナントAPIパス
+          actualPath = path.replace("/api/v1/", `/api/v2/${tenantId}/`);
+        } else if (path.startsWith("/api/v2/")) {
+          // 既に v2 形式ならそのまま
+          actualPath = path;
+        } else if (path.startsWith("/admin/") || path.startsWith("/sessions/") ||
+                   path.startsWith("/courses/") || path.startsWith("/users/") ||
+                   path.startsWith("/auth/") || path.startsWith("/enrollments/") ||
+                   path.startsWith("/notification-policies/") || path.startsWith("/allowed-emails/")) {
+          // 相対APIパス → テナント付きパス
+          actualPath = `/api/v2/${tenantId}${path}`;
         }
       }
 
@@ -51,7 +78,7 @@ export function AuthFetchProvider({ children }: { children: ReactNode }) {
         idToken: idToken ?? undefined,
       });
     },
-    [getIdToken, isDemo]
+    [getIdToken, tenant, authIsDemo]
   );
 
   return (

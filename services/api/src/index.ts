@@ -1,38 +1,64 @@
 import cors from "cors";
 import express from "express";
-import { authMiddleware, requireAdmin, requireUser } from "./middleware/auth.js";
-import { db } from "./storage/firestore.js";
+import { authMiddleware } from "./middleware/auth.js";
+import { tenantAwareAuthMiddleware } from "./middleware/tenant-auth.js";
+import {
+  tenantMiddleware,
+  demoAuthMiddleware,
+  demoReadOnlyMiddleware,
+  dataSourceErrorHandler,
+} from "./middleware/tenant.js";
+import { createSharedRouter } from "./routes/shared/index.js";
+import { tenantsRouter } from "./routes/tenants.js";
+
+// 旧デモルーター（後方互換性のため一時的に維持）
 import { demoRouter } from "./routes/demo.js";
 
-// バリデーションヘルパー
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const VALID_TIMEZONES = new Set(Intl.supportedValuesOf("timeZone"));
+const app = express();
 
-function isValidEmail(email: string): boolean {
-  return EMAIL_REGEX.test(email);
+// CORS設定: 本番環境ではCORS_ORIGINの設定を必須とする
+const corsOrigins = process.env.CORS_ORIGIN?.split(",");
+if (!corsOrigins && process.env.NODE_ENV === "production") {
+  throw new Error("CORS_ORIGIN must be set in production");
 }
+app.use(cors({
+  origin: corsOrigins ?? ["http://localhost:3000", "http://localhost:3001"],
+  credentials: true,
+}));
+app.use(express.json());
 
-function isValidTimezone(tz: string): boolean {
-  return VALID_TIMEZONES.has(tz);
-}
+// デモモード設定（環境変数で制御）
+const DEMO_ENABLED = process.env.DEMO_ENABLED === "true";
+
+// ヘルスチェック（認証不要）
+app.get("/healthz", (_req, res) => {
+  res.json({ status: "ok" });
+});
+
+// ========================================
+// 旧API（後方互換性のため維持）
+// TODO: Phase 3完了後、Webを新エンドポイントに移行したら削除
+// ========================================
+
+// 旧APIルーター（本番用）
+import { db } from "./storage/firestore.js";
+import { requireAdmin, requireUser } from "./middleware/auth.js";
+
+const legacyApiRouter = express.Router();
 
 // Firestore TimestampをISO文字列に変換
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function toISOString(timestamp: any): string | null {
   if (!timestamp) return null;
-  // Firestore Timestamp
   if (typeof timestamp.toDate === "function") {
     return timestamp.toDate().toISOString();
   }
-  // JavaScript Date
   if (timestamp instanceof Date) {
     return timestamp.toISOString();
   }
-  // 既にISO文字列の場合
   if (typeof timestamp === "string") {
     return timestamp;
   }
-  // それ以外は変換不可
   return null;
 }
 
@@ -53,30 +79,6 @@ function serializeSession(id: string, data: any) {
   };
 }
 
-const app = express();
-
-// CORS設定: 本番環境ではCORS_ORIGINの設定を必須とする
-const corsOrigins = process.env.CORS_ORIGIN?.split(",");
-if (!corsOrigins && process.env.NODE_ENV === "production") {
-  throw new Error("CORS_ORIGIN must be set in production");
-}
-app.use(cors({
-  origin: corsOrigins ?? ["http://localhost:3000", "http://localhost:3001"],
-  credentials: true,
-}));
-app.use(express.json());
-
-// デモモード設定（環境変数で制御）
-const DEMO_ENABLED = process.env.DEMO_ENABLED === "true";
-
-// APIルーター（本番用）
-const apiRouter = express.Router();
-
-// ヘルスチェック（認証不要）
-app.get("/healthz", (_req, res) => {
-  res.json({ status: "ok" });
-});
-
 const notImplemented = (req: express.Request, res: express.Response) => {
   res.status(501).json({
     error: "not_implemented",
@@ -84,17 +86,16 @@ const notImplemented = (req: express.Request, res: express.Response) => {
   });
 };
 
-// Auth (OAuth is not wired yet)
-apiRouter.get("/auth/google/start", notImplemented);
-apiRouter.get("/auth/google/callback", notImplemented);
-apiRouter.post("/auth/logout", notImplemented);
-apiRouter.get("/auth/me", requireUser, (req, res) => {
+// Auth
+legacyApiRouter.get("/auth/google/start", notImplemented);
+legacyApiRouter.get("/auth/google/callback", notImplemented);
+legacyApiRouter.post("/auth/logout", notImplemented);
+legacyApiRouter.get("/auth/me", requireUser, (req, res) => {
   res.json({ user: req.user });
 });
 
 // Courses (student view)
-apiRouter.get("/courses", requireUser, async (req, res) => {
-  // enabled=true かつ visible=true の講座を取得
+legacyApiRouter.get("/courses", requireUser, async (req, res) => {
   const coursesSnap = await db
     .collection("courses")
     .where("visible", "==", true)
@@ -108,7 +109,6 @@ apiRouter.get("/courses", requireUser, async (req, res) => {
 
   const courseIds = coursesSnap.docs.map((doc) => doc.id);
 
-  // ユーザーが登録されている講座を確認
   const enrollmentSnaps = await Promise.all(
     courseIds.map((id) =>
       db
@@ -126,7 +126,6 @@ apiRouter.get("/courses", requireUser, async (req, res) => {
       .map((snap) => snap.docs[0].data().courseId as string),
   );
 
-  // 登録がある場合は登録講座のみ、なければ全講座を返す
   const filteredDocs =
     enrolledCourseIds.size > 0
       ? coursesSnap.docs.filter((doc) => enrolledCourseIds.has(doc.id))
@@ -134,7 +133,6 @@ apiRouter.get("/courses", requireUser, async (req, res) => {
 
   const filteredCourseIds = new Set(filteredDocs.map((doc) => doc.id));
 
-  // ユーザーのセッション履歴を取得（対象講座のみ、inクエリは最大30件）
   type SessionSummary = {
     lastSessionAt: string | null;
     totalDurationSec: number;
@@ -144,7 +142,7 @@ apiRouter.get("/courses", requireUser, async (req, res) => {
   const sessionSummaryMap = new Map<string, SessionSummary>();
 
   const courseIdArray = Array.from(filteredCourseIds);
-  const BATCH_SIZE = 30; // Firestore in query limit
+  const BATCH_SIZE = 30;
 
   for (let i = 0; i < courseIdArray.length; i += BATCH_SIZE) {
     const batch = courseIdArray.slice(i, i + BATCH_SIZE);
@@ -179,7 +177,6 @@ apiRouter.get("/courses", requireUser, async (req, res) => {
         summary.hasActiveSession = true;
       }
 
-      // durationSecがある場合は使用、なければ計算（closedセッションのみ）
       if (data.status === "closed") {
         if (typeof data.durationSec === "number") {
           summary.totalDurationSec += data.durationSec;
@@ -219,9 +216,7 @@ apiRouter.get("/courses", requireUser, async (req, res) => {
 });
 
 // Sessions
-
-// アクティブセッション確認（P1修正: check-in APIの誤用を防ぐ）
-apiRouter.get("/sessions/active", requireUser, async (req, res) => {
+legacyApiRouter.get("/sessions/active", requireUser, async (req, res) => {
   const courseId = req.query.courseId as string | undefined;
 
   const query = db
@@ -242,14 +237,13 @@ apiRouter.get("/sessions/active", requireUser, async (req, res) => {
   res.json({ session: serializeSession(doc.id, doc.data()) });
 });
 
-apiRouter.post("/sessions/check-in", requireUser, async (req, res) => {
+legacyApiRouter.post("/sessions/check-in", requireUser, async (req, res) => {
   const courseId = req.body?.courseId;
   if (!courseId) {
     res.status(400).json({ error: "course_id_required" });
     return;
   }
 
-  // 講座が存在し、enabled=true かを確認
   const courseSnap = await db.collection("courses").doc(courseId).get();
   if (!courseSnap.exists || courseSnap.data()?.enabled !== true) {
     res.status(403).json({ error: "course_not_enabled" });
@@ -297,7 +291,7 @@ apiRouter.post("/sessions/check-in", requireUser, async (req, res) => {
   res.json({ session: serializeSession(sessionSnap.id, sessionSnap.data()) });
 });
 
-apiRouter.post("/sessions/heartbeat", requireUser, async (req, res) => {
+legacyApiRouter.post("/sessions/heartbeat", requireUser, async (req, res) => {
   const sessionId = req.body?.sessionId;
   if (!sessionId) {
     res.status(400).json({ error: "session_id_required" });
@@ -321,7 +315,7 @@ apiRouter.post("/sessions/heartbeat", requireUser, async (req, res) => {
   res.json({ status: "ok" });
 });
 
-apiRouter.post("/sessions/check-out", requireUser, async (req, res) => {
+legacyApiRouter.post("/sessions/check-out", requireUser, async (req, res) => {
   const sessionId = req.body?.sessionId;
   if (!sessionId) {
     res.status(400).json({ error: "session_id_required" });
@@ -370,7 +364,7 @@ apiRouter.post("/sessions/check-out", requireUser, async (req, res) => {
 });
 
 // Admin: courses
-apiRouter.get("/admin/courses", requireAdmin, async (_req, res) => {
+legacyApiRouter.get("/admin/courses", requireAdmin, async (_req, res) => {
   const coursesSnap = await db.collection("courses").get();
 
   const courses = coursesSnap.docs.map((doc) => {
@@ -391,7 +385,7 @@ apiRouter.get("/admin/courses", requireAdmin, async (_req, res) => {
   res.json({ courses });
 });
 
-apiRouter.post("/admin/courses", requireAdmin, async (req, res) => {
+legacyApiRouter.post("/admin/courses", requireAdmin, async (req, res) => {
   const name = req.body?.name;
   const classroomUrl = req.body?.classroomUrl;
   const description = req.body?.description ?? null;
@@ -428,7 +422,7 @@ apiRouter.post("/admin/courses", requireAdmin, async (req, res) => {
   });
 });
 
-apiRouter.patch("/admin/courses/:id", requireAdmin, async (req, res) => {
+legacyApiRouter.patch("/admin/courses/:id", requireAdmin, async (req, res) => {
   const id = req.params.id as string;
   const updates: Record<string, unknown> = {};
 
@@ -465,7 +459,7 @@ apiRouter.patch("/admin/courses/:id", requireAdmin, async (req, res) => {
   res.json({ id, ...currentData, ...updates });
 });
 
-apiRouter.delete("/admin/courses/:id", requireAdmin, async (req, res) => {
+legacyApiRouter.delete("/admin/courses/:id", requireAdmin, async (req, res) => {
   const id = req.params.id as string;
   const ref = db.collection("courses").doc(id);
   const snap = await ref.get();
@@ -475,7 +469,6 @@ apiRouter.delete("/admin/courses/:id", requireAdmin, async (req, res) => {
     return;
   }
 
-  // 関連するセッションがある場合は削除を拒否
   const sessionsSnap = await db
     .collection("sessions")
     .where("courseId", "==", id)
@@ -492,7 +485,7 @@ apiRouter.delete("/admin/courses/:id", requireAdmin, async (req, res) => {
 });
 
 // Admin: users
-apiRouter.get("/admin/users", requireAdmin, async (_req, res) => {
+legacyApiRouter.get("/admin/users", requireAdmin, async (_req, res) => {
   const usersSnap = await db.collection("users").get();
 
   const users = usersSnap.docs.map((doc) => {
@@ -510,7 +503,7 @@ apiRouter.get("/admin/users", requireAdmin, async (_req, res) => {
   res.json({ users });
 });
 
-apiRouter.post("/admin/users", requireAdmin, async (req, res) => {
+legacyApiRouter.post("/admin/users", requireAdmin, async (req, res) => {
   const email = req.body?.email;
   const name = req.body?.name ?? null;
   const role = req.body?.role ?? "student";
@@ -520,7 +513,6 @@ apiRouter.post("/admin/users", requireAdmin, async (req, res) => {
     return;
   }
 
-  // メールアドレスの重複チェック
   const existingSnap = await db
     .collection("users")
     .where("email", "==", email)
@@ -551,7 +543,7 @@ apiRouter.post("/admin/users", requireAdmin, async (req, res) => {
   });
 });
 
-apiRouter.get("/admin/users/:id", requireAdmin, async (req, res) => {
+legacyApiRouter.get("/admin/users/:id", requireAdmin, async (req, res) => {
   const id = req.params.id as string;
   const ref = db.collection("users").doc(id);
   const snap = await ref.get();
@@ -572,7 +564,7 @@ apiRouter.get("/admin/users/:id", requireAdmin, async (req, res) => {
   });
 });
 
-apiRouter.patch("/admin/users/:id", requireAdmin, async (req, res) => {
+legacyApiRouter.patch("/admin/users/:id", requireAdmin, async (req, res) => {
   const id = req.params.id as string;
   const updates: Record<string, unknown> = {};
 
@@ -592,7 +584,6 @@ apiRouter.patch("/admin/users/:id", requireAdmin, async (req, res) => {
     return;
   }
 
-  // メールアドレス変更時の重複チェック
   if (updates.email) {
     const existingSnap = await db
       .collection("users")
@@ -613,7 +604,7 @@ apiRouter.patch("/admin/users/:id", requireAdmin, async (req, res) => {
   res.json({ id, ...currentData, ...updates });
 });
 
-apiRouter.delete("/admin/users/:id", requireAdmin, async (req, res) => {
+legacyApiRouter.delete("/admin/users/:id", requireAdmin, async (req, res) => {
   const id = req.params.id as string;
   const ref = db.collection("users").doc(id);
   const snap = await ref.get();
@@ -623,7 +614,6 @@ apiRouter.delete("/admin/users/:id", requireAdmin, async (req, res) => {
     return;
   }
 
-  // 関連する受講登録を削除
   const enrollmentsSnap = await db
     .collection("enrollments")
     .where("userId", "==", id)
@@ -638,7 +628,7 @@ apiRouter.delete("/admin/users/:id", requireAdmin, async (req, res) => {
 });
 
 // Admin: enrollments
-apiRouter.get("/admin/enrollments", requireAdmin, async (req, res) => {
+legacyApiRouter.get("/admin/enrollments", requireAdmin, async (req, res) => {
   const courseId = req.query.courseId as string | undefined;
   const userId = req.query.userId as string | undefined;
 
@@ -669,7 +659,7 @@ apiRouter.get("/admin/enrollments", requireAdmin, async (req, res) => {
   res.json({ enrollments });
 });
 
-apiRouter.post("/admin/enrollments", requireAdmin, async (req, res) => {
+legacyApiRouter.post("/admin/enrollments", requireAdmin, async (req, res) => {
   const courseId = req.body?.courseId;
   const userId = req.body?.userId;
   const role = req.body?.role ?? "student";
@@ -681,21 +671,18 @@ apiRouter.post("/admin/enrollments", requireAdmin, async (req, res) => {
     return;
   }
 
-  // 講座の存在確認
   const courseSnap = await db.collection("courses").doc(courseId).get();
   if (!courseSnap.exists) {
     res.status(404).json({ error: "course_not_found" });
     return;
   }
 
-  // ユーザーの存在確認
   const userSnap = await db.collection("users").doc(userId).get();
   if (!userSnap.exists) {
     res.status(404).json({ error: "user_not_found" });
     return;
   }
 
-  // 重複登録チェック
   const existingSnap = await db
     .collection("enrollments")
     .where("courseId", "==", courseId)
@@ -729,7 +716,7 @@ apiRouter.post("/admin/enrollments", requireAdmin, async (req, res) => {
   });
 });
 
-apiRouter.patch("/admin/enrollments/:id", requireAdmin, async (req, res) => {
+legacyApiRouter.patch("/admin/enrollments/:id", requireAdmin, async (req, res) => {
   const id = req.params.id as string;
   const updates: Record<string, unknown> = {};
 
@@ -759,7 +746,7 @@ apiRouter.patch("/admin/enrollments/:id", requireAdmin, async (req, res) => {
   res.json({ id, ...currentData, ...updates });
 });
 
-apiRouter.delete("/admin/enrollments/:id", requireAdmin, async (req, res) => {
+legacyApiRouter.delete("/admin/enrollments/:id", requireAdmin, async (req, res) => {
   const id = req.params.id as string;
   const ref = db.collection("enrollments").doc(id);
   const snap = await ref.get();
@@ -774,7 +761,7 @@ apiRouter.delete("/admin/enrollments/:id", requireAdmin, async (req, res) => {
 });
 
 // Admin: sessions
-apiRouter.get("/admin/sessions", requireAdmin, async (req, res) => {
+legacyApiRouter.get("/admin/sessions", requireAdmin, async (req, res) => {
   const courseId = req.query.courseId as string | undefined;
   const userId = req.query.userId as string | undefined;
   const status = req.query.status as string | undefined;
@@ -800,7 +787,7 @@ apiRouter.get("/admin/sessions", requireAdmin, async (req, res) => {
   res.json({ sessions });
 });
 
-apiRouter.post("/admin/sessions/:id/close", requireAdmin, async (req, res) => {
+legacyApiRouter.post("/admin/sessions/:id/close", requireAdmin, async (req, res) => {
   const id = req.params.id as string;
   const closedAt = req.body?.closedAt ? new Date(req.body.closedAt) : new Date();
   const reason = req.body?.reason ?? "admin_close";
@@ -832,7 +819,6 @@ apiRouter.post("/admin/sessions/:id/close", requireAdmin, async (req, res) => {
     status: "adjusted",
   });
 
-  // 補正イベントを記録
   await db.collection("attendanceEvents").add({
     courseId: session?.courseId,
     userId: session?.userId,
@@ -848,7 +834,7 @@ apiRouter.post("/admin/sessions/:id/close", requireAdmin, async (req, res) => {
 });
 
 // Admin: notification policies
-apiRouter.get("/admin/notification-policies", requireAdmin, async (req, res) => {
+legacyApiRouter.get("/admin/notification-policies", requireAdmin, async (req, res) => {
   const scope = req.query.scope as string | undefined;
   const courseId = req.query.courseId as string | undefined;
   const userId = req.query.userId as string | undefined;
@@ -886,7 +872,7 @@ apiRouter.get("/admin/notification-policies", requireAdmin, async (req, res) => 
   res.json({ policies });
 });
 
-apiRouter.post("/admin/notification-policies", requireAdmin, async (req, res) => {
+legacyApiRouter.post("/admin/notification-policies", requireAdmin, async (req, res) => {
   const scope = req.body?.scope as "global" | "course" | "user";
   const courseId = req.body?.courseId ?? null;
   const userId = req.body?.userId ?? null;
@@ -900,19 +886,16 @@ apiRouter.post("/admin/notification-policies", requireAdmin, async (req, res) =>
     return;
   }
 
-  // scope=course ならcourseId必須
   if (scope === "course" && !courseId) {
     res.status(400).json({ error: "course_id_required_for_course_scope" });
     return;
   }
 
-  // scope=user ならuserId必須
   if (scope === "user" && !userId) {
     res.status(400).json({ error: "user_id_required_for_user_scope" });
     return;
   }
 
-  // 講座の存在確認（scope=course）
   if (scope === "course" && courseId) {
     const courseSnap = await db.collection("courses").doc(courseId).get();
     if (!courseSnap.exists) {
@@ -921,7 +904,6 @@ apiRouter.post("/admin/notification-policies", requireAdmin, async (req, res) =>
     }
   }
 
-  // ユーザーの存在確認（scope=user）
   if (scope === "user" && userId) {
     const userSnap = await db.collection("users").doc(userId).get();
     if (!userSnap.exists) {
@@ -930,7 +912,6 @@ apiRouter.post("/admin/notification-policies", requireAdmin, async (req, res) =>
     }
   }
 
-  // 重複チェック（同じscope/courseId/userIdの組み合わせ）
   let duplicateQuery: FirebaseFirestore.Query = db
     .collection("notificationPolicies")
     .where("scope", "==", scope);
@@ -974,7 +955,7 @@ apiRouter.post("/admin/notification-policies", requireAdmin, async (req, res) =>
   });
 });
 
-apiRouter.patch("/admin/notification-policies/:id", requireAdmin, async (req, res) => {
+legacyApiRouter.patch("/admin/notification-policies/:id", requireAdmin, async (req, res) => {
   const id = req.params.id as string;
   const updates: Record<string, unknown> = {};
 
@@ -1010,7 +991,7 @@ apiRouter.patch("/admin/notification-policies/:id", requireAdmin, async (req, re
   res.json({ id, ...currentData, ...updates });
 });
 
-apiRouter.delete("/admin/notification-policies/:id", requireAdmin, async (req, res) => {
+legacyApiRouter.delete("/admin/notification-policies/:id", requireAdmin, async (req, res) => {
   const id = req.params.id as string;
   const ref = db.collection("notificationPolicies").doc(id);
   const snap = await ref.get();
@@ -1024,18 +1005,28 @@ apiRouter.delete("/admin/notification-policies/:id", requireAdmin, async (req, r
   res.json({ deleted: true, id });
 });
 
-// Admin: user settings (通知設定)
-apiRouter.get("/admin/users/:id/settings", requireAdmin, async (req, res) => {
+// バリデーション
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const VALID_TIMEZONES = new Set(Intl.supportedValuesOf("timeZone"));
+
+function isValidEmail(email: string): boolean {
+  return EMAIL_REGEX.test(email);
+}
+
+function isValidTimezone(tz: string): boolean {
+  return VALID_TIMEZONES.has(tz);
+}
+
+// Admin: user settings
+legacyApiRouter.get("/admin/users/:id/settings", requireAdmin, async (req, res) => {
   const userId = req.params.id as string;
 
-  // ユーザーの存在確認
   const userSnap = await db.collection("users").doc(userId).get();
   if (!userSnap.exists) {
     res.status(404).json({ error: "user_not_found" });
     return;
   }
 
-  // userSettings を取得（userIdで検索）
   const settingsSnap = await db
     .collection("userSettings")
     .where("userId", "==", userId)
@@ -1043,7 +1034,6 @@ apiRouter.get("/admin/users/:id/settings", requireAdmin, async (req, res) => {
     .get();
 
   if (settingsSnap.empty) {
-    // デフォルト値を返す
     res.json({
       userId,
       notifyEnabled: true,
@@ -1065,10 +1055,9 @@ apiRouter.get("/admin/users/:id/settings", requireAdmin, async (req, res) => {
   });
 });
 
-apiRouter.patch("/admin/users/:id/settings", requireAdmin, async (req, res) => {
+legacyApiRouter.patch("/admin/users/:id/settings", requireAdmin, async (req, res) => {
   const userId = req.params.id as string;
 
-  // ユーザーの存在確認
   const userSnap = await db.collection("users").doc(userId).get();
   if (!userSnap.exists) {
     res.status(404).json({ error: "user_not_found" });
@@ -1100,7 +1089,6 @@ apiRouter.patch("/admin/users/:id/settings", requireAdmin, async (req, res) => {
     return;
   }
 
-  // 既存の設定を検索
   const settingsSnap = await db
     .collection("userSettings")
     .where("userId", "==", userId)
@@ -1111,7 +1099,6 @@ apiRouter.patch("/admin/users/:id/settings", requireAdmin, async (req, res) => {
   updates.updatedAt = now;
 
   if (settingsSnap.empty) {
-    // 新規作成
     const ref = await db.collection("userSettings").add({
       userId,
       notifyEnabled: updates.notifyEnabled ?? true,
@@ -1124,7 +1111,6 @@ apiRouter.patch("/admin/users/:id/settings", requireAdmin, async (req, res) => {
     const newDoc = await ref.get();
     res.json({ id: newDoc.id, ...newDoc.data() });
   } else {
-    // 更新
     const doc = settingsSnap.docs[0];
     await doc.ref.update(updates);
 
@@ -1133,8 +1119,8 @@ apiRouter.patch("/admin/users/:id/settings", requireAdmin, async (req, res) => {
   }
 });
 
-// Admin: allowed emails (許可リスト)
-apiRouter.get("/admin/allowed-emails", requireAdmin, async (_req, res) => {
+// Admin: allowed emails
+legacyApiRouter.get("/admin/allowed-emails", requireAdmin, async (_req, res) => {
   const allowedSnap = await db.collection("allowedEmails").orderBy("createdAt", "desc").get();
 
   const allowedEmails = allowedSnap.docs.map((doc) => {
@@ -1150,7 +1136,7 @@ apiRouter.get("/admin/allowed-emails", requireAdmin, async (_req, res) => {
   res.json({ allowedEmails });
 });
 
-apiRouter.post("/admin/allowed-emails", requireAdmin, async (req, res) => {
+legacyApiRouter.post("/admin/allowed-emails", requireAdmin, async (req, res) => {
   const email = req.body?.email;
   const note = req.body?.note ?? null;
 
@@ -1164,7 +1150,6 @@ apiRouter.post("/admin/allowed-emails", requireAdmin, async (req, res) => {
     return;
   }
 
-  // 重複チェック
   const existingSnap = await db
     .collection("allowedEmails")
     .where("email", "==", email)
@@ -1191,7 +1176,7 @@ apiRouter.post("/admin/allowed-emails", requireAdmin, async (req, res) => {
   });
 });
 
-apiRouter.delete("/admin/allowed-emails/:id", requireAdmin, async (req, res) => {
+legacyApiRouter.delete("/admin/allowed-emails/:id", requireAdmin, async (req, res) => {
   const id = req.params.id as string;
   const ref = db.collection("allowedEmails").doc(id);
   const snap = await ref.get();
@@ -1205,15 +1190,52 @@ apiRouter.delete("/admin/allowed-emails/:id", requireAdmin, async (req, res) => 
   res.json({ deleted: true, id });
 });
 
-// ルーターをマウント: デモパス（モックデータ）と本番パス（認証付き）
+// ========================================
+// ルーターのマウント
+// ========================================
+
+// 旧デモモード（後方互換性のため維持）
 if (DEMO_ENABLED) {
-  // デモモードが有効な場合のみデモルートをマウント（Firestoreを使用しないモックデータ）
   app.use("/api/v1/demo", demoRouter);
   console.log("Demo mode enabled (mock data, read-only)");
 }
-app.use("/api/v1", authMiddleware, apiRouter);
+
+// 旧API（後方互換性のため維持）
+app.use("/api/v1", authMiddleware, legacyApiRouter);
+
+// ========================================
+// 新テナントベースAPI
+// ========================================
+
+// テナント登録API（認証のみ、テナントコンテキスト不要）
+// POST /api/v2/tenants - 新規テナント作成
+// GET /api/v2/tenants/mine - 自分のテナント一覧
+app.use("/api/v2/tenants", tenantsRouter);
+
+// URL: /api/v2/:tenant/*
+// - /api/v2/demo/* → デモモード（読み取り専用、モックデータ）
+// - /api/v2/{tenantId}/* → 本番モード（Firestore）
+app.use(
+  "/api/v2/:tenant",
+  tenantMiddleware,            // テナントコンテキスト設定
+  demoAuthMiddleware,          // デモ用固定ユーザー設定
+  tenantAwareAuthMiddleware,   // テナント対応認証（DataSource使用）
+  demoReadOnlyMiddleware,      // デモ用読み取り専用制限
+  createSharedRouter()         // 共通ルーター
+);
+
+// DataSourceエラーハンドラ
+app.use(dataSourceErrorHandler);
 
 const port = Number(process.env.PORT || 8080);
 app.listen(port, () => {
   console.log(`API service listening on :${port}`);
+  console.log("Routes:");
+  console.log("  - /healthz (health check)");
+  console.log("  - /api/v1/* (legacy API)");
+  if (DEMO_ENABLED) {
+    console.log("  - /api/v1/demo/* (legacy demo)");
+  }
+  console.log("  - /api/v2/tenants (tenant registration)");
+  console.log("  - /api/v2/:tenant/* (new tenant-based API)");
 });
