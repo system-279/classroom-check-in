@@ -39,10 +39,11 @@ jobs:
       - name: Health check
         run: |
           echo "Checking API health..."
-          curl -sf https://api-102013220292.asia-northeast1.run.app/api/health || echo "API health check failed (may be expected if using /healthz)"
-          echo ""
+          curl -sf https://api-102013220292.asia-northeast1.run.app/api/health
+          echo " - API OK"
           echo "Checking Web availability..."
-          curl -sf -o /dev/null -w "%{http_code}" ${{ env.BASE_URL }}/ && echo " - Web OK"
+          curl -sf -o /dev/null -w "%{http_code}" ${{ env.BASE_URL }}/
+          echo " - Web OK"
 
       - name: Run smoke tests
         run: npx playwright test e2e/demo-mode.spec.ts

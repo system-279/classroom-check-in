@@ -11,11 +11,12 @@
 
 ## ヘルスチェックエンドポイント
 
-| エンドポイント | 説明 |
-|---------------|------|
-| `GET /api/health` | API ヘルスチェック（推奨） |
-| `GET /health` | API ヘルスチェック（代替） |
-| `GET /` | Web トップページ |
+| サービス | エンドポイント | 説明 |
+|---------|---------------|------|
+| API | `GET /api/health` | API ヘルスチェック（推奨） |
+| API | `GET /health` | API ヘルスチェック（代替） |
+| Web | `GET /` | Web トップページ |
+| Notification | `GET /health` | Notification ヘルスチェック |
 
 ## 日次チェック
 
@@ -92,17 +93,27 @@ gcloud monitoring uptime create api-health-check \
   --check-interval=300
 ```
 
-### アラートポリシー
+### アラートポリシー（設定済み）
 
-1. **Uptime Check 失敗**
-   - 条件: 2回連続で失敗
-   - 通知チャネル: メール
+1. **API Uptime Check 失敗**
+   - 条件: 5分間チェック失敗
+   - 通知先: system@279279.net
 
-2. **エラーレート上昇**
+2. **Web Uptime Check 失敗**
+   - 条件: 5分間チェック失敗
+   - 通知先: system@279279.net
+
+3. **Notification Uptime Check 失敗**
+   - 条件: 5分間チェック失敗
+   - 通知先: system@279279.net
+
+### アラートポリシー（推奨・未設定）
+
+1. **エラーレート上昇**
    - 条件: 5xxエラー率 > 1%（5分平均）
    - 通知チャネル: メール
 
-3. **レイテンシ上昇**
+2. **レイテンシ上昇**
    - 条件: p95レイテンシ > 5秒（5分平均）
    - 通知チャネル: メール
 

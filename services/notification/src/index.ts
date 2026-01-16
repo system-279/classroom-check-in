@@ -29,7 +29,8 @@ const mailer = createMailer();
 const app = express();
 app.use(express.json());
 
-app.get("/healthz", (_req, res) => {
+// ヘルスチェック（複数パスで提供）
+app.get(["/health", "/healthz"], (_req, res) => {
   res.json({ status: "ok" });
 });
 
