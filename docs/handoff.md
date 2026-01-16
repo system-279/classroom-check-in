@@ -74,7 +74,13 @@
 - **Cloud Runデプロイ済み**:
   - API: https://api-102013220292.asia-northeast1.run.app
   - Web UI: https://web-102013220292.asia-northeast1.run.app
+  - Notification: https://notification-102013220292.asia-northeast1.run.app
 - Artifact Registry クリーンアップポリシー（最新2イメージ保持）
+- **運用監視設定済み**:
+  - Uptime Check（API/Web/Notification、5分間隔）
+  - アラートポリシー（Uptime失敗時にメール通知）
+  - 夜間スモークテスト（GitHub Actions、毎日AM 3:00 JST）
+  - 運用チェックリスト: `docs/ops-checklist.md`
 - **Firestoreインデックス設定済み**:
   - sessions: status + startTime（複合インデックス）
 
