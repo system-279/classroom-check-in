@@ -80,6 +80,8 @@ npm run dev -w @classroom-check-in/web
 - **認証方式**: Firebase Authentication + Googleソーシャルログイン（ADR-0016）
 - **アクセス許可リスト**: 新規ユーザーは事前登録されたメールのみログイン可能（ADR-0017）
 - **動画プレイヤー**: 連携は実装しない（ADR-0015）
+- **マルチテナント**: データレベル分離、URLパスプレフィックス（ADR-0018）
+- **テナント登録**: セルフサービス、Googleログイン必須、即時作成（ADR-0019）
 
 全ADRは`docs/decisions.md`を参照。
 
@@ -125,6 +127,14 @@ npm run dev -w @classroom-check-in/web
   - `DEMO_ENABLED=true` で有効化
   - POST/PATCH/DELETE/PUT はブロック（403）
   - インメモリモックデータ使用（Firestore不使用）: `services/api/src/demo-data.ts`
+- **マルチテナント対応**（ADR-0018, ADR-0019）:
+  - DataSource抽象化: `services/api/src/datasource/`
+  - テナントミドルウェア: URLからテナントID抽出、認証
+  - 共有ルーター: `services/api/src/routes/shared/`
+  - テナント登録API: `POST /api/v2/tenants`
+  - テナント対応Web: `web/app/[tenant]/`
+  - 登録ページ: `/register`
+  - セキュリティ: 予約済みID検証、レート制限（5回/時/ユーザー）
 
 **スコープ外**（実装予定なし）:
 - Google OAuth（Classroom API連携用）（ADR-0014: 審査コストが高いため実装しない）
