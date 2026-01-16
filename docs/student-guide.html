@@ -272,19 +272,33 @@
 flowchart TD
     A[OUTを押し忘れた] --> B{一定時間経過}
     B --> C[システムから通知メールが届く]
-    C --> D[メール内のリンクから退室処理]
-    D --> E[退室時刻を入力して完了]
+    C --> D[テナントURLにアクセス]
+    D --> E[退室ボタンを押して完了]
 
     B --> F[または]
     F --> G[管理者が手動で設定]
       </div>
 
-      <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+      <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4">
         <h4 class="font-bold text-blue-800 mb-2">通知メールが届いたら</h4>
-        <p class="text-blue-700 text-sm">
-          メールに記載されたリンクをクリックして、実際に退室した時刻を入力してください。
-          分からない場合は、おおよその時刻で構いません。
-        </p>
+        <ol class="text-blue-700 text-sm list-decimal list-inside space-y-1">
+          <li>管理者から案内されたテナントURLにアクセス</li>
+          <li>Googleアカウントでログイン</li>
+          <li>「退室」ボタンを押して完了</li>
+        </ol>
+      </div>
+
+      <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+        <div class="flex items-start space-x-3">
+          <span class="text-xl">&#128161;</span>
+          <div>
+            <h4 class="font-bold text-yellow-800">自分で対応できない場合</h4>
+            <p class="mt-1 text-yellow-700 text-sm">
+              すでに別の講座に入室している場合や、退室時刻を過去に遡って設定したい場合は、
+              管理者に連絡してください。管理者がセッション管理画面から退室時刻を設定できます。
+            </p>
+          </div>
+        </div>
       </div>
     </section>
 

@@ -428,14 +428,17 @@
             </div>
           </div>
 
-          <div class="flex items-start space-x-4 p-4 bg-gray-50 rounded-lg">
-            <div class="flex-shrink-0 w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold">3</div>
+          <div class="flex items-start space-x-4 p-4 bg-yellow-50 rounded-lg border-2 border-yellow-300">
+            <div class="flex-shrink-0 w-8 h-8 bg-yellow-500 text-white rounded-full flex items-center justify-center text-sm font-bold">3</div>
             <div class="flex-1">
-              <h4 class="font-bold text-gray-800">講座への割当</h4>
+              <h4 class="font-bold text-gray-800">講座への割当 <span class="text-red-600">【必須】</span></h4>
               <p class="text-gray-600 text-sm mt-1">
                 受講者が参加できる講座を選択します。
-                ここで選択した講座のみが、受講者の画面に表示されます。
               </p>
+              <div class="mt-2 p-2 bg-white border border-yellow-400 rounded text-sm">
+                <span class="text-red-600 font-bold">重要:</span> 講座を割り当てないと、受講者の画面に講座が表示されません。
+                新規ユーザーには必ず講座を割り当ててください。
+              </div>
             </div>
           </div>
         </div>
@@ -607,6 +610,51 @@ flowchart LR
               例: 2時間の講座なら、3時間後に通知を設定。
             </p>
           </div>
+        </div>
+      </div>
+
+      <!-- 通知対応フロー -->
+      <div class="mt-8">
+        <h3 class="text-lg font-bold text-gray-800 mb-4 pb-2 border-b">通知が送信されたときの対応</h3>
+
+        <p class="text-gray-600 mb-4">
+          受講者に退室忘れの通知メールが送信されると、以下のいずれかで対応が行われます。
+        </p>
+
+        <div class="grid md:grid-cols-2 gap-4 mb-4">
+          <!-- 受講者が対応 -->
+          <div class="p-4 border rounded-lg">
+            <h4 class="font-bold text-gray-800 mb-2 flex items-center">
+              <span class="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center mr-2 text-xs">1</span>
+              受講者自身が対応
+            </h4>
+            <p class="text-gray-600 text-sm">
+              受講者がシステムにログインし、「退室」ボタンを押して完了。
+              <strong>管理者の作業は不要</strong>です。
+            </p>
+          </div>
+
+          <!-- 管理者が対応 -->
+          <div class="p-4 border rounded-lg bg-orange-50">
+            <h4 class="font-bold text-gray-800 mb-2 flex items-center">
+              <span class="w-6 h-6 bg-orange-500 text-white rounded-full flex items-center justify-center mr-2 text-xs">2</span>
+              管理者が手動対応
+            </h4>
+            <p class="text-gray-600 text-sm">
+              受講者が対応できない場合や、退室時刻を遡って設定する場合。
+              <strong>セッション管理</strong>から退室時刻を入力します。
+            </p>
+          </div>
+        </div>
+
+        <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <h4 class="font-bold text-blue-800 mb-2">管理者の対応手順</h4>
+          <ol class="text-blue-700 text-sm list-decimal list-inside space-y-1">
+            <li>「セッション管理」を開く</li>
+            <li>「入室中」状態のセッションを確認</li>
+            <li>対象セッションの編集ボタンをクリック</li>
+            <li>退室時刻を入力して保存</li>
+          </ol>
         </div>
       </div>
     </section>
