@@ -19,15 +19,15 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
   ],
-  // ローカル開発時のみwebサーバーを起動
-  ...(process.env.CI
-    ? {}
+  // Webサーバー設定
+  // CI環境: webServerを設定しない（CI側で起動）
+  // ローカル: 既存サーバーがあればそれを使用、なければ起動
+  webServer: process.env.CI
+    ? undefined
     : {
-        webServer: {
-          command: "npm run dev -w @classroom-check-in/web",
-          url: "http://localhost:3000",
-          reuseExistingServer: !process.env.CI,
-          timeout: 120000,
-        },
-      }),
+        command: "npm run dev -w @classroom-check-in/web",
+        url: "http://localhost:3000",
+        reuseExistingServer: true,
+        timeout: 120000,
+      },
 });
