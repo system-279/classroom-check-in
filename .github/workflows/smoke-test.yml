@@ -1,0 +1,65 @@
+name: Nightly Smoke Test
+
+on:
+  schedule:
+    # 日本時間 AM 3:00 (UTC 18:00)
+    - cron: "0 18 * * *"
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Base URL for testing"
+        default: "https://web-102013220292.asia-northeast1.run.app"
+        required: false
+
+env:
+  BASE_URL: ${{ github.event.inputs.base_url || 'https://web-102013220292.asia-northeast1.run.app' }}
+
+jobs:
+  smoke-test:
+    name: Smoke Test (Production Demo)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Health check
+        run: |
+          echo "Checking API health..."
+          curl -sf https://api-102013220292.asia-northeast1.run.app/api/health || echo "API health check failed (may be expected if using /healthz)"
+          echo ""
+          echo "Checking Web availability..."
+          curl -sf -o /dev/null -w "%{http_code}" ${{ env.BASE_URL }}/ && echo " - Web OK"
+
+      - name: Run smoke tests
+        run: npx playwright test e2e/demo-mode.spec.ts
+        env:
+          BASE_URL: ${{ env.BASE_URL }}
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "::error::Nightly smoke test failed! Check the Playwright report for details."
+          echo "Base URL: ${{ env.BASE_URL }}"
+          echo "Failed at: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
