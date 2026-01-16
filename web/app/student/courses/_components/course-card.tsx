@@ -9,6 +9,7 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { useAuth } from "@/lib/auth-context";
+import { useTenantOptional } from "@/lib/tenant-context";
 import type { Course } from "@/types/course";
 
 type Props = {
@@ -35,9 +36,16 @@ function formatDate(isoString: string | null): string {
 }
 
 export function CourseCard({ course }: Props) {
-  const { isDemo } = useAuth();
+  const { isDemo: authIsDemo } = useAuth();
+  const tenant = useTenantOptional();
   const summary = course.sessionSummary;
-  const basePath = isDemo ? "/demo/student/session" : "/student/session";
+
+  // TenantContext配下の場合はtenantIdを使用、それ以外は旧形式
+  const basePath = tenant
+    ? `/${tenant.tenantId}/student/session`
+    : authIsDemo
+      ? "/demo/student/session"
+      : "/student/session";
 
   return (
     <Link href={`${basePath}/${course.id}`}>
