@@ -1,13 +1,14 @@
 import type { Firestore } from "@google-cloud/firestore";
 import type { NotificationLog } from "../types.js";
 import { toDate } from "../utils/date.js";
+import { tenantCollection } from "./tenant-helper.js";
 
 export async function getLatestNotificationLog(
   db: Firestore,
+  tenantId: string,
   sessionId: string,
 ): Promise<NotificationLog | null> {
-  const snapshot = await db
-    .collection("notificationLogs")
+  const snapshot = await tenantCollection(db, tenantId, "notification_logs")
     .where("sessionId", "==", sessionId)
     .where("status", "==", "sent")
     .orderBy("sentAt", "desc")
@@ -35,9 +36,10 @@ export async function getLatestNotificationLog(
 
 export async function logNotification(
   db: Firestore,
+  tenantId: string,
   log: Omit<NotificationLog, "id">,
 ): Promise<string> {
-  const docRef = await db.collection("notificationLogs").add({
+  const docRef = await tenantCollection(db, tenantId, "notification_logs").add({
     ...log,
     sentAt: log.sentAt,
   });
@@ -46,12 +48,13 @@ export async function logNotification(
 
 export async function shouldSendNotification(
   db: Firestore,
+  tenantId: string,
   sessionId: string,
   sessionStartTime: Date,
   repeatIntervalHours: number,
   maxRepeatDays: number,
 ): Promise<boolean> {
-  const lastLog = await getLatestNotificationLog(db, sessionId);
+  const lastLog = await getLatestNotificationLog(db, tenantId, sessionId);
 
   if (!lastLog) {
     return true;

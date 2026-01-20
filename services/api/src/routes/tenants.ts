@@ -251,7 +251,7 @@ router.post("/", async (req: Request, res: Response) => {
         const allowedEmailRef = db
           .collection("tenants")
           .doc(tenantId)
-          .collection("allowedEmails")
+          .collection("allowed_emails")
           .doc();
         transaction.set(allowedEmailRef, {
           id: allowedEmailRef.id,
