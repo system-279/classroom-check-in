@@ -39,8 +39,11 @@
   - body: `{ sessionId: string }`
   - セッション継続の心拍
 - `POST /sessions/check-out`
-  - body: `{ sessionId: string, at?: string }`
-  - 退室打刻（時刻補正可）
+  - body: `{ sessionId: string }`
+  - 退室打刻
+  - **必要視聴時間チェック**: 入室からrequiredWatchMin経過していない場合は400エラー
+    - error: `not_enough_time`
+    - レスポンス: `{ requiredWatchMin, elapsedSec, remainingSec }`
 
 ### 動画イベント
 - `POST /events/video`
