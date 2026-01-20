@@ -32,6 +32,7 @@ export function CourseFormDialog({
   const [name, setName] = useState("");
   const [classroomUrl, setClassroomUrl] = useState("");
   const [description, setDescription] = useState("");
+  const [requiredWatchMin, setRequiredWatchMin] = useState(63); // デフォルト63分
   const [note, setNote] = useState("");
   const [enabled, setEnabled] = useState(true);
   const [visible, setVisible] = useState(true);
@@ -46,6 +47,7 @@ export function CourseFormDialog({
         setName(course.name);
         setClassroomUrl(course.classroomUrl ?? "");
         setDescription(course.description ?? "");
+        setRequiredWatchMin(course.requiredWatchMin ?? 63);
         setNote(course.note ?? "");
         setEnabled(course.enabled);
         setVisible(course.visible);
@@ -53,6 +55,7 @@ export function CourseFormDialog({
         setName("");
         setClassroomUrl("");
         setDescription("");
+        setRequiredWatchMin(63);
         setNote("");
         setEnabled(true);
         setVisible(true);
@@ -77,6 +80,7 @@ export function CourseFormDialog({
       name,
       classroomUrl: classroomUrl || null,
       description: description || null,
+      requiredWatchMin,
       note: note || null,
       enabled,
       visible,
@@ -135,6 +139,20 @@ export function CourseFormDialog({
               onChange={(e) => setClassroomUrl(e.target.value)}
               placeholder="https://classroom.google.com/..."
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="requiredWatchMin">必要視聴時間（分）</Label>
+            <Input
+              id="requiredWatchMin"
+              type="number"
+              min={1}
+              value={requiredWatchMin}
+              onChange={(e) => setRequiredWatchMin(parseInt(e.target.value) || 63)}
+            />
+            <p className="text-xs text-muted-foreground">
+              例: 63分 = 1時間3分
+            </p>
           </div>
 
           <div className="space-y-2">
