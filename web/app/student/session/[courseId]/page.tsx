@@ -232,9 +232,9 @@ export default function SessionPage() {
               <div className="flex flex-col items-center gap-4">
                 {/* 必要時間未達の注意文 */}
                 {!canCheckOut && (
-                  <div className="w-full max-w-md rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950">
-                    <p className="text-sm text-amber-800 dark:text-amber-200">
-                      ⚠️ 必要視聴時間に達するまで退室できません。
+                  <div className="w-full max-w-md rounded-lg border border-sky-200 bg-sky-50 p-3 dark:border-sky-800 dark:bg-sky-950/50">
+                    <p className="text-sm text-sky-700 dark:text-sky-300">
+                      必要視聴時間に達するまで退室できません。
                       最後までご視聴ください。
                     </p>
                   </div>
@@ -256,13 +256,13 @@ export default function SessionPage() {
           ) : (
             <div className="flex flex-col items-center gap-4">
               {/* 入室前の確認事項 */}
-              <div className="w-full max-w-md rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950">
-                <p className="mb-2 text-sm font-semibold text-amber-800 dark:text-amber-200">
-                  ⚠️ 入室前にご確認ください
+              <div className="w-full max-w-md rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
+                <p className="mb-2 text-sm font-medium text-slate-700 dark:text-slate-200">
+                  入室前にご確認ください
                 </p>
-                <ul className="space-y-0.5 text-xs text-amber-700 dark:text-amber-300">
-                  <li>・同時並行で講座は受けられません。</li>
-                  <li>・分割視聴は不可です。最初から最後まで、倍速などの再生速度を早くする変更はせずにご視聴ください。</li>
+                <ul className="space-y-1 text-xs text-slate-600 dark:text-slate-300">
+                  <li>・同時並行で講座は受けられません</li>
+                  <li>・分割視聴は不可です。最初から最後まで、倍速などの再生速度を早くする変更はせずにご視聴ください</li>
                 </ul>
               </div>
               <Button
