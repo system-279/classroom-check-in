@@ -59,6 +59,7 @@
 | name | string | 講座名（手入力） |
 | description | string | 講座説明（任意） |
 | classroomUrl | string | ClassroomのコースURL（手入力） |
+| requiredWatchMin | int | 必要視聴時間（分）。デフォルト63分 |
 | enabled | boolean | 対象講座として扱うか |
 | visible | boolean | 受講者に表示するか |
 | note | string | 管理用メモ |

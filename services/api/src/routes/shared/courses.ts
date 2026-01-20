@@ -34,6 +34,7 @@ router.get("/courses", requireUser, async (req: Request, res: Response) => {
           name: course.name,
           description: course.description,
           classroomUrl: course.classroomUrl,
+          requiredWatchMin: course.requiredWatchMin,
           enabled: course.enabled,
           visible: course.visible,
           sessionSummary: {
@@ -69,6 +70,7 @@ router.get("/admin/courses", requireAdmin, async (req: Request, res: Response) =
       name: course.name,
       description: course.description,
       classroomUrl: course.classroomUrl,
+      requiredWatchMin: course.requiredWatchMin,
       enabled: course.enabled,
       visible: course.visible,
       note: course.note,
@@ -90,7 +92,7 @@ router.get("/admin/courses", requireAdmin, async (req: Request, res: Response) =
 router.post("/admin/courses", requireAdmin, async (req: Request, res: Response) => {
   try {
     const ds = req.dataSource!;
-    const { name, description, classroomUrl, enabled, visible, note } = req.body;
+    const { name, description, classroomUrl, requiredWatchMin, enabled, visible, note } = req.body;
 
     if (!name || typeof name !== "string" || name.trim() === "") {
       res.status(400).json({ error: "invalid_name", message: "name is required" });
@@ -101,6 +103,7 @@ router.post("/admin/courses", requireAdmin, async (req: Request, res: Response) 
       name: name.trim(),
       description: description ?? null,
       classroomUrl: classroomUrl ?? null,
+      requiredWatchMin: requiredWatchMin ?? 63, // デフォルト63分
       enabled: enabled ?? true,
       visible: visible ?? true,
       note: note ?? null,
@@ -112,6 +115,7 @@ router.post("/admin/courses", requireAdmin, async (req: Request, res: Response) 
         name: course.name,
         description: course.description,
         classroomUrl: course.classroomUrl,
+        requiredWatchMin: course.requiredWatchMin,
         enabled: course.enabled,
         visible: course.visible,
         note: course.note,
@@ -133,7 +137,7 @@ router.patch("/admin/courses/:id", requireAdmin, async (req: Request, res: Respo
   try {
     const ds = req.dataSource!;
     const id = req.params.id as string;
-    const { name, description, classroomUrl, enabled, visible, note } = req.body;
+    const { name, description, classroomUrl, requiredWatchMin, enabled, visible, note } = req.body;
 
     const existing = await ds.getCourseById(id);
     if (!existing) {
@@ -145,6 +149,7 @@ router.patch("/admin/courses/:id", requireAdmin, async (req: Request, res: Respo
       ...(name !== undefined && { name }),
       ...(description !== undefined && { description }),
       ...(classroomUrl !== undefined && { classroomUrl }),
+      ...(requiredWatchMin !== undefined && { requiredWatchMin }),
       ...(enabled !== undefined && { enabled }),
       ...(visible !== undefined && { visible }),
       ...(note !== undefined && { note }),
@@ -156,6 +161,7 @@ router.patch("/admin/courses/:id", requireAdmin, async (req: Request, res: Respo
         name: course!.name,
         description: course!.description,
         classroomUrl: course!.classroomUrl,
+        requiredWatchMin: course!.requiredWatchMin,
         enabled: course!.enabled,
         visible: course!.visible,
         note: course!.note,

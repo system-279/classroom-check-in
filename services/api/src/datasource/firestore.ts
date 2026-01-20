@@ -126,6 +126,7 @@ export class FirestoreDataSource implements DataSource {
       name: data.name,
       description: data.description ?? null,
       classroomUrl: data.classroomUrl ?? null,
+      requiredWatchMin: data.requiredWatchMin ?? 63, // デフォルト63分（1時間3分）
       enabled: data.enabled ?? true,
       visible: data.visible ?? true,
       note: data.note ?? null,
