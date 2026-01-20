@@ -7,6 +7,15 @@ import { Router, Request, Response } from "express";
 import { requireUser, requireAdmin } from "../../middleware/auth.js";
 import { toISOString } from "../../utils/date.js";
 
+/**
+ * 滞在時間（秒）を計算
+ * endTimeがstartTimeより前の場合は0を返す（負値防止）
+ */
+function calculateDurationSec(startTime: Date, endTime: Date): number {
+  const durationMs = endTime.getTime() - startTime.getTime();
+  return Math.max(0, Math.floor(durationMs / 1000));
+}
+
 const router = Router();
 
 // セッションレスポンスの共通フォーマット
@@ -80,33 +89,27 @@ router.post("/sessions/check-in", requireUser, async (req: Request, res: Respons
       return;
     }
 
-    // 既存のオープンセッションがあれば返す（ADR-0012: 連続INの扱い）
-    const existingSession = await ds.getActiveSession(req.user!.id, courseId);
-    if (existingSession) {
-      res.json({
-        session: formatSession(existingSession),
-        isExisting: true,
-      });
-      return;
-    }
-
-    // 新規セッション作成
+    // アトミックなチェックイン（排他制御: 同時リクエストによる重複作成を防止）
     const now = new Date();
-    const session = await ds.createSession({
+    const { session, isExisting } = await ds.checkInOrGetExisting(
+      req.user!.id,
       courseId,
-      userId: req.user!.id,
-      startTime: now,
-      endTime: null,
-      durationSec: 0,
-      source: "manual",
-      confidence: null,
-      status: "open",
-      lastHeartbeatAt: now,
-    });
+      {
+        courseId,
+        userId: req.user!.id,
+        startTime: now,
+        endTime: null,
+        durationSec: 0,
+        source: "manual",
+        confidence: null,
+        status: "open",
+        lastHeartbeatAt: now,
+      },
+    );
 
-    res.status(201).json({
+    res.status(isExisting ? 200 : 201).json({
       session: formatSession(session),
-      isExisting: false,
+      isExisting,
     });
   } catch (error) {
     console.error("Error checking in:", error);
@@ -186,7 +189,7 @@ router.post("/sessions/check-out", requireUser, async (req: Request, res: Respon
     }
 
     const endTime = new Date();
-    const durationSec = Math.floor((endTime.getTime() - session.startTime.getTime()) / 1000);
+    const durationSec = calculateDurationSec(session.startTime, endTime);
 
     const updated = await ds.updateSession(sessionId, {
       endTime,
@@ -246,7 +249,7 @@ router.post("/admin/sessions/:id/close", requireAdmin, async (req: Request, res:
     }
 
     const endTime = endTimeStr ? new Date(endTimeStr) : new Date();
-    const durationSec = Math.floor((endTime.getTime() - session.startTime.getTime()) / 1000);
+    const durationSec = calculateDurationSec(session.startTime, endTime);
 
     const updated = await ds.updateSession(id, {
       endTime,

@@ -353,6 +353,52 @@ export class FirestoreDataSource implements DataSource {
     return true;
   }
 
+  async checkInOrGetExisting(
+    userId: string,
+    courseId: string,
+    sessionData: Omit<Session, "id">,
+  ): Promise<{ session: Session; isExisting: boolean }> {
+    const sessionsRef = this.collection("sessions");
+
+    return this.db.runTransaction(async (transaction) => {
+      // トランザクション内で既存セッションを確認
+      const existingSnapshot = await transaction.get(
+        sessionsRef
+          .where("userId", "==", userId)
+          .where("courseId", "==", courseId)
+          .where("status", "==", "open")
+          .limit(1),
+      );
+
+      if (!existingSnapshot.empty) {
+        const doc = existingSnapshot.docs[0];
+        return {
+          session: this.toSession(doc.id, doc.data()),
+          isExisting: true,
+        };
+      }
+
+      // 新規セッション作成
+      const newDocRef = sessionsRef.doc();
+      transaction.set(newDocRef, {
+        ...sessionData,
+        startTime: Timestamp.fromDate(sessionData.startTime),
+        endTime: sessionData.endTime ? Timestamp.fromDate(sessionData.endTime) : null,
+        lastHeartbeatAt: sessionData.lastHeartbeatAt
+          ? Timestamp.fromDate(sessionData.lastHeartbeatAt)
+          : null,
+      });
+
+      return {
+        session: {
+          id: newDocRef.id,
+          ...sessionData,
+        },
+        isExisting: false,
+      };
+    });
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private toSession(id: string, data: any): Session {
     return {

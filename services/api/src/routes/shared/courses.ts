@@ -16,38 +16,45 @@ const router = Router();
 router.get("/courses", requireUser, async (req: Request, res: Response) => {
   try {
     const ds = req.dataSource!;
-    const courses = await ds.getCourses({ enabled: true, visible: true });
 
-    // セッションサマリーを取得
-    const coursesWithSummary = await Promise.all(
-      courses.map(async (course) => {
-        const sessions = await ds.getSessions({
-          courseId: course.id,
-          userId: req.user!.id,
-        });
+    // N+1解消: 講座一覧とユーザーの全セッションを並列取得
+    const [courses, userSessions] = await Promise.all([
+      ds.getCourses({ enabled: true, visible: true }),
+      ds.getSessions({ userId: req.user!.id }),
+    ]);
 
-        const activeSession = sessions.find((s) => s.status === "open");
-        const closedSessions = sessions.filter((s) => s.status === "closed");
+    // セッションをコース別にグルーピング
+    const sessionsByCourse = new Map<string, typeof userSessions>();
+    for (const session of userSessions) {
+      const existing = sessionsByCourse.get(session.courseId) || [];
+      existing.push(session);
+      sessionsByCourse.set(session.courseId, existing);
+    }
 
-        return {
-          id: course.id,
-          name: course.name,
-          description: course.description,
-          classroomUrl: course.classroomUrl,
-          requiredWatchMin: course.requiredWatchMin,
-          enabled: course.enabled,
-          visible: course.visible,
-          sessionSummary: {
-            lastSessionAt: closedSessions.length > 0
-              ? toISOString(closedSessions[0].startTime)
-              : null,
-            totalDurationSec: closedSessions.reduce((sum, s) => sum + s.durationSec, 0),
-            sessionCount: closedSessions.length,
-            hasActiveSession: !!activeSession,
-          },
-        };
-      })
-    );
+    // 各講座にセッションサマリーを付与
+    const coursesWithSummary = courses.map((course) => {
+      const sessions = sessionsByCourse.get(course.id) || [];
+      const activeSession = sessions.find((s) => s.status === "open");
+      const closedSessions = sessions.filter((s) => s.status === "closed");
+
+      return {
+        id: course.id,
+        name: course.name,
+        description: course.description,
+        classroomUrl: course.classroomUrl,
+        requiredWatchMin: course.requiredWatchMin,
+        enabled: course.enabled,
+        visible: course.visible,
+        sessionSummary: {
+          lastSessionAt: closedSessions.length > 0
+            ? toISOString(closedSessions[0].startTime)
+            : null,
+          totalDurationSec: closedSessions.reduce((sum, s) => sum + s.durationSec, 0),
+          sessionCount: closedSessions.length,
+          hasActiveSession: !!activeSession,
+        },
+      };
+    });
 
     res.json({ courses: coursesWithSummary });
   } catch (error) {

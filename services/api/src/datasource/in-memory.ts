@@ -427,6 +427,27 @@ export class InMemoryDataSource implements DataSource {
     return true;
   }
 
+  async checkInOrGetExisting(
+    userId: string,
+    courseId: string,
+    sessionData: Omit<Session, "id">,
+  ): Promise<{ session: Session; isExisting: boolean }> {
+    this.throwIfReadOnly();
+
+    // 既存のオープンセッションを確認
+    const existing = this.sessions.find(
+      (s) => s.userId === userId && s.courseId === courseId && s.status === "open",
+    );
+
+    if (existing) {
+      return { session: existing, isExisting: true };
+    }
+
+    // 新規セッション作成
+    const session = await this.createSession(sessionData);
+    return { session, isExisting: false };
+  }
+
   // Notification Policies
   async getNotificationPolicies(filter?: NotificationPolicyFilter): Promise<NotificationPolicy[]> {
     let result = [...this.notificationPolicies];
