@@ -12,16 +12,25 @@ const router = Router();
 /**
  * 受講者向け: 講座一覧取得
  * GET /courses
+ *
+ * 受講登録済みの講座のみを返す
  */
 router.get("/courses", requireUser, async (req: Request, res: Response) => {
   try {
     const ds = req.dataSource!;
 
-    // N+1解消: 講座一覧とユーザーの全セッションを並列取得
-    const [courses, userSessions] = await Promise.all([
+    // N+1解消: 講座一覧、受講登録、ユーザーのセッションを並列取得
+    const [courses, enrollments, userSessions] = await Promise.all([
       ds.getCourses({ enabled: true, visible: true }),
+      ds.getEnrollments({ userId: req.user!.id }),
       ds.getSessions({ userId: req.user!.id }),
     ]);
+
+    // 受講登録済みの講座IDセット
+    const enrolledCourseIds = new Set(enrollments.map((e) => e.courseId));
+
+    // 受講登録済みの講座のみにフィルタリング
+    const enrolledCourses = courses.filter((course) => enrolledCourseIds.has(course.id));
 
     // セッションをコース別にグルーピング
     const sessionsByCourse = new Map<string, typeof userSessions>();
@@ -32,7 +41,7 @@ router.get("/courses", requireUser, async (req: Request, res: Response) => {
     }
 
     // 各講座にセッションサマリーを付与
-    const coursesWithSummary = courses.map((course) => {
+    const coursesWithSummary = enrolledCourses.map((course) => {
       const sessions = sessionsByCourse.get(course.id) || [];
       const activeSession = sessions.find((s) => s.status === "open");
       const closedSessions = sessions.filter((s) => s.status === "closed");
@@ -185,6 +194,8 @@ router.patch("/admin/courses/:id", requireAdmin, async (req: Request, res: Respo
 /**
  * 管理者向け: 講座削除
  * DELETE /admin/courses/:id
+ *
+ * 関連データ（セッション、受講登録）がある場合は削除不可
  */
 router.delete("/admin/courses/:id", requireAdmin, async (req: Request, res: Response) => {
   try {
@@ -194,6 +205,28 @@ router.delete("/admin/courses/:id", requireAdmin, async (req: Request, res: Resp
     const existing = await ds.getCourseById(id);
     if (!existing) {
       res.status(404).json({ error: "not_found", message: "Course not found" });
+      return;
+    }
+
+    // 関連データのチェック
+    const [sessions, enrollments] = await Promise.all([
+      ds.getSessions({ courseId: id }),
+      ds.getEnrollments({ courseId: id }),
+    ]);
+
+    if (sessions.length > 0) {
+      res.status(409).json({
+        error: "has_related_data",
+        message: `Cannot delete course: ${sessions.length} session(s) exist`,
+      });
+      return;
+    }
+
+    if (enrollments.length > 0) {
+      res.status(409).json({
+        error: "has_related_data",
+        message: `Cannot delete course: ${enrollments.length} enrollment(s) exist`,
+      });
       return;
     }
 

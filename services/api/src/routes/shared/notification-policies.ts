@@ -90,6 +90,35 @@ router.post("/admin/notification-policies", requireAdmin, async (req: Request, r
       return;
     }
 
+    // 重複チェック: 同じスコープ・courseId・userIdの組み合わせが存在しないか確認
+    const existingPolicies = await ds.getNotificationPolicies({
+      scope,
+      ...(scope === "course" && { courseId }),
+      ...(scope === "user" && { userId }),
+    });
+
+    // globalスコープの場合は1つのみ許可
+    // courseスコープの場合は同じcourseIdで1つのみ許可
+    // userスコープの場合は同じuserIdで1つのみ許可
+    if (existingPolicies.length > 0) {
+      const targetId = scope === "course" ? courseId : scope === "user" ? userId : null;
+      const duplicate = existingPolicies.find((p) => {
+        if (scope === "global") return p.scope === "global";
+        if (scope === "course") return p.courseId === targetId;
+        if (scope === "user") return p.userId === targetId;
+        return false;
+      });
+
+      if (duplicate) {
+        res.status(409).json({
+          error: "policy_exists",
+          message: `A policy already exists for this ${scope} scope`,
+          existingPolicyId: duplicate.id,
+        });
+        return;
+      }
+    }
+
     const policy = await ds.createNotificationPolicy({
       scope,
       courseId: scope === "course" ? courseId : null,

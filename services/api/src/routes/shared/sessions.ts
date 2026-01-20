@@ -89,6 +89,13 @@ router.post("/sessions/check-in", requireUser, async (req: Request, res: Respons
       return;
     }
 
+    // 受講登録の検証
+    const enrollments = await ds.getEnrollments({ courseId, userId: req.user!.id });
+    if (enrollments.length === 0) {
+      res.status(403).json({ error: "not_enrolled", message: "You are not enrolled in this course" });
+      return;
+    }
+
     // アトミックなチェックイン（排他制御: 同時リクエストによる重複作成を防止）
     const now = new Date();
     const { session, isExisting } = await ds.checkInOrGetExisting(
@@ -202,6 +209,182 @@ router.post("/sessions/check-out", requireUser, async (req: Request, res: Respon
   } catch (error) {
     console.error("Error checking out:", error);
     res.status(500).json({ error: "internal_error", message: "Failed to check out" });
+  }
+});
+
+/**
+ * 受講者向け: セルフチェックアウト用情報取得
+ * GET /sessions/self-checkout/:sessionId/info
+ *
+ * セルフチェックアウト画面に必要な情報を一括で返す
+ */
+router.get("/sessions/self-checkout/:sessionId/info", requireUser, async (req: Request, res: Response) => {
+  try {
+    const ds = req.dataSource!;
+    const sessionId = req.params.sessionId as string;
+
+    // セッション存在確認
+    const session = await ds.getSessionById(sessionId);
+    if (!session) {
+      res.status(404).json({ error: "session_not_found", message: "Session not found" });
+      return;
+    }
+
+    // 本人確認
+    if (session.userId !== req.user!.id) {
+      res.status(403).json({ error: "not_owner", message: "Not your session" });
+      return;
+    }
+
+    // 講座情報取得
+    const course = await ds.getCourseById(session.courseId);
+    if (!course) {
+      res.status(400).json({ error: "course_not_found", message: "Course not found" });
+      return;
+    }
+
+    // 通知送信済み確認
+    const notificationLog = await ds.getNotificationLog(sessionId);
+
+    // セルフチェックアウト可能かどうかを判定
+    const canCheckout = session.status === "open" && notificationLog !== null;
+    const requiredWatchMs = course.requiredWatchMin * 60 * 1000;
+    const now = new Date();
+    const minEndTime = new Date(session.startTime.getTime() + requiredWatchMs);
+    const hasRequiredTime = now.getTime() >= minEndTime.getTime();
+
+    res.json({
+      session: formatSession(session),
+      course: {
+        id: course.id,
+        name: course.name,
+        requiredWatchMin: course.requiredWatchMin,
+      },
+      notificationSent: notificationLog !== null,
+      notificationSentAt: notificationLog ? toISOString(notificationLog.sentAt) : null,
+      canCheckout,
+      hasRequiredTime,
+      minEndTime: toISOString(minEndTime),
+    });
+  } catch (error) {
+    console.error("Error fetching self-checkout info:", error);
+    res.status(500).json({ error: "internal_error", message: "Failed to fetch self-checkout info" });
+  }
+});
+
+/**
+ * 受講者向け: セルフチェックアウト（OUT忘れ通知後の退室打刻）
+ * POST /sessions/self-checkout
+ *
+ * 条件:
+ * - 本人のセッションであること
+ * - セッションがopen状態であること
+ * - 初回通知が送信済みであること
+ * - 入室からrequiredWatchMin経過していること
+ * - 退室時刻が有効範囲内であること
+ */
+router.post("/sessions/self-checkout", requireUser, async (req: Request, res: Response) => {
+  try {
+    const ds = req.dataSource!;
+    const { sessionId, endTime: endTimeStr } = req.body;
+
+    // バリデーション: sessionId必須
+    if (!sessionId) {
+      res.status(400).json({ error: "invalid_session_id", message: "sessionId is required" });
+      return;
+    }
+
+    // バリデーション: endTime必須
+    if (!endTimeStr) {
+      res.status(400).json({ error: "invalid_end_time", message: "endTime is required" });
+      return;
+    }
+
+    const endTime = new Date(endTimeStr);
+    if (isNaN(endTime.getTime())) {
+      res.status(400).json({ error: "invalid_end_time", message: "endTime must be a valid ISO 8601 date" });
+      return;
+    }
+
+    // セッション存在確認
+    const session = await ds.getSessionById(sessionId);
+    if (!session) {
+      res.status(404).json({ error: "session_not_found", message: "Session not found" });
+      return;
+    }
+
+    // 本人確認
+    if (session.userId !== req.user!.id) {
+      res.status(403).json({ error: "not_owner", message: "Not your session" });
+      return;
+    }
+
+    // セッション状態確認
+    if (session.status !== "open") {
+      res.status(400).json({ error: "session_closed", message: "Session is already closed" });
+      return;
+    }
+
+    // 通知送信済み確認
+    const notificationLog = await ds.getNotificationLog(sessionId);
+    if (!notificationLog) {
+      res.status(400).json({ error: "notification_not_sent", message: "No notification has been sent for this session" });
+      return;
+    }
+
+    // 講座情報取得（requiredWatchMinを取得）
+    const course = await ds.getCourseById(session.courseId);
+    if (!course) {
+      res.status(400).json({ error: "course_not_found", message: "Course not found" });
+      return;
+    }
+
+    // 必要視聴時間経過確認
+    const requiredWatchMs = course.requiredWatchMin * 60 * 1000;
+    const minEndTime = new Date(session.startTime.getTime() + requiredWatchMs);
+
+    if (endTime.getTime() < minEndTime.getTime()) {
+      res.status(400).json({
+        error: "not_enough_time",
+        message: `End time must be at least ${course.requiredWatchMin} minutes after start time`,
+      });
+      return;
+    }
+
+    // 退室時刻の上限確認（現在時刻 + 5分のマージン）
+    const now = new Date();
+    const maxEndTime = new Date(now.getTime() + 5 * 60 * 1000);
+
+    if (endTime.getTime() > maxEndTime.getTime()) {
+      res.status(400).json({
+        error: "invalid_end_time",
+        message: "End time cannot be in the future",
+      });
+      return;
+    }
+
+    // 退室時刻の下限確認（startTime以降）
+    if (endTime.getTime() < session.startTime.getTime()) {
+      res.status(400).json({
+        error: "invalid_end_time",
+        message: "End time cannot be before start time",
+      });
+      return;
+    }
+
+    // セッション更新
+    const durationSec = calculateDurationSec(session.startTime, endTime);
+    const updated = await ds.updateSession(sessionId, {
+      endTime,
+      durationSec,
+      status: "closed",
+      lastHeartbeatAt: endTime,
+    });
+
+    res.json({ session: formatSession(updated!) });
+  } catch (error) {
+    console.error("Error in self-checkout:", error);
+    res.status(500).json({ error: "internal_error", message: "Failed to complete self-checkout" });
   }
 });
 

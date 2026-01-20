@@ -38,28 +38,27 @@ export interface NotificationLog {
 }
 
 export interface UserSettings {
-  id: string;
   userId: string;
-  notifyEmail: string;
-  notifyEnabled: boolean;
+  notificationEnabled: boolean;
   timezone?: string;
 }
 
 export interface User {
   id: string;
   email: string;
-  displayName: string;
+  name: string | null;
 }
 
 export interface Course {
   id: string;
   name: string;
+  requiredWatchMin?: number;
 }
 
 export interface NotificationTarget {
   session: Session;
   user: User;
-  userSettings: UserSettings;
+  userSettings: UserSettings | null;
   course: Course;
   policy: NotificationPolicy;
 }

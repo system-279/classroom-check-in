@@ -171,6 +171,8 @@ router.patch("/admin/users/:id", requireAdmin, async (req: Request, res: Respons
 /**
  * 管理者向け: ユーザー削除
  * DELETE /admin/users/:id
+ *
+ * 関連データ（セッション、受講登録）がある場合は削除不可
  */
 router.delete("/admin/users/:id", requireAdmin, async (req: Request, res: Response) => {
   try {
@@ -180,6 +182,28 @@ router.delete("/admin/users/:id", requireAdmin, async (req: Request, res: Respon
     const existing = await ds.getUserById(id);
     if (!existing) {
       res.status(404).json({ error: "not_found", message: "User not found" });
+      return;
+    }
+
+    // 関連データのチェック
+    const [sessions, enrollments] = await Promise.all([
+      ds.getSessions({ userId: id }),
+      ds.getEnrollments({ userId: id }),
+    ]);
+
+    if (sessions.length > 0) {
+      res.status(409).json({
+        error: "has_related_data",
+        message: `Cannot delete user: ${sessions.length} session(s) exist`,
+      });
+      return;
+    }
+
+    if (enrollments.length > 0) {
+      res.status(409).json({
+        error: "has_related_data",
+        message: `Cannot delete user: ${enrollments.length} enrollment(s) exist`,
+      });
       return;
     }
 

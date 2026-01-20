@@ -556,4 +556,13 @@ export class InMemoryDataSource implements DataSource {
     this.userSettings.set(userId, settings);
     return settings;
   }
+
+  // Notification Logs
+  async getNotificationLog(_sessionId: string): Promise<{
+    sentAt: Date;
+    type: string;
+  } | null> {
+    // デモモードでは通知ログは存在しない扱い
+    return null;
+  }
 }
