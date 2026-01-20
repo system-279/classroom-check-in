@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* Tailwind v4: コンポーネント・libディレクトリをスキャン対象に追加 */
+@source "../components/**/*.{ts,tsx}";
+@source "../lib/**/*.{ts,tsx}";
+@source "./**/*.{ts,tsx}";
+
 @theme {
   --font-sans: "Noto Sans JP", "Hiragino Sans", "Yu Gothic", ui-sans-serif, system-ui, sans-serif;
   --color-background: #f5f6f7;

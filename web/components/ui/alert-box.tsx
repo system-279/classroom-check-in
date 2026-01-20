@@ -10,28 +10,26 @@ interface AlertBoxProps {
   className?: string;
 }
 
-// Tailwind公式パターン: bg-{color}-100 + border-{color}-400 + text-{color}-700
+// shadcn/ui互換: bg-{color}-50 + border-{color}-200 + text-{color}-800
 const variantStyles: Record<AlertBoxVariant, string> = {
-  warning:
-    "border-orange-400 bg-orange-100 text-orange-700 dark:border-orange-500 dark:bg-orange-900/20 dark:text-orange-200",
-  info: "border-blue-400 bg-blue-100 text-blue-700 dark:border-blue-500 dark:bg-blue-900/20 dark:text-blue-200",
-  success:
-    "border-green-400 bg-green-100 text-green-700 dark:border-green-500 dark:bg-green-900/20 dark:text-green-200",
-  error: "border-red-400 bg-red-100 text-red-700 dark:border-red-500 dark:bg-red-900/20 dark:text-red-200",
+  warning: "border-amber-200 bg-amber-50 text-amber-800",
+  info: "border-blue-200 bg-blue-50 text-blue-800",
+  success: "border-green-200 bg-green-50 text-green-800",
+  error: "border-red-200 bg-red-50 text-red-800",
 };
 
 const variantTitleStyles: Record<AlertBoxVariant, string> = {
-  warning: "text-orange-800 dark:text-orange-100",
-  info: "text-blue-800 dark:text-blue-100",
-  success: "text-green-800 dark:text-green-100",
-  error: "text-red-800 dark:text-red-100",
+  warning: "text-amber-900",
+  info: "text-blue-900",
+  success: "text-green-900",
+  error: "text-red-900",
 };
 
 const variantTextStyles: Record<AlertBoxVariant, string> = {
-  warning: "text-orange-700 dark:text-orange-200",
-  info: "text-blue-700 dark:text-blue-200",
-  success: "text-green-700 dark:text-green-200",
-  error: "text-red-700 dark:text-red-200",
+  warning: "text-amber-800",
+  info: "text-blue-800",
+  success: "text-green-800",
+  error: "text-red-800",
 };
 
 export function AlertBox({
