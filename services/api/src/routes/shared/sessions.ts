@@ -168,6 +168,11 @@ router.post("/sessions/heartbeat", requireUser, async (req: Request, res: Respon
 /**
  * 受講者向け: チェックアウト（OUT）
  * POST /sessions/check-out
+ *
+ * 条件:
+ * - 本人のセッションであること
+ * - セッションがopen状態であること
+ * - 入室からrequiredWatchMin経過していること
  */
 router.post("/sessions/check-out", requireUser, async (req: Request, res: Response) => {
   try {
@@ -195,7 +200,31 @@ router.post("/sessions/check-out", requireUser, async (req: Request, res: Respon
       return;
     }
 
-    const endTime = new Date();
+    // 講座情報を取得してrequiredWatchMinを確認
+    const course = await ds.getCourseById(session.courseId);
+    if (!course) {
+      res.status(400).json({ error: "course_not_found", message: "Course not found" });
+      return;
+    }
+
+    // 必要視聴時間経過の確認
+    const now = new Date();
+    const requiredWatchMs = course.requiredWatchMin * 60 * 1000;
+    const elapsedMs = now.getTime() - session.startTime.getTime();
+
+    if (elapsedMs < requiredWatchMs) {
+      const remainingSec = Math.ceil((requiredWatchMs - elapsedMs) / 1000);
+      res.status(400).json({
+        error: "not_enough_time",
+        message: `Required watch time not reached. ${Math.ceil(remainingSec / 60)} minutes remaining.`,
+        requiredWatchMin: course.requiredWatchMin,
+        elapsedSec: Math.floor(elapsedMs / 1000),
+        remainingSec,
+      });
+      return;
+    }
+
+    const endTime = now;
     const durationSec = calculateDurationSec(session.startTime, endTime);
 
     const updated = await ds.updateSession(sessionId, {
