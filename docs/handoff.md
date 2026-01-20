@@ -122,6 +122,54 @@
 - Classroom API連携
 - Forms API連携
 
+## 最新セッション成果（2026-01-20 夜）
+
+### セルフチェックアウト機能（退室打刻）
+OUT忘れ通知を受け取った受講者が、自分で退室時刻を指定して打刻できる機能。
+
+- **API**:
+  - `GET /sessions/self-checkout/:sessionId/info` - セッション情報取得
+  - `POST /sessions/self-checkout` - 退室時刻を指定して打刻
+- **Web UI**: `/[tenant]/student/checkout/[sessionId]`
+- **通知メール**: チェックアウトURLを追加
+
+**バリデーション条件**:
+- 本人のセッションであること
+- セッションがopen状態であること
+- 通知が送信済みであること
+- 入室からrequiredWatchMin経過していること
+- 退室時刻が有効範囲内であること
+
+### Codexレビュー修正（品質改善）
+
+| 優先度 | 問題 | 対応 |
+|--------|------|------|
+| High | user_settings スキーマ不整合 | 通知サービスのスキーマをAPI側に統一 |
+| High | 受講登録なしでcheck-in可能 | check-inエンドポイントで受講登録を検証 |
+| High | stale検出がグローバルポリシーのみ | ポリシー単位でstale判定する方式に変更 |
+| Medium | 関連データありでuser/course削除可能 | 削除前にセッション・受講登録の有無を確認 |
+| Medium | 講座一覧が受講登録でフィルタされない | 受講登録済みの講座のみを返すように修正 |
+| Medium | 通知ポリシーの重複作成可能 | 重複チェックを追加（409エラー） |
+
+### 変更ファイル一覧
+- `services/api/src/datasource/interface.ts` - getNotificationLogメソッド追加
+- `services/api/src/datasource/firestore.ts` - getNotificationLog実装
+- `services/api/src/datasource/in-memory.ts` - getNotificationLog実装
+- `services/api/src/routes/shared/sessions.ts` - self-checkout API追加、enrollment検証追加
+- `services/api/src/routes/shared/courses.ts` - 講座一覧のenrollmentフィルタ、削除時関連データチェック
+- `services/api/src/routes/shared/users.ts` - 削除時関連データチェック
+- `services/api/src/routes/shared/notification-policies.ts` - 重複チェック追加
+- `services/notification/src/types.ts` - UserSettings/User型修正
+- `services/notification/src/services/notification-sender.ts` - スキーマ統一、checkout URL追加
+- `services/notification/src/services/session-detector.ts` - findOpenSessions/isSessionStale追加
+- `services/notification/src/run-handler.ts` - ポリシー単位stale判定
+- `web/app/[tenant]/student/checkout/[sessionId]/page.tsx` - 新規作成
+
+### 残件（Low優先度）
+- `toDate`の欠損値処理
+- `updateSession`のnullクリア対応
+- レート制限のインメモリ実装
+
 ## 開発メモ
 - ドキュメント更新の順序は `docs/ai-dev-guide.md` を参照
 - ドキュメントと実装がズレたら必ず修正する
