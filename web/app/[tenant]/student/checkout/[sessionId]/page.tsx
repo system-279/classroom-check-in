@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useAuthenticatedFetch } from "@/lib/hooks/use-authenticated-fetch";
 import { useAuth } from "@/lib/auth-context";
@@ -105,7 +105,6 @@ function formatJSTDateTime(isoString: string): string {
  */
 export default function SelfCheckoutPage() {
   const params = useParams();
-  const router = useRouter();
   const { tenantId } = useTenant();
   const sessionId = Array.isArray(params.sessionId)
     ? params.sessionId[0]
