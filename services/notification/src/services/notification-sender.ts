@@ -1,27 +1,32 @@
 import type { Firestore } from "@google-cloud/firestore";
 import type { Mailer } from "../mailers/mailer.interface.js";
 import type {
-  Session,
   User,
   UserSettings,
   Course,
   NotificationTarget,
 } from "../types.js";
+import type { TenantSession } from "./session-detector.js";
 import { resolvePolicy } from "./policy-resolver.js";
 import { shouldSendNotification, logNotification } from "./notification-logger.js";
+import { tenantCollection } from "./tenant-helper.js";
 
-async function getUser(db: Firestore, userId: string): Promise<User | null> {
-  const doc = await db.collection("users").doc(userId).get();
+async function getUser(
+  db: Firestore,
+  tenantId: string,
+  userId: string,
+): Promise<User | null> {
+  const doc = await tenantCollection(db, tenantId, "users").doc(userId).get();
   if (!doc.exists) return null;
   return { id: doc.id, ...doc.data() } as User;
 }
 
 async function getUserSettings(
   db: Firestore,
+  tenantId: string,
   userId: string,
 ): Promise<UserSettings | null> {
-  const snapshot = await db
-    .collection("userSettings")
+  const snapshot = await tenantCollection(db, tenantId, "user_settings")
     .where("userId", "==", userId)
     .limit(1)
     .get();
@@ -31,8 +36,12 @@ async function getUserSettings(
   return { id: doc.id, ...doc.data() } as UserSettings;
 }
 
-async function getCourse(db: Firestore, courseId: string): Promise<Course | null> {
-  const doc = await db.collection("courses").doc(courseId).get();
+async function getCourse(
+  db: Firestore,
+  tenantId: string,
+  courseId: string,
+): Promise<Course | null> {
+  const doc = await tenantCollection(db, tenantId, "courses").doc(courseId).get();
   if (!doc.exists) return null;
   return { id: doc.id, ...doc.data() } as Course;
 }
@@ -73,13 +82,15 @@ export type ProcessResult = "sent" | "skipped" | "failed";
 export async function processSession(
   db: Firestore,
   mailer: Mailer,
-  session: Session,
+  session: TenantSession,
   _mailFrom: string,
 ): Promise<{ result: ProcessResult; error?: string }> {
-  const policy = await resolvePolicy(db, session.userId, session.courseId);
+  const { tenantId } = session;
+  const policy = await resolvePolicy(db, tenantId, session.userId, session.courseId);
 
   const shouldSend = await shouldSendNotification(
     db,
+    tenantId,
     session.id,
     session.startTime,
     policy.repeatIntervalHours,
@@ -91,9 +102,9 @@ export async function processSession(
   }
 
   const [user, userSettings, course] = await Promise.all([
-    getUser(db, session.userId),
-    getUserSettings(db, session.userId),
-    getCourse(db, session.courseId),
+    getUser(db, tenantId, session.userId),
+    getUserSettings(db, tenantId, session.userId),
+    getCourse(db, tenantId, session.courseId),
   ]);
 
   if (!user) {
@@ -129,7 +140,7 @@ export async function processSession(
       body: emailBody,
     });
 
-    await logNotification(db, {
+    await logNotification(db, tenantId, {
       userId: session.userId,
       courseId: session.courseId,
       sessionId: session.id,
@@ -143,7 +154,7 @@ export async function processSession(
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
 
-    await logNotification(db, {
+    await logNotification(db, tenantId, {
       userId: session.userId,
       courseId: session.courseId,
       sessionId: session.id,

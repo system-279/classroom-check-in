@@ -1,5 +1,6 @@
 import type { Firestore } from "@google-cloud/firestore";
 import type { NotificationPolicy } from "../types.js";
+import { tenantCollection } from "./tenant-helper.js";
 
 const DEFAULT_POLICY: Omit<NotificationPolicy, "id" | "scope"> = {
   firstNotifyAfterMin: 60,
@@ -10,10 +11,11 @@ const DEFAULT_POLICY: Omit<NotificationPolicy, "id" | "scope"> = {
 
 export async function resolvePolicy(
   db: Firestore,
+  tenantId: string,
   userId: string,
   courseId: string,
 ): Promise<NotificationPolicy> {
-  const policiesRef = db.collection("notificationPolicies");
+  const policiesRef = tenantCollection(db, tenantId, "notification_policies");
 
   // user > course > global の優先順で検索
   const userPolicySnap = await policiesRef
@@ -61,9 +63,9 @@ export async function resolvePolicy(
 
 export async function getGlobalPolicy(
   db: Firestore,
+  tenantId: string,
 ): Promise<NotificationPolicy> {
-  const snapshot = await db
-    .collection("notificationPolicies")
+  const snapshot = await tenantCollection(db, tenantId, "notification_policies")
     .where("scope", "==", "global")
     .where("active", "==", true)
     .limit(1)
