@@ -12,11 +12,11 @@ interface AlertBoxProps {
 
 const variantStyles: Record<AlertBoxVariant, string> = {
   warning:
-    "border-amber-200 bg-amber-50 dark:border-amber-700/50 dark:bg-slate-800",
-  info: "border-blue-200 bg-blue-50 dark:border-blue-700/50 dark:bg-slate-800",
+    "border-amber-200 bg-amber-50 dark:border-amber-400/30 dark:bg-amber-950/30",
+  info: "border-blue-200 bg-blue-50 dark:border-blue-400/30 dark:bg-blue-950/30",
   success:
-    "border-green-200 bg-green-50 dark:border-green-700/50 dark:bg-slate-800",
-  error: "border-red-200 bg-red-50 dark:border-red-700/50 dark:bg-slate-800",
+    "border-green-200 bg-green-50 dark:border-green-400/30 dark:bg-green-950/30",
+  error: "border-red-200 bg-red-50 dark:border-red-400/30 dark:bg-red-950/30",
 };
 
 const variantTitleStyles: Record<AlertBoxVariant, string> = {

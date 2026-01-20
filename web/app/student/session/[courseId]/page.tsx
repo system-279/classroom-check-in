@@ -255,7 +255,7 @@ export default function SessionPage() {
             <div className="flex flex-col items-center gap-4">
               {/* 入室前の確認事項 */}
               <AlertBox
-                variant="warning"
+                variant="success"
                 title="入室前にご確認ください"
                 className="w-full max-w-md"
               >
