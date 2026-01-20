@@ -109,6 +109,17 @@ export interface DataSource {
   // User Settings
   getUserSettings(userId: string): Promise<UserSettings | null>;
   upsertUserSettings(userId: string, data: Partial<UserSettings>): Promise<UserSettings>;
+
+  // Notification Logs
+  /**
+   * セッションに対する通知ログを取得
+   * @param sessionId セッションID
+   * @returns 送信済み通知情報、または存在しない場合はnull
+   */
+  getNotificationLog(sessionId: string): Promise<{
+    sentAt: Date;
+    type: string;
+  } | null>;
 }
 
 /**

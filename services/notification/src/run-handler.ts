@@ -2,8 +2,8 @@ import type { Request, Response } from "express";
 import type { Firestore } from "@google-cloud/firestore";
 import type { Mailer } from "./mailers/mailer.interface.js";
 import type { RunResult } from "./types.js";
-import { getGlobalPolicy } from "./services/policy-resolver.js";
-import { findStaleSessions } from "./services/session-detector.js";
+import { resolvePolicy } from "./services/policy-resolver.js";
+import { findOpenSessions, isSessionStale } from "./services/session-detector.js";
 import { processSession } from "./services/notification-sender.js";
 import { getActiveTenants } from "./services/tenant-helper.js";
 
@@ -61,21 +61,22 @@ export async function runHandler(
       };
 
       try {
-        const globalPolicy = await getGlobalPolicy(db, tenant.id);
+        // 全openセッションを取得し、ポリシー単位でstale判定
+        const openSessions = await findOpenSessions(db, tenant.id);
         console.log(
-          `[run] Tenant ${tenant.id}: Using threshold ${globalPolicy.firstNotifyAfterMin} minutes`,
+          `[run] Tenant ${tenant.id}: Found ${openSessions.length} open sessions`,
         );
 
-        const staleSessions = await findStaleSessions(
-          db,
-          tenant.id,
-          globalPolicy.firstNotifyAfterMin,
-        );
-        console.log(
-          `[run] Tenant ${tenant.id}: Found ${staleSessions.length} stale sessions`,
-        );
+        for (const session of openSessions) {
+          // 各セッションに対してポリシーを解決
+          const policy = await resolvePolicy(db, tenant.id, session.userId, session.courseId);
 
-        for (const session of staleSessions) {
+          // ポリシーのfirstNotifyAfterMinでstale判定
+          if (!isSessionStale(session, policy.firstNotifyAfterMin)) {
+            // staleでない場合はスキップ（カウントしない）
+            continue;
+          }
+
           tenantResult.processed++;
 
           try {

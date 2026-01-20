@@ -581,4 +581,25 @@ export class FirestoreDataSource implements DataSource {
       updatedAt: toDate(data.updatedAt),
     };
   }
+
+  // Notification Logs
+  async getNotificationLog(sessionId: string): Promise<{
+    sentAt: Date;
+    type: string;
+  } | null> {
+    const snapshot = await this.collection("notification_logs")
+      .where("sessionId", "==", sessionId)
+      .where("status", "==", "sent")
+      .orderBy("sentAt", "asc")
+      .limit(1)
+      .get();
+
+    if (snapshot.empty) return null;
+
+    const data = snapshot.docs[0].data();
+    return {
+      sentAt: toDate(data.sentAt),
+      type: data.type ?? "out_missing",
+    };
+  }
 }
