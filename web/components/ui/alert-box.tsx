@@ -12,25 +12,25 @@ interface AlertBoxProps {
 
 const variantStyles: Record<AlertBoxVariant, string> = {
   warning:
-    "border-amber-200 bg-amber-50 dark:border-amber-400/30 dark:bg-amber-950/30",
-  info: "border-blue-200 bg-blue-50 dark:border-blue-400/30 dark:bg-blue-950/30",
+    "border-amber-300 bg-white dark:border-amber-600 dark:bg-gray-900",
+  info: "border-blue-300 bg-white dark:border-blue-600 dark:bg-gray-900",
   success:
-    "border-green-200 bg-green-50 dark:border-green-400/30 dark:bg-green-950/30",
-  error: "border-red-200 bg-red-50 dark:border-red-400/30 dark:bg-red-950/30",
+    "border-green-300 bg-white dark:border-green-600 dark:bg-gray-900",
+  error: "border-red-300 bg-white dark:border-red-600 dark:bg-gray-900",
 };
 
 const variantTitleStyles: Record<AlertBoxVariant, string> = {
-  warning: "text-amber-800 dark:text-amber-100",
-  info: "text-blue-800 dark:text-blue-100",
-  success: "text-green-800 dark:text-green-100",
-  error: "text-red-800 dark:text-red-100",
+  warning: "text-amber-900 dark:text-amber-300",
+  info: "text-blue-900 dark:text-blue-300",
+  success: "text-green-900 dark:text-green-300",
+  error: "text-red-900 dark:text-red-300",
 };
 
 const variantTextStyles: Record<AlertBoxVariant, string> = {
-  warning: "text-amber-700 dark:text-amber-200/90",
-  info: "text-blue-700 dark:text-blue-200",
-  success: "text-green-700 dark:text-green-200",
-  error: "text-red-700 dark:text-red-200",
+  warning: "text-gray-700 dark:text-gray-300",
+  info: "text-gray-700 dark:text-gray-300",
+  success: "text-gray-700 dark:text-gray-300",
+  error: "text-gray-700 dark:text-gray-300",
 };
 
 export function AlertBox({
