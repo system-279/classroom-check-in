@@ -11,6 +11,15 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
     body { font-family: 'Noto Sans JP', sans-serif; }
+    /* Mermaid図を大きく表示 */
+    .mermaid {
+      display: flex;
+      justify-content: center;
+    }
+    .mermaid svg {
+      max-width: 100%;
+      min-height: 300px;
+    }
   </style>
 </head>
 <body class="bg-gray-50">
@@ -339,6 +348,10 @@
                     <td class="py-2 font-medium text-gray-700">Classroom URL</td>
                     <td class="py-2 text-gray-600">Google ClassroomのURLを入力</td>
                   </tr>
+                  <tr class="border-b">
+                    <td class="py-2 font-medium text-gray-700">必要視聴時間</td>
+                    <td class="py-2 text-gray-600">分単位で設定（デフォルト: 63分）<br><span class="text-xs text-gray-500">この時間に達するまで受講者は退室できません</span></td>
+                  </tr>
                   <tr>
                     <td class="py-2 font-medium text-gray-700">表示設定</td>
                     <td class="py-2 text-gray-600">受講者に表示するかどうか</td>
@@ -366,6 +379,7 @@
             <ul class="mt-2 text-yellow-700 text-sm space-y-1">
               <li>・講座を非表示にすると、受講者の講座一覧に表示されなくなります</li>
               <li>・Classroom URLは正確に入力してください（INボタン押下後の遷移先になります）</li>
+              <li>・<strong>必要視聴時間</strong>は講座の長さに応じて設定してください。受講者はこの時間に達するまで退室できません</li>
             </ul>
           </div>
         </div>
@@ -622,15 +636,17 @@ flowchart LR
         </p>
 
         <div class="grid md:grid-cols-2 gap-4 mb-4">
-          <!-- 受講者が対応 -->
-          <div class="p-4 border rounded-lg">
+          <!-- 受講者が対応（セルフチェックアウト） -->
+          <div class="p-4 border rounded-lg bg-green-50">
             <h4 class="font-bold text-gray-800 mb-2 flex items-center">
               <span class="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center mr-2 text-xs">1</span>
-              受講者自身が対応
+              受講者自身が対応（推奨）
             </h4>
-            <p class="text-gray-600 text-sm">
-              受講者がシステムにログインし、「退室」ボタンを押して完了。
-              <strong>管理者の作業は不要</strong>です。
+            <p class="text-gray-600 text-sm mb-2">
+              通知メール内の「退室打刻」リンクから、受講者が自分で退室時刻を指定して打刻できます。
+            </p>
+            <p class="text-green-700 text-xs font-medium">
+              &#9989; セルフチェックアウト機能により<strong>管理者の作業は不要</strong>です。
             </p>
           </div>
 
@@ -641,7 +657,7 @@ flowchart LR
               管理者が手動対応
             </h4>
             <p class="text-gray-600 text-sm">
-              受講者が対応できない場合や、退室時刻を遡って設定する場合。
+              受講者が対応できない場合や、通知前に退室処理が必要な場合。
               <strong>セッション管理</strong>から退室時刻を入力します。
             </p>
           </div>
@@ -711,7 +727,17 @@ flowchart TB
   </footer>
 
   <script>
-    mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'default',
+      flowchart: {
+        useMaxWidth: true,
+        htmlLabels: true,
+        curve: 'basis',
+        nodeSpacing: 50,
+        rankSpacing: 50
+      }
+    });
   </script>
 </body>
 </html>

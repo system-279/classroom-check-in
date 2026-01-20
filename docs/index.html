@@ -11,6 +11,15 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
     body { font-family: 'Noto Sans JP', sans-serif; }
+    /* Mermaid図を大きく表示 */
+    .mermaid {
+      display: flex;
+      justify-content: center;
+    }
+    .mermaid svg {
+      max-width: 100%;
+      min-height: 300px;
+    }
   </style>
 </head>
 <body class="bg-gray-50">
@@ -281,21 +290,50 @@ flowchart LR
           </div>
         </details>
 
-        <details class="border rounded-lg">
-          <summary class="px-4 py-3 cursor-pointer font-medium text-gray-800 hover:bg-gray-50">
-            OUTボタンを押し忘れたらどうなりますか？
+        <details class="border rounded-lg border-red-200 bg-red-50">
+          <summary class="px-4 py-3 cursor-pointer font-medium text-red-800 hover:bg-red-100">
+            OUTボタン（退室）が押せません
           </summary>
-          <div class="px-4 py-3 bg-gray-50 text-gray-600">
-            システムが自動で通知を送信し、退室時刻の入力を促します。また、管理者が手動で退室時刻を設定することもできます。
+          <div class="px-4 py-3 bg-white text-gray-600">
+            <strong class="text-red-600">必要視聴時間に達していない</strong>ことが原因です。
+            各講座には必要視聴時間（通常63分）が設定されており、この時間に達するまで退室できません。
+            画面上のプログレスバーと残り時間を確認してください。
           </div>
         </details>
 
         <details class="border rounded-lg">
           <summary class="px-4 py-3 cursor-pointer font-medium text-gray-800 hover:bg-gray-50">
-            複数の講座を同時に受講できますか？
+            OUTボタンを押し忘れたらどうなりますか？
           </summary>
           <div class="px-4 py-3 bg-gray-50 text-gray-600">
-            いいえ、一度に参加できる講座は1つです。別の講座に参加する場合は、先に現在の講座を退室してください。
+            システムが自動で通知メールを送信します。メール内のリンクから<strong>セルフチェックアウト</strong>機能を使って、ご自身で退室時刻を指定して打刻できます。管理者への連絡は不要です。
+          </div>
+        </details>
+
+        <details class="border rounded-lg border-amber-200 bg-amber-50">
+          <summary class="px-4 py-3 cursor-pointer font-medium text-amber-800 hover:bg-amber-100">
+            複数の講座を同時に受講できますか？
+          </summary>
+          <div class="px-4 py-3 bg-white text-gray-600">
+            <strong class="text-red-600">いいえ、できません。</strong>一度に参加できる講座は1つです。別の講座に参加する場合は、先に現在の講座を退室してください。
+          </div>
+        </details>
+
+        <details class="border rounded-lg border-amber-200 bg-amber-50">
+          <summary class="px-4 py-3 cursor-pointer font-medium text-amber-800 hover:bg-amber-100">
+            動画を倍速再生しても大丈夫ですか？
+          </summary>
+          <div class="px-4 py-3 bg-white text-gray-600">
+            <strong class="text-red-600">いいえ、倍速再生は禁止です。</strong>動画は通常速度（1倍速）で視聴してください。分割視聴も禁止です。最初から最後まで通して視聴してください。
+          </div>
+        </details>
+
+        <details class="border rounded-lg">
+          <summary class="px-4 py-3 cursor-pointer font-medium text-gray-800 hover:bg-gray-50">
+            必要視聴時間とは何ですか？
+          </summary>
+          <div class="px-4 py-3 bg-gray-50 text-gray-600">
+            講座ごとに設定された「最低限視聴が必要な時間」です。デフォルトは63分（1時間3分）です。管理者が講座ごとに設定できます。この時間に達するまで退室ボタンは押せません。
           </div>
         </details>
 
@@ -304,7 +342,7 @@ flowchart LR
             滞在時間はどのように計算されますか？
           </summary>
           <div class="px-4 py-3 bg-gray-50 text-gray-600">
-            INボタンを押した時刻からOUTボタンを押した時刻までの時間が自動的に計算されます。
+            INボタンを押した時刻からOUTボタンを押した時刻までの時間が自動的に計算されます。必要視聴時間に達しないと退室できないため、最低限の滞在時間が保証されます。
           </div>
         </details>
 
@@ -331,7 +369,17 @@ flowchart LR
   </footer>
 
   <script>
-    mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'default',
+      flowchart: {
+        useMaxWidth: true,
+        htmlLabels: true,
+        curve: 'basis',
+        nodeSpacing: 50,
+        rankSpacing: 50
+      }
+    });
   </script>
 </body>
 </html>
