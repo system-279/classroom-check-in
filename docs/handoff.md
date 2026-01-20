@@ -59,11 +59,15 @@
   - Tailwind CSS v4 + shadcn/ui
 - **受講者向けUI**: `web/app/student/`
   - 講座一覧（`/student/courses`）
+    - 受講時の注意事項表示（同時並行禁止、分割視聴禁止、倍速禁止）
   - セッションページ（`/student/session/[courseId]`）
     - IN/OUTボタン
+    - 入室前確認事項表示
     - 経過時間タイマー
     - heartbeat（1分間隔）
     - Classroom新規タブ遷移
+- **講座設定**:
+  - 必要視聴時間（`requiredWatchMin`）: 講座ごとに設定可能、デフォルト63分
 - **通知サービス**: `services/notification/src/`
   - OUT忘れセッション検出（lastHeartbeatAtベース）
   - 通知ポリシー解決（user > course > global）
