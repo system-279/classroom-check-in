@@ -20,6 +20,120 @@
       max-width: 100%;
       min-height: 300px;
     }
+    /* クリック可能な図のスタイル */
+    .clickable-diagram {
+      cursor: zoom-in;
+      position: relative;
+    }
+    .clickable-diagram:hover::after {
+      content: 'クリックで拡大表示';
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      pointer-events: none;
+    }
+    /* モーダルオーバーレイ */
+    .diagram-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.9);
+      z-index: 9999;
+      overflow: hidden;
+    }
+    .diagram-modal.active {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    /* モーダル内のコンテナ */
+    .diagram-modal-content {
+      position: relative;
+      cursor: grab;
+      user-select: none;
+      transform-origin: center center;
+    }
+    .diagram-modal-content:active {
+      cursor: grabbing;
+    }
+    .diagram-modal-content svg {
+      max-width: none !important;
+      max-height: none !important;
+    }
+    /* 閉じるボタン */
+    .diagram-modal-close {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 48px;
+      height: 48px;
+      background: white;
+      border: none;
+      border-radius: 50%;
+      font-size: 24px;
+      cursor: pointer;
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+    .diagram-modal-close:hover {
+      background: #f0f0f0;
+    }
+    /* コントロールパネル */
+    .diagram-modal-controls {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 8px;
+      background: white;
+      padding: 8px 16px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+      z-index: 10000;
+    }
+    .diagram-modal-controls button {
+      width: 40px;
+      height: 40px;
+      border: 1px solid #ddd;
+      background: white;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .diagram-modal-controls button:hover {
+      background: #f0f0f0;
+    }
+    .diagram-modal-controls span {
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      font-size: 14px;
+      color: #666;
+    }
+    /* 操作説明 */
+    .diagram-modal-help {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: rgba(255,255,255,0.9);
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #666;
+      z-index: 10000;
+    }
   </style>
 </head>
 <body class="bg-gray-50">
@@ -216,8 +330,8 @@
     <!-- フロー図 -->
     <section class="bg-white rounded-lg shadow-md p-6 mb-8">
       <h2 class="text-2xl font-bold text-gray-800 mb-6">システムの流れ</h2>
-      <div class="overflow-x-auto">
-        <div class="mermaid">
+      <div class="overflow-x-auto clickable-diagram" id="flow-diagram" onclick="openDiagramModal()">
+        <div class="mermaid" id="flow-mermaid">
 flowchart LR
     subgraph 初期設定["初期設定（管理者）"]
         T[テナント登録] --> P[アクセス許可登録]
@@ -359,6 +473,19 @@ flowchart LR
 
   </main>
 
+  <!-- 図拡大モーダル -->
+  <div class="diagram-modal" id="diagramModal">
+    <button class="diagram-modal-close" onclick="closeDiagramModal()">✕</button>
+    <div class="diagram-modal-help">ドラッグで移動 / スクロールでズーム / ESCで閉じる</div>
+    <div class="diagram-modal-content" id="diagramModalContent"></div>
+    <div class="diagram-modal-controls">
+      <button onclick="zoomOut()" title="縮小">−</button>
+      <span id="zoomLevel">100%</span>
+      <button onclick="zoomIn()" title="拡大">+</button>
+      <button onclick="resetView()" title="リセット">⟲</button>
+    </div>
+  </div>
+
   <!-- フッター -->
   <footer class="bg-gray-800 text-gray-300 mt-12">
     <div class="max-w-6xl mx-auto px-4 py-8">
@@ -379,6 +506,114 @@ flowchart LR
         nodeSpacing: 50,
         rankSpacing: 50
       }
+    });
+
+    // 図拡大モーダルの状態管理
+    let currentScale = 1;
+    let currentX = 0;
+    let currentY = 0;
+    let isDragging = false;
+    let startX, startY;
+
+    function openDiagramModal() {
+      const modal = document.getElementById('diagramModal');
+      const content = document.getElementById('diagramModalContent');
+      const originalSvg = document.querySelector('#flow-mermaid svg');
+
+      if (originalSvg) {
+        // SVGをクローンしてモーダルに表示
+        const clonedSvg = originalSvg.cloneNode(true);
+        clonedSvg.style.width = 'auto';
+        clonedSvg.style.height = 'auto';
+        clonedSvg.style.minWidth = '1200px';
+        content.innerHTML = '';
+        content.appendChild(clonedSvg);
+
+        // 初期状態にリセット
+        resetView();
+
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      }
+    }
+
+    function closeDiagramModal() {
+      const modal = document.getElementById('diagramModal');
+      modal.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+
+    function updateTransform() {
+      const content = document.getElementById('diagramModalContent');
+      content.style.transform = `translate(${currentX}px, ${currentY}px) scale(${currentScale})`;
+      document.getElementById('zoomLevel').textContent = Math.round(currentScale * 100) + '%';
+    }
+
+    function zoomIn() {
+      currentScale = Math.min(currentScale * 1.2, 5);
+      updateTransform();
+    }
+
+    function zoomOut() {
+      currentScale = Math.max(currentScale / 1.2, 0.2);
+      updateTransform();
+    }
+
+    function resetView() {
+      currentScale = 1;
+      currentX = 0;
+      currentY = 0;
+      updateTransform();
+    }
+
+    // ドラッグでパン
+    document.addEventListener('DOMContentLoaded', function() {
+      const content = document.getElementById('diagramModalContent');
+      const modal = document.getElementById('diagramModal');
+
+      content.addEventListener('mousedown', function(e) {
+        if (e.target.closest('.diagram-modal-controls')) return;
+        isDragging = true;
+        startX = e.clientX - currentX;
+        startY = e.clientY - currentY;
+        content.style.cursor = 'grabbing';
+      });
+
+      document.addEventListener('mousemove', function(e) {
+        if (!isDragging) return;
+        currentX = e.clientX - startX;
+        currentY = e.clientY - startY;
+        updateTransform();
+      });
+
+      document.addEventListener('mouseup', function() {
+        isDragging = false;
+        content.style.cursor = 'grab';
+      });
+
+      // マウスホイールでズーム
+      modal.addEventListener('wheel', function(e) {
+        e.preventDefault();
+        if (e.deltaY < 0) {
+          zoomIn();
+        } else {
+          zoomOut();
+        }
+      }, { passive: false });
+
+      // ESCキーで閉じる
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          closeDiagramModal();
+        }
+      });
+
+      // モーダル背景クリックで閉じる
+      modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+          closeDiagramModal();
+        }
+      });
     });
   </script>
 </body>
