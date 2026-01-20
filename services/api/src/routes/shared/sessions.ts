@@ -96,6 +96,19 @@ router.post("/sessions/check-in", requireUser, async (req: Request, res: Respons
       return;
     }
 
+    // ADR-0023: 同時セッション禁止（別講座で受講中の場合はエラー）
+    const existingSession = await ds.getActiveSession(req.user!.id);
+    if (existingSession && existingSession.courseId !== courseId) {
+      const existingCourse = await ds.getCourseById(existingSession.courseId);
+      res.status(409).json({
+        error: "session_already_active",
+        message: "You already have an active session in another course. Please finish it first.",
+        existingSession: formatSession(existingSession),
+        existingCourseName: existingCourse?.name ?? "Unknown",
+      });
+      return;
+    }
+
     // アトミックなチェックイン（排他制御: 同時リクエストによる重複作成を防止）
     const now = new Date();
     const { session, isExisting } = await ds.checkInOrGetExisting(

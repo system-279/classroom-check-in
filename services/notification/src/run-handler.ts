@@ -6,10 +6,12 @@ import { resolvePolicy } from "./services/policy-resolver.js";
 import { findOpenSessions, isSessionStale } from "./services/session-detector.js";
 import { processSession } from "./services/notification-sender.js";
 import { getActiveTenants } from "./services/tenant-helper.js";
+import { autoCloseExpiredSessions } from "./services/auto-closer.js";
 
 interface TenantResult extends RunResult {
   tenantId: string;
   tenantName: string;
+  autoClosed: number;
 }
 
 interface AggregatedResult {
@@ -17,6 +19,7 @@ interface AggregatedResult {
   totalSent: number;
   totalSkipped: number;
   totalFailed: number;
+  totalAutoClosed: number;
   tenants: TenantResult[];
   errors: string[];
 }
@@ -33,6 +36,7 @@ export async function runHandler(
     totalSent: 0,
     totalSkipped: 0,
     totalFailed: 0,
+    totalAutoClosed: 0,
     tenants: [],
     errors: [],
   };
@@ -57,6 +61,7 @@ export async function runHandler(
         sent: 0,
         skipped: 0,
         failed: 0,
+        autoClosed: 0,
         errors: [],
       };
 
@@ -122,8 +127,19 @@ export async function runHandler(
           }
         }
 
+        // ADR-0020: 48時間経過したセッションを自動クローズ
+        const autoCloseResult = await autoCloseExpiredSessions(db, tenant.id);
+        tenantResult.autoClosed = autoCloseResult.closed;
+        tenantResult.errors.push(...autoCloseResult.errors);
+
+        if (autoCloseResult.closed > 0) {
+          console.log(
+            `[run] Tenant ${tenant.id}: Auto-closed ${autoCloseResult.closed} expired sessions`,
+          );
+        }
+
         console.log(
-          `[run] Tenant ${tenant.id} complete: processed=${tenantResult.processed}, sent=${tenantResult.sent}, skipped=${tenantResult.skipped}, failed=${tenantResult.failed}`,
+          `[run] Tenant ${tenant.id} complete: processed=${tenantResult.processed}, sent=${tenantResult.sent}, skipped=${tenantResult.skipped}, failed=${tenantResult.failed}, autoClosed=${tenantResult.autoClosed}`,
         );
       } catch (error) {
         const errorMessage =
@@ -137,12 +153,13 @@ export async function runHandler(
       aggregatedResult.totalSent += tenantResult.sent;
       aggregatedResult.totalSkipped += tenantResult.skipped;
       aggregatedResult.totalFailed += tenantResult.failed;
+      aggregatedResult.totalAutoClosed += tenantResult.autoClosed;
       aggregatedResult.errors.push(...tenantResult.errors);
       aggregatedResult.tenants.push(tenantResult);
     }
 
     console.log(
-      `[run] All tenants complete: totalProcessed=${aggregatedResult.totalProcessed}, totalSent=${aggregatedResult.totalSent}, totalSkipped=${aggregatedResult.totalSkipped}, totalFailed=${aggregatedResult.totalFailed}`,
+      `[run] All tenants complete: totalProcessed=${aggregatedResult.totalProcessed}, totalSent=${aggregatedResult.totalSent}, totalSkipped=${aggregatedResult.totalSkipped}, totalFailed=${aggregatedResult.totalFailed}, totalAutoClosed=${aggregatedResult.totalAutoClosed}`,
     );
     res.json(aggregatedResult);
   } catch (error) {

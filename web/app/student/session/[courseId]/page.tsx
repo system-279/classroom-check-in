@@ -132,7 +132,12 @@ export default function SessionPage() {
         window.open(course.classroomUrl, "_blank", "noopener,noreferrer");
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "入室に失敗しました");
+      // ADR-0023: 別講座で受講中の場合のエラーハンドリング
+      if (e && typeof e === "object" && "code" in e && e.code === "session_already_active") {
+        setError("別の講座で受講中です。先にそちらを終了してください。");
+      } else {
+        setError(e instanceof Error ? e.message : "入室に失敗しました");
+      }
     } finally {
       setActionLoading(false);
     }
