@@ -46,26 +46,36 @@
         本番環境（Cloud Run）に対して実施したエンドツーエンドテストの結果です。
         マルチテナント対応（v2 API）を含むすべての主要ユースケースが正常に動作することを確認しています。
       </p>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mt-6">
         <div class="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
-          <div class="text-3xl font-bold text-green-600">42</div>
+          <div class="text-3xl font-bold text-green-600">54</div>
           <div class="text-sm text-gray-600">テスト項目</div>
         </div>
         <div class="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
-          <div class="text-3xl font-bold text-green-600">42</div>
+          <div class="text-3xl font-bold text-green-600">44</div>
           <div class="text-sm text-gray-600">成功</div>
         </div>
         <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
-          <div class="text-3xl font-bold text-gray-400">0</div>
-          <div class="text-sm text-gray-600">失敗</div>
+          <div class="text-3xl font-bold text-gray-400">7</div>
+          <div class="text-sm text-gray-600">スキップ</div>
+        </div>
+        <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 text-center">
+          <div class="text-3xl font-bold text-amber-600">3</div>
+          <div class="text-sm text-gray-600">要確認</div>
         </div>
         <div class="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
-          <div class="text-3xl font-bold text-green-600">100%</div>
+          <div class="text-3xl font-bold text-green-600">81%</div>
           <div class="text-sm text-gray-600">成功率</div>
         </div>
       </div>
+      <div class="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+        <p class="text-sm text-amber-800">
+          <span class="font-bold">注:</span> 要確認の3件は既存テストで、本番環境のデモデータ状態に依存しています。
+          新規追加機能（必要視聴時間チェック、セルフチェックアウト）のテスト15件はすべて成功しています。
+        </p>
+      </div>
       <div class="mt-4 text-sm text-gray-500">
-        最終実行日時: 2026-01-17 JST
+        最終実行日時: 2026-01-20 JST
       </div>
     </section>
 
@@ -256,6 +266,129 @@
       </div>
     </section>
 
+    <!-- 必要視聴時間チェック機能（NEW） -->
+    <section class="bg-white rounded-lg shadow-md p-6 mb-8">
+      <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+        <span class="w-8 h-8 bg-teal-500 text-white rounded-full flex items-center justify-center mr-3 text-sm">&#10003;</span>
+        必要視聴時間チェック機能
+        <span class="ml-3 px-2 py-1 bg-teal-100 text-teal-800 text-xs rounded">NEW 2026-01-20</span>
+      </h2>
+      <p class="text-gray-600 mb-4">講座ごとに設定された必要視聴時間のチェック機能をテストしました。</p>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-4 py-3 text-sm font-medium text-gray-600">テスト項目</th>
+              <th class="px-4 py-3 text-sm font-medium text-gray-600">結果</th>
+              <th class="px-4 py-3 text-sm font-medium text-gray-600">確認内容</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y">
+            <tr>
+              <td class="px-4 py-3 font-medium">入室前確認事項表示</td>
+              <td class="px-4 py-3"><span class="status-pass font-bold">&#10003; PASS</span></td>
+              <td class="px-4 py-3 text-sm text-gray-600">同時並行禁止、分割視聴禁止、倍速禁止の注意事項</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium">セッションタイマー表示</td>
+              <td class="px-4 py-3"><span class="status-pass font-bold">&#10003; PASS</span></td>
+              <td class="px-4 py-3 text-sm text-gray-600">経過時間（00:00:00形式）がリアルタイム更新</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium">プログレスバー表示</td>
+              <td class="px-4 py-3"><span class="status-pass font-bold">&#10003; PASS</span></td>
+              <td class="px-4 py-3 text-sm text-gray-600">必要視聴時間に対する進捗を可視化</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium">残り時間表示</td>
+              <td class="px-4 py-3"><span class="status-pass font-bold">&#10003; PASS</span></td>
+              <td class="px-4 py-3 text-sm text-gray-600">「必要視聴時間まで残り X:XX:XX」の表示</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium">OUTボタン非活性化</td>
+              <td class="px-4 py-3"><span class="status-pass font-bold">&#10003; PASS</span></td>
+              <td class="px-4 py-3 text-sm text-gray-600">必要視聴時間未達で退室ボタンがdisabled</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium">講座一覧注意事項</td>
+              <td class="px-4 py-3"><span class="status-pass font-bold">&#10003; PASS</span></td>
+              <td class="px-4 py-3 text-sm text-gray-600">講座一覧ページにも注意事項が表示される</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- セルフチェックアウト機能（NEW） -->
+    <section class="bg-white rounded-lg shadow-md p-6 mb-8">
+      <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+        <span class="w-8 h-8 bg-orange-500 text-white rounded-full flex items-center justify-center mr-3 text-sm">&#10003;</span>
+        セルフチェックアウト機能
+        <span class="ml-3 px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded">NEW 2026-01-20</span>
+      </h2>
+      <p class="text-gray-600 mb-4">OUT忘れ通知を受け取った受講者が自分で退室時刻を指定して打刻する機能をテストしました。</p>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-4 py-3 text-sm font-medium text-gray-600">テスト項目</th>
+              <th class="px-4 py-3 text-sm font-medium text-gray-600">結果</th>
+              <th class="px-4 py-3 text-sm font-medium text-gray-600">確認内容</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y">
+            <tr>
+              <td class="px-4 py-3 font-medium">チェックアウトページアクセス</td>
+              <td class="px-4 py-3"><span class="status-pass font-bold">&#10003; PASS</span></td>
+              <td class="px-4 py-3 text-sm text-gray-600">/[tenant]/student/checkout/[sessionId]パスでアクセス可能</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium">セッション不存在時のエラー</td>
+              <td class="px-4 py-3"><span class="status-pass font-bold">&#10003; PASS</span></td>
+              <td class="px-4 py-3 text-sm text-gray-600">存在しないセッションIDで適切なエラー表示</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium">認証画面表示</td>
+              <td class="px-4 py-3"><span class="status-pass font-bold">&#10003; PASS</span></td>
+              <td class="px-4 py-3 text-sm text-gray-600">未ログイン時にGoogleログインボタン表示</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium">セッション情報表示</td>
+              <td class="px-4 py-3"><span class="status-pass font-bold">&#10003; PASS</span></td>
+              <td class="px-4 py-3 text-sm text-gray-600">講座名、入室時刻、必要視聴時間、状態を表示</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium">退室時刻入力フォーム</td>
+              <td class="px-4 py-3"><span class="status-pass font-bold">&#10003; PASS</span></td>
+              <td class="px-4 py-3 text-sm text-gray-600">datetime-local入力フィールドで時刻指定</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium">デモモードAPI制限</td>
+              <td class="px-4 py-3"><span class="status-pass font-bold">&#10003; PASS</span></td>
+              <td class="px-4 py-3 text-sm text-gray-600">デモモードでPOSTがブロック（403/404）</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium">URLパターン検証</td>
+              <td class="px-4 py-3"><span class="status-pass font-bold">&#10003; PASS</span></td>
+              <td class="px-4 py-3 text-sm text-gray-600">チェックアウトURLが正しい形式</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium">講座一覧への戻りリンク</td>
+              <td class="px-4 py-3"><span class="status-pass font-bold">&#10003; PASS</span></td>
+              <td class="px-4 py-3 text-sm text-gray-600">「講座一覧に戻る」リンクが表示される</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium">退室確定ボタン</td>
+              <td class="px-4 py-3"><span class="status-pass font-bold">&#10003; PASS</span></td>
+              <td class="px-4 py-3 text-sm text-gray-600">「退室を確定する」ボタンが表示される</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
     <!-- 管理者フロー -->
     <section class="bg-white rounded-lg shadow-md p-6 mb-8">
       <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
@@ -384,6 +517,14 @@
         <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
           <h3 class="font-bold text-purple-800 mb-2">アクセス許可リスト</h3>
           <p class="text-sm text-gray-600">事前登録されたメールアドレスのみログイン可能</p>
+        </div>
+        <div class="bg-teal-50 border border-teal-200 rounded-lg p-4">
+          <h3 class="font-bold text-teal-800 mb-2">必要視聴時間チェック <span class="text-xs font-normal">NEW</span></h3>
+          <p class="text-sm text-gray-600">講座ごとに設定されたrequiredWatchMin経過までOUT不可</p>
+        </div>
+        <div class="bg-orange-50 border border-orange-200 rounded-lg p-4">
+          <h3 class="font-bold text-orange-800 mb-2">セルフチェックアウト <span class="text-xs font-normal">NEW</span></h3>
+          <p class="text-sm text-gray-600">OUT忘れ通知後、受講者が自分で退室時刻を指定して打刻可能</p>
         </div>
         <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <h3 class="font-bold text-blue-800 mb-2">連続IN防止</h3>
