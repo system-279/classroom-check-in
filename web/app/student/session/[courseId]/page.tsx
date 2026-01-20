@@ -23,6 +23,7 @@ import type {
 } from "@/types/session";
 import { SessionTimer } from "./_components/session-timer";
 import { ClassroomLink } from "./_components/classroom-link";
+import { AlertBox } from "@/components/ui/alert-box";
 
 const AUTH_MODE = process.env.NEXT_PUBLIC_AUTH_MODE ?? "dev";
 
@@ -232,12 +233,10 @@ export default function SessionPage() {
               <div className="flex flex-col items-center gap-4">
                 {/* 必要時間未達の注意文 */}
                 {!canCheckOut && (
-                  <div className="w-full max-w-md rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-700/50 dark:bg-slate-800">
-                    <p className="text-sm text-blue-700 dark:text-blue-200">
-                      必要視聴時間に達するまで退室できません。
-                      最後までご視聴ください。
-                    </p>
-                  </div>
+                  <AlertBox variant="info" className="w-full max-w-md p-3">
+                    必要視聴時間に達するまで退室できません。
+                    最後までご視聴ください。
+                  </AlertBox>
                 )}
                 <Button
                   size="lg"
@@ -255,15 +254,16 @@ export default function SessionPage() {
           ) : (
             <div className="flex flex-col items-center gap-4">
               {/* 入室前の確認事項 */}
-              <div className="w-full max-w-md rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-700/50 dark:bg-slate-800">
-                <p className="mb-2 text-sm font-semibold text-amber-800 dark:text-amber-100">
-                  入室前にご確認ください
-                </p>
-                <ul className="space-y-1 text-xs text-amber-700 dark:text-amber-200/90">
+              <AlertBox
+                variant="warning"
+                title="入室前にご確認ください"
+                className="w-full max-w-md"
+              >
+                <ul className="space-y-1 text-xs">
                   <li>・同時並行で講座は受けられません</li>
                   <li>・分割視聴は不可です。最初から最後まで、倍速などの再生速度を早くする変更はせずにご視聴ください</li>
                 </ul>
-              </div>
+              </AlertBox>
               <Button
                 size="lg"
                 onClick={handleCheckIn}

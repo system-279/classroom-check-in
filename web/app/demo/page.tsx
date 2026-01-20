@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AlertBox } from "@/components/ui/alert-box";
 
 export default function DemoPage() {
   return (
@@ -63,17 +64,14 @@ export default function DemoPage() {
         </div>
       </div>
 
-      <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-        <h3 className="font-medium text-blue-800">デモデータについて</h3>
-        <p className="mt-1 text-sm text-blue-700">
-          このデモでは以下のサンプルデータが登録されています:
-        </p>
-        <ul className="mt-2 text-sm text-blue-700 list-disc list-inside">
+      <AlertBox variant="info" title="デモデータについて">
+        <p>このデモでは以下のサンプルデータが登録されています:</p>
+        <ul className="mt-2 list-disc list-inside">
           <li>ユーザー: 管理者1名、講師1名、受講者3名</li>
           <li>講座: プログラミング基礎、Web開発入門、データサイエンス入門</li>
           <li>セッション: 継続中・終了・補正済のサンプル</li>
         </ul>
-      </div>
+      </AlertBox>
     </div>
   );
 }

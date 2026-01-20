@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useAuthFetch } from "@/lib/auth-fetch-context";
 import type { Course } from "@/types/course";
 import { CourseCard } from "./_components/course-card";
+import { AlertBox } from "@/components/ui/alert-box";
 
 const AUTH_MODE = process.env.NEXT_PUBLIC_AUTH_MODE ?? "dev";
 
@@ -79,15 +80,12 @@ export default function StudentCoursesPage() {
       </div>
 
       {/* 受講時の注意事項 */}
-      <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-700/50 dark:bg-slate-800">
-        <h2 className="mb-2 font-semibold text-amber-800 dark:text-amber-100">
-          受講時の注意事項
-        </h2>
-        <ul className="space-y-1 text-sm text-amber-700 dark:text-amber-200/90">
+      <AlertBox variant="warning" title="受講時の注意事項">
+        <ul className="space-y-1">
           <li>・同時並行で講座は受けられません</li>
           <li>・分割での動画視聴は不可です。全て最初から最後まで、倍速などの再生速度を早くする変更はせずにご視聴ください</li>
         </ul>
-      </div>
+      </AlertBox>
 
       {courses.length === 0 ? (
         <div className="rounded-lg border border-dashed p-8 text-center">
