@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuthenticatedFetch } from "@/lib/hooks/use-authenticated-fetch";
@@ -41,6 +41,7 @@ export default function SessionPage() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [canCheckOut, setCanCheckOut] = useState(false);
 
   // heartbeat: セッションがopenの場合のみ送信（デモモードでも有効）
   useHeartbeat(session?.status === "open" ? session.id : null);
@@ -155,6 +156,11 @@ export default function SessionPage() {
     }
   };
 
+  // SessionTimerからの達成状態コールバック
+  const handleTimeReached = useCallback((reached: boolean) => {
+    setCanCheckOut(reached);
+  }, []);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -218,13 +224,26 @@ export default function SessionPage() {
         <CardContent className="space-y-6">
           {isSessionActive && session ? (
             <>
-              <SessionTimer startTime={session.startTime} />
+              <SessionTimer
+                startTime={session.startTime}
+                requiredWatchMin={course?.requiredWatchMin}
+                onTimeReached={handleTimeReached}
+              />
               <div className="flex flex-col items-center gap-4">
+                {/* 必要時間未達の注意文 */}
+                {!canCheckOut && (
+                  <div className="w-full max-w-md rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950">
+                    <p className="text-sm text-amber-800 dark:text-amber-200">
+                      ⚠️ 必要視聴時間に達するまで退室できません。
+                      最後までご視聴ください。
+                    </p>
+                  </div>
+                )}
                 <Button
                   size="lg"
                   variant="destructive"
                   onClick={handleCheckOut}
-                  disabled={actionLoading}
+                  disabled={actionLoading || !canCheckOut}
                   className="w-full max-w-xs"
                 >
                   {actionLoading ? "処理中..." : "OUT（退室）"}
