@@ -78,6 +78,18 @@ export default function StudentCoursesPage() {
         </p>
       </div>
 
+      {/* 受講時の注意事項 */}
+      <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950">
+        <h2 className="mb-2 flex items-center gap-2 font-semibold text-amber-800 dark:text-amber-200">
+          <span className="text-lg">⚠️</span>
+          受講時の注意事項
+        </h2>
+        <ul className="space-y-1 text-sm text-amber-700 dark:text-amber-300">
+          <li>・同時並行で講座は受けられません。</li>
+          <li>・分割での動画視聴は不可です。全て最初から最後まで、倍速などの再生速度を早くする変更はせずにご視聴ください。</li>
+        </ul>
+      </div>
+
       {courses.length === 0 ? (
         <div className="rounded-lg border border-dashed p-8 text-center">
           <p className="text-muted-foreground">

@@ -236,6 +236,16 @@ export default function SessionPage() {
             </>
           ) : (
             <div className="flex flex-col items-center gap-4">
+              {/* 入室前の確認事項 */}
+              <div className="w-full max-w-md rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950">
+                <p className="mb-2 text-sm font-semibold text-amber-800 dark:text-amber-200">
+                  ⚠️ 入室前にご確認ください
+                </p>
+                <ul className="space-y-0.5 text-xs text-amber-700 dark:text-amber-300">
+                  <li>・同時並行で講座は受けられません。</li>
+                  <li>・分割視聴は不可です。最初から最後まで、倍速などの再生速度を早くする変更はせずにご視聴ください。</li>
+                </ul>
+              </div>
               <Button
                 size="lg"
                 onClick={handleCheckIn}
