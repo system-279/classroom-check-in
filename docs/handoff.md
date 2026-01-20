@@ -41,8 +41,10 @@
 
 ## 実装済み範囲
 - APIの主要エンドポイント: `services/api/src/index.ts`
-  - `/api/v1/courses`
+  - `/api/v1/courses`（N+1解消済み: 講座一覧とセッションを並列取得）
   - `/api/v1/sessions/active|check-in|heartbeat|check-out`
+    - check-in: Firestoreトランザクションで排他制御（同時リクエスト対応）
+    - check-out: durationSec負値防止（Math.max(0, ...)）
   - `/api/v1/admin/courses`
   - `/api/v1/admin/users` - ユーザー管理（CRUD）
   - `/api/v1/admin/users/:id/settings` - ユーザー設定管理
@@ -69,10 +71,12 @@
 - **講座設定**:
   - 必要視聴時間（`requiredWatchMin`）: 講座ごとに設定可能、デフォルト63分
 - **通知サービス**: `services/notification/src/`
+  - **マルチテナント対応済み**（全アクティブテナントを走査）
   - OUT忘れセッション検出（lastHeartbeatAtベース）
   - 通知ポリシー解決（user > course > global）
   - Gmail API / コンソール出力対応
   - 通知ログ記録・重複防止
+  - コレクション名: `notification_policies`, `notification_logs`, `user_settings`（snake_case統一）
 - **Cloud Scheduler設定済み**:
   - 通知サービス: `notification-job`（毎時0分実行）
 - **Cloud Runデプロイ済み**:
