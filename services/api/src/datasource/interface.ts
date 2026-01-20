@@ -81,6 +81,16 @@ export interface DataSource {
   createSession(data: Omit<Session, "id">): Promise<Session>;
   updateSession(id: string, data: SessionUpdateData): Promise<Session | null>;
   deleteSession(id: string): Promise<boolean>;
+  /**
+   * アトミックなチェックイン操作
+   * 既存のオープンセッションがあればそれを返し、なければ新規作成
+   * 同時リクエストによる重複作成を防止
+   */
+  checkInOrGetExisting(
+    userId: string,
+    courseId: string,
+    sessionData: Omit<Session, "id">,
+  ): Promise<{ session: Session; isExisting: boolean }>;
 
   // Notification Policies
   getNotificationPolicies(filter?: NotificationPolicyFilter): Promise<NotificationPolicy[]>;
