@@ -122,7 +122,32 @@
 - Classroom API連携
 - Forms API連携
 
-## 最新セッション成果（2026-01-20）
+## 最新セッション成果（2026-01-21）
+
+### セッション管理の残論点解決
+すべての残論点を解決し、実装を完了。
+
+| ADR | タイトル | 決定内容 |
+|-----|---------|---------|
+| ADR-0020 | OUT欠損セッション自動確定 | 48時間経過で自動クローズ |
+| ADR-0021 | タブ閉鎖検知 | スコープ外（ブラウザ制約） |
+| ADR-0022 | Heartbeat継続方式 | setInterval方式維持 |
+| ADR-0023 | 同時複数講座セッション | 1人1セッションのみ許可 |
+
+**実装内容**:
+- `services/notification/src/services/auto-closer.ts` - 48時間自動クローズ
+- `services/api/src/routes/shared/sessions.ts` - 同時セッション禁止
+
+### AlertBox共有コンポーネント
+- `web/components/ui/alert-box.tsx` - DRY原則に準拠した共有コンポーネント
+- Tailwind v4 `@source`ディレクティブ問題を解決
+
+### 残論点の状態
+- `docs/open-questions.md` → **すべて解決済み**
+
+---
+
+## 前回セッション成果（2026-01-20）
 
 ### 退室打刻の必要視聴時間チェック（PR #16）
 必要視聴時間（requiredWatchMin）経過前の退室を防止する機能。
