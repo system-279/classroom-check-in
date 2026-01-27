@@ -15,14 +15,167 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import type { CreateTenantResponse } from "@/types/tenant";
+import type { CreateTenantResponse, Tenant } from "@/types/tenant";
+
+// コピー成功時のフィードバック用
+function CopyButton({ text, label }: { text: string; label: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
+  };
+
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={handleCopy}
+      className="shrink-0"
+    >
+      {copied ? "コピーしました" : label}
+    </Button>
+  );
+}
+
+// リンク表示コンポーネント
+function LinkDisplay({
+  label,
+  description,
+  fullUrl,
+}: {
+  label: string;
+  description: string;
+  fullUrl: string;
+}) {
+  return (
+    <div className="rounded-lg border bg-muted/30 p-4 space-y-2">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="font-medium text-sm">{label}</p>
+          <p className="text-xs text-muted-foreground">{description}</p>
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <code className="flex-1 rounded bg-background px-3 py-2 text-sm font-mono border truncate">
+          {fullUrl}
+        </code>
+        <CopyButton text={fullUrl} label="コピー" />
+      </div>
+    </div>
+  );
+}
+
+// 登録完了画面
+function RegistrationComplete({
+  tenant,
+  adminUrl,
+  studentUrl,
+}: {
+  tenant: Tenant;
+  adminUrl: string;
+  studentUrl: string;
+}) {
+  const router = useRouter();
+
+  // フルURLを生成（クライアントサイドでのみ実行）
+  const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+  const fullAdminUrl = `${baseUrl}${adminUrl}`;
+  const fullStudentUrl = `${baseUrl}${studentUrl}`;
+
+  return (
+    <main className="min-h-screen bg-background flex items-center justify-center p-4">
+      <Card className="max-w-lg w-full">
+        <CardHeader className="text-center pb-2">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+            <svg
+              className="h-8 w-8 text-green-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+          </div>
+          <CardTitle className="text-xl">登録が完了しました</CardTitle>
+          <CardDescription>
+            「{tenant.name}」の準備が整いました
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent className="space-y-6">
+          {/* リンク一覧 */}
+          <div className="space-y-4">
+            <LinkDisplay
+              label="管理者用リンク"
+              description="講座の設定や受講者の管理を行います"
+              fullUrl={fullAdminUrl}
+            />
+
+            <LinkDisplay
+              label="受講者用リンク"
+              description="受講者に共有してください"
+              fullUrl={fullStudentUrl}
+            />
+          </div>
+
+          {/* 注意事項 */}
+          <div className="rounded-lg bg-amber-50 border border-amber-200 p-4">
+            <p className="text-sm text-amber-800">
+              <strong>次のステップ:</strong>
+            </p>
+            <ol className="mt-2 text-sm text-amber-700 list-decimal list-inside space-y-1">
+              <li>管理画面で講座を作成</li>
+              <li>受講者のメールアドレスを登録</li>
+              <li>受講者用リンクを共有</li>
+            </ol>
+          </div>
+
+          {/* アクションボタン */}
+          <div className="flex flex-col gap-3">
+            <Button
+              onClick={() => router.push(adminUrl)}
+              className="w-full"
+              size="lg"
+            >
+              管理画面へ進む
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => router.push("/")}
+              className="w-full"
+            >
+              ホームに戻る
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </main>
+  );
+}
 
 export default function RegisterPage() {
-  const router = useRouter();
   const { user, loading: authLoading, signInWithGoogle, getIdToken } = useAuth();
   const [organizationName, setOrganizationName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // 登録完了状態
+  const [registrationResult, setRegistrationResult] = useState<{
+    tenant: Tenant;
+    adminUrl: string;
+    studentUrl: string;
+  } | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,8 +207,12 @@ export default function RegisterPage() {
         idToken,
       });
 
-      // 作成成功 → テナント管理画面へ
-      router.push(response.adminUrl);
+      // 完了画面を表示（リダイレクトせず）
+      setRegistrationResult({
+        tenant: response.tenant,
+        adminUrl: response.adminUrl,
+        studentUrl: response.studentUrl,
+      });
     } catch (err) {
       setError(
         err instanceof Error
@@ -65,6 +222,17 @@ export default function RegisterPage() {
       setIsSubmitting(false);
     }
   };
+
+  // 登録完了 → 完了画面を表示
+  if (registrationResult) {
+    return (
+      <RegistrationComplete
+        tenant={registrationResult.tenant}
+        adminUrl={registrationResult.adminUrl}
+        studentUrl={registrationResult.studentUrl}
+      />
+    );
+  }
 
   // ローディング中
   if (authLoading) {

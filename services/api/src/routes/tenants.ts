@@ -301,6 +301,7 @@ router.post("/", async (req: Request, res: Response) => {
     res.status(201).json({
       tenant,
       adminUrl: `/${tenantId}/admin`,
+      studentUrl: `/${tenantId}/student`,
     });
   } catch (error) {
     const duration = Date.now() - startTime;
