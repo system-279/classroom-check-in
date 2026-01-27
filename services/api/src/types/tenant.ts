@@ -43,4 +43,6 @@ export interface CreateTenantResponse {
   tenant: TenantMetadata;
   /** テナント管理画面のURL */
   adminUrl: string;
+  /** 受講者向け画面のURL */
+  studentUrl: string;
 }

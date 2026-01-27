@@ -19,6 +19,7 @@ export interface CreateTenantRequest {
 export interface CreateTenantResponse {
   tenant: Tenant;
   adminUrl: string;
+  studentUrl: string;
 }
 
 export interface MyTenantsResponse {
