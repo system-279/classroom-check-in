@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   Table,
   TableBody,
@@ -70,13 +71,14 @@ export function TenantTable({ tenants, onStatusChange }: TenantTableProps) {
             <TableHead>オーナー</TableHead>
             <TableHead>ステータス</TableHead>
             <TableHead>作成日時</TableHead>
+            <TableHead>リンク</TableHead>
             <TableHead>操作</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {tenants.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+              <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                 テナントがありません
               </TableCell>
             </TableRow>
@@ -97,6 +99,20 @@ export function TenantTable({ tenants, onStatusChange }: TenantTableProps) {
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">
                   {formatDate(tenant.createdAt)}
+                </TableCell>
+                <TableCell>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={`/${tenant.id}/admin`} target="_blank">
+                        管理
+                      </Link>
+                    </Button>
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={`/${tenant.id}/student`} target="_blank">
+                        受講
+                      </Link>
+                    </Button>
+                  </div>
                 </TableCell>
                 <TableCell>
                   {tenant.status === "active" ? (
