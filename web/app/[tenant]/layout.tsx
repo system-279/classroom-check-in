@@ -2,9 +2,71 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { TenantProvider, useTenant } from "@/lib/tenant-context";
-import { AuthProvider } from "@/lib/auth-context";
-import { AuthFetchProvider } from "@/lib/auth-fetch-context";
+import { AuthProvider, useAuth } from "@/lib/auth-context";
+import { AuthFetchProvider, useAuthFetch } from "@/lib/auth-fetch-context";
+
+type UserRole = "admin" | "teacher" | "student" | null;
+
+/**
+ * ナビゲーションコンポーネント
+ * ユーザーロールに基づいてリンクを表示
+ */
+function TenantNav() {
+  const { tenantId, isDemo } = useTenant();
+  const { user, loading: authLoading } = useAuth();
+  const authFetch = useAuthFetch();
+  const [role, setRole] = useState<UserRole>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // 認証中または未ログインの場合はスキップ
+    if (authLoading) return;
+    if (!user && !isDemo) {
+      setLoading(false);
+      return;
+    }
+
+    // ユーザー情報を取得してロールを設定
+    const fetchUserRole = async () => {
+      try {
+        const data = await authFetch<{ role?: string }>("/auth/me");
+        setRole((data.role as UserRole) ?? "student");
+      } catch {
+        // エラー時はstudent扱い
+        setRole("student");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserRole();
+  }, [authFetch, user, authLoading, isDemo]);
+
+  const isAdmin = role === "admin" || role === "teacher";
+
+  return (
+    <nav className="flex gap-4 text-sm">
+      <span className="text-muted-foreground">|</span>
+      {/* 管理者・教員のみ表示 */}
+      {!loading && isAdmin && (
+        <Link
+          href={`/${tenantId}/admin`}
+          className="text-muted-foreground hover:text-foreground font-medium"
+        >
+          管理者向け
+        </Link>
+      )}
+      <Link
+        href={`/${tenantId}/student`}
+        className="text-muted-foreground hover:text-foreground font-medium"
+      >
+        受講者向け
+      </Link>
+    </nav>
+  );
+}
 
 /**
  * テナントレイアウトの内部コンポーネント
@@ -29,21 +91,7 @@ function TenantLayoutInner({ children }: { children: React.ReactNode }) {
           >
             Classroom Check-in{isDemo ? " (DEMO)" : ""}
           </Link>
-          <nav className="flex gap-4 text-sm">
-            <span className="text-muted-foreground">|</span>
-            <Link
-              href={`/${tenantId}/admin`}
-              className="text-muted-foreground hover:text-foreground font-medium"
-            >
-              管理者向け
-            </Link>
-            <Link
-              href={`/${tenantId}/student`}
-              className="text-muted-foreground hover:text-foreground font-medium"
-            >
-              受講者向け
-            </Link>
-          </nav>
+          <TenantNav />
         </div>
       </header>
       <main className="mx-auto max-w-7xl p-4">{children}</main>
