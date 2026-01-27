@@ -19,7 +19,10 @@ const router = Router();
  * GET /auth/me
  */
 router.get("/auth/me", requireUser, (req: Request, res: Response) => {
-  res.json({ user: req.user });
+  res.json({
+    user: req.user,
+    isSuperAdminAccess: req.isSuperAdminAccess ?? false,
+  });
 });
 
 /**

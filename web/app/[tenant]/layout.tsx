@@ -9,11 +9,16 @@ import { AuthFetchProvider, useAuthFetch } from "@/lib/auth-fetch-context";
 
 type UserRole = "admin" | "teacher" | "student" | null;
 
+interface AuthMeResponse {
+  user?: { role?: string };
+  isSuperAdminAccess?: boolean;
+}
+
 /**
  * ナビゲーションコンポーネント
  * ユーザーロールに基づいてリンクを表示
  */
-function TenantNav() {
+function TenantNav({ isSuperAdminAccess }: { isSuperAdminAccess: boolean }) {
   const { tenantId, isDemo } = useTenant();
   const { user, loading: authLoading } = useAuth();
   const authFetch = useAuthFetch();
@@ -31,8 +36,8 @@ function TenantNav() {
     // ユーザー情報を取得してロールを設定
     const fetchUserRole = async () => {
       try {
-        const data = await authFetch<{ role?: string }>("/auth/me");
-        setRole((data.role as UserRole) ?? "student");
+        const data = await authFetch<AuthMeResponse>("/auth/me");
+        setRole((data.user?.role as UserRole) ?? "student");
       } catch {
         // エラー時はstudent扱い
         setRole("student");
@@ -49,7 +54,7 @@ function TenantNav() {
   return (
     <nav className="flex gap-4 text-sm">
       <span className="text-muted-foreground">|</span>
-      {/* 管理者・教員のみ表示 */}
+      {/* 管理者・教員のみ表示（スーパー管理者も含む） */}
       {!loading && isAdmin && (
         <Link
           href={`/${tenantId}/admin`}
@@ -58,12 +63,15 @@ function TenantNav() {
           管理者向け
         </Link>
       )}
-      <Link
-        href={`/${tenantId}/student`}
-        className="text-muted-foreground hover:text-foreground font-medium"
-      >
-        受講者向け
-      </Link>
+      {/* 受講者リンクは管理者には非表示 */}
+      {!loading && !isAdmin && !isSuperAdminAccess && (
+        <Link
+          href={`/${tenantId}/student`}
+          className="text-muted-foreground hover:text-foreground font-medium"
+        >
+          受講者向け
+        </Link>
+      )}
     </nav>
   );
 }
@@ -74,9 +82,36 @@ function TenantNav() {
  */
 function TenantLayoutInner({ children }: { children: React.ReactNode }) {
   const { tenantId, isDemo } = useTenant();
+  const { user, loading: authLoading } = useAuth();
+  const authFetch = useAuthFetch();
+  const [isSuperAdminAccess, setIsSuperAdminAccess] = useState(false);
+
+  useEffect(() => {
+    if (authLoading || !user) return;
+
+    const checkSuperAdminAccess = async () => {
+      try {
+        const data = await authFetch<AuthMeResponse>("/auth/me");
+        setIsSuperAdminAccess(data.isSuperAdminAccess ?? false);
+      } catch {
+        setIsSuperAdminAccess(false);
+      }
+    };
+
+    checkSuperAdminAccess();
+  }, [authFetch, user, authLoading]);
 
   return (
     <div className="min-h-screen bg-background">
+      {/* スーパー管理者アクセスバナー */}
+      {isSuperAdminAccess && (
+        <div className="bg-red-100 border-b border-red-300 text-red-800 text-center py-2 text-sm">
+          スーパー管理者としてアクセス中 -{" "}
+          <Link href="/super-admin" className="underline font-medium">
+            スーパー管理画面に戻る
+          </Link>
+        </div>
+      )}
       {/* デモモードバナー */}
       {isDemo && (
         <div className="bg-yellow-100 border-b border-yellow-300 text-yellow-800 text-center py-2 text-sm">
@@ -91,7 +126,7 @@ function TenantLayoutInner({ children }: { children: React.ReactNode }) {
           >
             Classroom Check-in{isDemo ? " (DEMO)" : ""}
           </Link>
-          <TenantNav />
+          <TenantNav isSuperAdminAccess={isSuperAdminAccess} />
         </div>
       </header>
       <main className="mx-auto max-w-7xl p-4">{children}</main>
