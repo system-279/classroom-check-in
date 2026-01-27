@@ -15,6 +15,10 @@
 - `PORT` (default: 8080)
 - `CORS_ORIGIN`:
   - 本番環境では必須（カンマ区切りで複数指定可能）
+- `SUPER_ADMIN_EMAILS`:
+  - スーパー管理者のメールアドレス（カンマ区切りで複数指定可能）
+  - 指定されたメールアドレスのユーザーは `/api/v2/super/*` にアクセス可能
+  - 本番環境ではCloud Secret Managerでの管理を推奨（ADR-0024）
 
 ## Web App (`web`)
 - `NEXT_PUBLIC_AUTH_MODE`:

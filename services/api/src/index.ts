@@ -10,6 +10,7 @@ import {
 } from "./middleware/tenant.js";
 import { createSharedRouter } from "./routes/shared/index.js";
 import { tenantsRouter } from "./routes/tenants.js";
+import { superAdminRouter } from "./routes/super-admin.js";
 import { isValidEmail, isValidTimezone } from "./utils/validation.js";
 
 // 旧デモルーター（後方互換性のため一時的に維持）
@@ -1202,6 +1203,12 @@ app.use("/api/v1", authMiddleware, legacyApiRouter);
 // GET /api/v2/tenants/mine - 自分のテナント一覧
 app.use("/api/v2/tenants", tenantsRouter);
 
+// スーパー管理者API（SUPER_ADMIN_EMAILSで認可）
+// GET /api/v2/super/tenants - 全テナント一覧
+// GET /api/v2/super/tenants/:id - テナント詳細
+// PATCH /api/v2/super/tenants/:id - テナント更新
+app.use("/api/v2/super", superAdminRouter);
+
 // URL: /api/v2/:tenant/*
 // - /api/v2/demo/* → デモモード（読み取り専用、モックデータ）
 // - /api/v2/{tenantId}/* → 本番モード（Firestore）
@@ -1227,5 +1234,6 @@ app.listen(port, () => {
     console.log("  - /api/v1/demo/* (legacy demo)");
   }
   console.log("  - /api/v2/tenants (tenant registration)");
+  console.log("  - /api/v2/super/* (super admin API)");
   console.log("  - /api/v2/:tenant/* (new tenant-based API)");
 });
