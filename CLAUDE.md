@@ -85,6 +85,7 @@ npm run dev -w @classroom-check-in/web
 - **OUT欠損セッション**: 48時間経過で自動クローズ（ADR-0020）
 - **heartbeat継続**: setInterval方式維持、バックグラウンドでも継続（ADR-0022）
 - **同時セッション**: 1人1セッションのみ許可、複数講座同時禁止（ADR-0023）
+- **スーパー管理者**: 環境変数でメールアドレス指定、全テナント管理（ADR-0024）
 
 全ADRは`docs/decisions.md`を参照。
 
@@ -148,6 +149,11 @@ npm run dev -w @classroom-check-in/web
   - OUT忘れ通知後、受講者が退室時刻を指定して打刻可能
   - `/[tenant]/student/checkout/[sessionId]`
   - 通知送信済み＋必要視聴時間経過後のみ利用可
+- **スーパー管理者機能**（ADR-0024）:
+  - `SUPER_ADMIN_EMAILS`環境変数で管理者メールアドレス指定
+  - API: `/api/v2/super/tenants` - 全テナント一覧・詳細・ステータス変更
+  - Web: `/super-admin/tenants` - テナント管理画面
+  - テナント停止/再開操作が可能
 
 **スコープ外**（実装予定なし）:
 - Google OAuth（Classroom API連携用）（ADR-0014: 審査コストが高いため実装しない）
