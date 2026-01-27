@@ -121,24 +121,27 @@
       </h2>
 
       <p class="text-gray-600 mb-4">
-        スーパー管理者機能を有効にするには、APIサーバーに<code>SUPER_ADMIN_EMAILS</code>環境変数を設定します。
+        スーパー管理者の追加方法は2つあります：
       </p>
 
+      <h3 class="font-bold text-gray-800 mb-3">方法1: 環境変数で設定（初期セットアップ用）</h3>
+      <p class="text-gray-600 mb-2 text-sm">最初のスーパー管理者は環境変数で設定します。</p>
       <div class="bg-gray-900 rounded-lg p-4 mb-4">
         <p class="text-gray-400 text-sm mb-2"># カンマ区切りで複数指定可能</p>
         <code class="text-green-400">SUPER_ADMIN_EMAILS=admin@example.com,ops@example.com</code>
       </div>
 
-      <h3 class="font-bold text-gray-800 mt-6 mb-3">Cloud Runへの設定例</h3>
       <div class="bg-gray-900 rounded-lg p-4 mb-4">
         <pre class="text-sm"><code class="text-gray-100">gcloud run services update api \
   --region asia-northeast1 \
-  --set-env-vars "SUPER_ADMIN_EMAILS=admin@example.com"</code></pre>
+  --update-env-vars "SUPER_ADMIN_EMAILS=admin@example.com"</code></pre>
       </div>
 
-      <div class="bg-amber-50 border-l-4 border-amber-500 p-4 mt-4">
-        <p class="text-amber-800 font-bold">本番環境での推奨事項</p>
-        <p class="text-amber-700 text-sm">Cloud Secret Managerを使用してスーパー管理者メールアドレスを安全に管理することを推奨します。</p>
+      <h3 class="font-bold text-gray-800 mt-6 mb-3">方法2: 管理画面で追加（推奨）</h3>
+      <p class="text-gray-600 mb-2 text-sm">一度ログインできたら、管理画面から他の管理者を追加できます。</p>
+      <div class="bg-blue-50 border-l-4 border-blue-500 p-4">
+        <p class="text-blue-800 font-bold">管理者管理画面</p>
+        <p class="text-blue-700 text-sm"><code>/super-admin/admins</code> でスーパー管理者の追加・削除ができます。Firestoreに保存されるため、環境変数の再設定は不要です。</p>
       </div>
     </section>
 
@@ -187,7 +190,7 @@
 
       <h3 class="font-bold text-gray-800 mb-3">テナント管理 (<code>/super-admin/tenants</code>)</h3>
 
-      <div class="overflow-x-auto">
+      <div class="overflow-x-auto mb-6">
         <table class="min-w-full border rounded-lg">
           <thead class="bg-gray-100">
             <tr>
@@ -211,6 +214,37 @@
             <tr>
               <td class="px-4 py-3 font-medium">テナント再開</td>
               <td class="px-4 py-3 text-gray-600">停止中のテナントを再開</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium">管理/受講リンク</td>
+              <td class="px-4 py-3 text-gray-600">各テナントの管理画面・受講者画面へ直接アクセス</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="font-bold text-gray-800 mb-3">管理者管理 (<code>/super-admin/admins</code>)</h3>
+
+      <div class="overflow-x-auto mb-6">
+        <table class="min-w-full border rounded-lg">
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="px-4 py-3 text-left font-medium text-gray-700">機能</th>
+              <th class="px-4 py-3 text-left font-medium text-gray-700">説明</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y">
+            <tr>
+              <td class="px-4 py-3 font-medium">管理者一覧</td>
+              <td class="px-4 py-3 text-gray-600">全スーパー管理者を表示（環境変数/Firestore両方）</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium">管理者追加</td>
+              <td class="px-4 py-3 text-gray-600">メールアドレスで新しいスーパー管理者を追加</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium">管理者削除</td>
+              <td class="px-4 py-3 text-gray-600">Firestoreに登録された管理者を削除（環境変数は削除不可）</td>
             </tr>
           </tbody>
         </table>
@@ -258,6 +292,21 @@
               <td class="px-4 py-3"><span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-sm">PATCH</span></td>
               <td class="px-4 py-3 font-mono text-sm">/api/v2/super/tenants/:id</td>
               <td class="px-4 py-3 text-gray-600">テナントステータス変更</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3"><span class="bg-green-100 text-green-800 px-2 py-1 rounded text-sm">GET</span></td>
+              <td class="px-4 py-3 font-mono text-sm">/api/v2/super/admins</td>
+              <td class="px-4 py-3 text-gray-600">スーパー管理者一覧</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3"><span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">POST</span></td>
+              <td class="px-4 py-3 font-mono text-sm">/api/v2/super/admins</td>
+              <td class="px-4 py-3 text-gray-600">スーパー管理者追加</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3"><span class="bg-red-100 text-red-800 px-2 py-1 rounded text-sm">DELETE</span></td>
+              <td class="px-4 py-3 font-mono text-sm">/api/v2/super/admins/:email</td>
+              <td class="px-4 py-3 text-gray-600">スーパー管理者削除</td>
             </tr>
           </tbody>
         </table>

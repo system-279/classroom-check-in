@@ -25,6 +25,15 @@ export default function SuperAdminDashboard() {
             全テナントの一覧表示、ステータス変更（停止/再開）を行います
           </p>
         </Link>
+        <Link
+          href="/super-admin/admins"
+          className="block rounded-lg border bg-card p-6 hover:bg-accent transition-colors"
+        >
+          <h2 className="text-lg font-semibold mb-2">管理者管理</h2>
+          <p className="text-sm text-muted-foreground">
+            スーパー管理者アカウントの追加・削除を行います
+          </p>
+        </Link>
       </div>
     </div>
   );

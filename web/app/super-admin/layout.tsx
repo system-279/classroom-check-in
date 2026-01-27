@@ -90,6 +90,7 @@ export default function SuperAdminLayout({
   const navItems = [
     { href: "/super-admin", label: "ダッシュボード" },
     { href: "/super-admin/tenants", label: "テナント管理" },
+    { href: "/super-admin/admins", label: "管理者管理" },
   ];
 
   return (

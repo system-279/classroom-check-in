@@ -10,7 +10,12 @@
 
 import { Router, Request, Response } from "express";
 import { getFirestore } from "firebase-admin/firestore";
-import { superAdminAuthMiddleware } from "../middleware/super-admin.js";
+import {
+  superAdminAuthMiddleware,
+  getAllSuperAdmins,
+  addSuperAdmin,
+  removeSuperAdmin,
+} from "../middleware/super-admin.js";
 import type { TenantMetadata, TenantStatus } from "../types/tenant.js";
 
 const router = Router();
@@ -274,6 +279,128 @@ router.patch("/tenants/:id", async (req: Request, res: Response) => {
     res.status(500).json({
       error: "internal_error",
       message: "テナントの更新に失敗しました。",
+    });
+  }
+});
+
+// ============================================
+// スーパー管理者管理API
+// ============================================
+
+/**
+ * スーパー管理者一覧を取得
+ * GET /api/v2/super/admins
+ */
+router.get("/admins", async (req: Request, res: Response) => {
+  try {
+    const admins = await getAllSuperAdmins();
+    res.json({ admins });
+  } catch (error) {
+    console.error("Error fetching super admins:", error);
+    res.status(500).json({
+      error: "internal_error",
+      message: "スーパー管理者一覧の取得に失敗しました。",
+    });
+  }
+});
+
+/**
+ * スーパー管理者を追加
+ * POST /api/v2/super/admins
+ */
+router.post("/admins", async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body as { email?: string };
+
+    // バリデーション
+    if (!email || typeof email !== "string") {
+      res.status(400).json({
+        error: "invalid_email",
+        message: "有効なメールアドレスを指定してください。",
+      });
+      return;
+    }
+
+    // 簡易的なメールアドレス形式チェック
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      res.status(400).json({
+        error: "invalid_email",
+        message: "有効なメールアドレス形式で指定してください。",
+      });
+      return;
+    }
+
+    const addedBy = req.superAdmin?.email ?? "unknown";
+    await addSuperAdmin(email, addedBy);
+
+    res.status(201).json({
+      message: "スーパー管理者を追加しました。",
+      admin: {
+        email: email.toLowerCase(),
+        source: "firestore",
+        addedBy,
+        addedAt: new Date().toISOString(),
+      },
+    });
+  } catch (error) {
+    console.error("Error adding super admin:", error);
+    res.status(500).json({
+      error: "internal_error",
+      message: "スーパー管理者の追加に失敗しました。",
+    });
+  }
+});
+
+/**
+ * スーパー管理者を削除
+ * DELETE /api/v2/super/admins/:email
+ */
+router.delete("/admins/:email", async (req: Request, res: Response) => {
+  try {
+    const email = decodeURIComponent(req.params.email as string);
+
+    // 環境変数で設定された管理者は削除できない
+    const admins = await getAllSuperAdmins();
+    const targetAdmin = admins.find((a) => a.email === email.toLowerCase());
+
+    if (!targetAdmin) {
+      res.status(404).json({
+        error: "not_found",
+        message: "指定されたスーパー管理者が見つかりません。",
+      });
+      return;
+    }
+
+    if (targetAdmin.source === "env") {
+      res.status(400).json({
+        error: "cannot_delete",
+        message: "環境変数で設定されたスーパー管理者は削除できません。",
+      });
+      return;
+    }
+
+    // 自分自身は削除できない
+    if (req.superAdmin?.email === email.toLowerCase()) {
+      res.status(400).json({
+        error: "cannot_delete_self",
+        message: "自分自身を削除することはできません。",
+      });
+      return;
+    }
+
+    await removeSuperAdmin(email);
+
+    console.log(`[SuperAdmin] Admin removed: ${email} by ${req.superAdmin?.email}`);
+
+    res.json({
+      message: "スーパー管理者を削除しました。",
+    });
+  } catch (error) {
+    console.error("Error removing super admin:", error);
+    res.status(500).json({
+      error: "internal_error",
+      message: "スーパー管理者の削除に失敗しました。",
     });
   }
 });
