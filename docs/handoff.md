@@ -122,7 +122,42 @@
 - Classroom API連携
 - Forms API連携
 
-## 最新セッション成果（2026-01-27）
+## 最新セッション成果（2026-01-27 #2）
+
+### スーパー管理者機能の強化
+システム全体を管理するスーパー管理者機能を大幅に拡張。
+
+**新機能**:
+1. **テナント一覧にリンク追加**
+   - 各テナントの「管理」「受講」ボタンを追加
+   - 新規タブで各テナントの画面を開ける
+
+2. **スーパー管理者のUI管理**（`/super-admin/admins`）
+   - Firestoreベースのスーパー管理者管理
+   - 環境変数に加え、UIからも管理者を追加・削除可能
+   - 環境変数リセット時もFirestoreから復元可能
+   - API: `GET/POST/DELETE /api/v2/super/admins`
+
+3. **スーパー管理者の全テナントアクセス**
+   - 許可リストに関係なく全テナントにアクセス可能
+   - テナント内では管理者（admin）権限として扱われる
+   - 「スーパー管理者としてアクセス中」バナー表示
+
+4. **CD設定改善**
+   - GitHub Secretsに `SUPER_ADMIN_EMAILS` 設定
+   - デプロイ時に自動設定されるように修正
+
+**関連ファイル**:
+- `services/api/src/middleware/super-admin.ts` - Firestore管理対応
+- `services/api/src/middleware/tenant-auth.ts` - スーパー管理者バイパス
+- `services/api/src/routes/super-admin.ts` - 管理者管理API追加
+- `web/app/super-admin/admins/page.tsx` - 管理者管理UI
+- `web/app/[tenant]/layout.tsx` - スーパー管理者バナー
+- `.github/workflows/deploy.yml` - SUPER_ADMIN_EMAILS対応
+
+---
+
+## 前回セッション成果（2026-01-27）
 
 ### テナント登録完了画面と受講者リンク共有UI（PR #17）
 テナント作成後のUXを改善。管理者が受講者にリンクを共有しやすくした。
@@ -140,7 +175,7 @@
 
 ---
 
-## 前回セッション成果（2026-01-21）
+## 過去セッション成果（2026-01-21）
 
 ### セッション管理の残論点解決
 すべての残論点を解決し、実装を完了。
