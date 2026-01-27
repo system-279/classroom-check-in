@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>スーパー管理者ガイド - Classroom Check-in</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Noto Sans JP', sans-serif; }
+    code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+    pre { background: #1f2937; color: #f9fafb; padding: 16px; border-radius: 8px; overflow-x: auto; }
+    pre code { background: none; padding: 0; }
+  </style>
+</head>
+<body class="bg-gray-50">
+  <!-- ヘッダー -->
+  <header class="bg-red-600 text-white shadow-lg">
+    <div class="max-w-6xl mx-auto px-4 py-6">
+      <h1 class="text-2xl md:text-3xl font-bold">Classroom Check-in</h1>
+      <p class="mt-2 text-red-100">スーパー管理者ガイド</p>
+    </div>
+  </header>
+
+  <!-- ナビゲーション -->
+  <nav class="bg-white shadow">
+    <div class="max-w-6xl mx-auto px-4">
+      <div class="flex space-x-4 overflow-x-auto">
+        <a href="index.html" class="px-4 py-3 text-gray-600 hover:text-blue-600">ホーム</a>
+        <a href="student-guide.html" class="px-4 py-3 text-gray-600 hover:text-blue-600">受講者ガイド</a>
+        <a href="admin-guide.html" class="px-4 py-3 text-gray-600 hover:text-blue-600">管理者ガイド</a>
+        <a href="architecture.html" class="px-4 py-3 text-gray-600 hover:text-blue-600">システム構成</a>
+        <a href="e2e-test-results.html" class="px-4 py-3 text-gray-600 hover:text-blue-600">E2Eテスト</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- メインコンテンツ -->
+  <main class="max-w-6xl mx-auto px-4 py-8">
+
+    <!-- ページタイトル -->
+    <div class="bg-gradient-to-r from-red-500 to-red-600 rounded-lg shadow-md p-6 mb-8 text-white">
+      <h2 class="text-2xl font-bold mb-2">&#128737; スーパー管理者ガイド</h2>
+      <p>全テナントの一覧・管理を行うシステム運営者向けの機能</p>
+    </div>
+
+    <!-- 警告 -->
+    <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-8">
+      <p class="text-red-800 font-bold">注意</p>
+      <p class="text-red-700 text-sm">スーパー管理者機能は、システム全体を管理する権限を持ちます。テナントの停止は該当テナントの全ユーザーに影響を与えます。</p>
+    </div>
+
+    <!-- 目次 -->
+    <section class="bg-white rounded-lg shadow-md p-6 mb-8">
+      <h2 class="text-xl font-bold text-gray-800 mb-4">このページの内容</h2>
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <a href="#setup" class="p-4 border rounded-lg hover:bg-red-50 hover:border-red-300 transition">
+          <div class="flex items-center space-x-3">
+            <span class="text-2xl">&#9881;</span>
+            <div>
+              <h3 class="font-bold text-gray-800">セットアップ</h3>
+              <p class="text-sm text-gray-600">環境変数の設定</p>
+            </div>
+          </div>
+        </a>
+        <a href="#access" class="p-4 border rounded-lg hover:bg-red-50 hover:border-red-300 transition">
+          <div class="flex items-center space-x-3">
+            <span class="text-2xl">&#128273;</span>
+            <div>
+              <h3 class="font-bold text-gray-800">アクセス方法</h3>
+              <p class="text-sm text-gray-600">ログインと認可</p>
+            </div>
+          </div>
+        </a>
+        <a href="#features" class="p-4 border rounded-lg hover:bg-red-50 hover:border-red-300 transition">
+          <div class="flex items-center space-x-3">
+            <span class="text-2xl">&#128736;</span>
+            <div>
+              <h3 class="font-bold text-gray-800">機能一覧</h3>
+              <p class="text-sm text-gray-600">テナント管理</p>
+            </div>
+          </div>
+        </a>
+        <a href="#api" class="p-4 border rounded-lg hover:bg-red-50 hover:border-red-300 transition">
+          <div class="flex items-center space-x-3">
+            <span class="text-2xl">&#128268;</span>
+            <div>
+              <h3 class="font-bold text-gray-800">API仕様</h3>
+              <p class="text-sm text-gray-600">エンドポイント一覧</p>
+            </div>
+          </div>
+        </a>
+        <a href="#security" class="p-4 border rounded-lg hover:bg-red-50 hover:border-red-300 transition">
+          <div class="flex items-center space-x-3">
+            <span class="text-2xl">&#128274;</span>
+            <div>
+              <h3 class="font-bold text-gray-800">セキュリティ</h3>
+              <p class="text-sm text-gray-600">認可の仕組み</p>
+            </div>
+          </div>
+        </a>
+        <a href="#troubleshooting" class="p-4 border rounded-lg hover:bg-red-50 hover:border-red-300 transition">
+          <div class="flex items-center space-x-3">
+            <span class="text-2xl">&#128295;</span>
+            <div>
+              <h3 class="font-bold text-gray-800">トラブルシューティング</h3>
+              <p class="text-sm text-gray-600">よくある問題と解決</p>
+            </div>
+          </div>
+        </a>
+      </div>
+    </section>
+
+    <!-- セットアップ -->
+    <section id="setup" class="bg-white rounded-lg shadow-md p-6 mb-8">
+      <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+        <span class="text-2xl mr-2">&#9881;</span>
+        セットアップ
+      </h2>
+
+      <p class="text-gray-600 mb-4">
+        スーパー管理者機能を有効にするには、APIサーバーに<code>SUPER_ADMIN_EMAILS</code>環境変数を設定します。
+      </p>
+
+      <div class="bg-gray-900 rounded-lg p-4 mb-4">
+        <p class="text-gray-400 text-sm mb-2"># カンマ区切りで複数指定可能</p>
+        <code class="text-green-400">SUPER_ADMIN_EMAILS=admin@example.com,ops@example.com</code>
+      </div>
+
+      <h3 class="font-bold text-gray-800 mt-6 mb-3">Cloud Runへの設定例</h3>
+      <div class="bg-gray-900 rounded-lg p-4 mb-4">
+        <pre class="text-sm"><code class="text-gray-100">gcloud run services update api \
+  --region asia-northeast1 \
+  --set-env-vars "SUPER_ADMIN_EMAILS=admin@example.com"</code></pre>
+      </div>
+
+      <div class="bg-amber-50 border-l-4 border-amber-500 p-4 mt-4">
+        <p class="text-amber-800 font-bold">本番環境での推奨事項</p>
+        <p class="text-amber-700 text-sm">Cloud Secret Managerを使用してスーパー管理者メールアドレスを安全に管理することを推奨します。</p>
+      </div>
+    </section>
+
+    <!-- アクセス方法 -->
+    <section id="access" class="bg-white rounded-lg shadow-md p-6 mb-8">
+      <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+        <span class="text-2xl mr-2">&#128273;</span>
+        アクセス方法
+      </h2>
+
+      <div class="space-y-4">
+        <div class="flex items-start space-x-4">
+          <div class="w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">1</div>
+          <div>
+            <h3 class="font-bold text-gray-800">Googleでログイン</h3>
+            <p class="text-gray-600 text-sm">通常のユーザーと同様にGoogleアカウントでログインします</p>
+          </div>
+        </div>
+
+        <div class="flex items-start space-x-4">
+          <div class="w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">2</div>
+          <div>
+            <h3 class="font-bold text-gray-800">スーパー管理画面へアクセス</h3>
+            <p class="text-gray-600 text-sm">ログインに使用したメールアドレスが<code>SUPER_ADMIN_EMAILS</code>に含まれている必要があります</p>
+          </div>
+        </div>
+
+        <div class="flex items-start space-x-4">
+          <div class="w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">3</div>
+          <div>
+            <h3 class="font-bold text-gray-800">管理画面URL</h3>
+            <div class="mt-2 bg-gray-100 rounded p-3">
+              <code class="text-red-600">https://web-102013220292.asia-northeast1.run.app/super-admin</code>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 機能一覧 -->
+    <section id="features" class="bg-white rounded-lg shadow-md p-6 mb-8">
+      <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+        <span class="text-2xl mr-2">&#128736;</span>
+        機能一覧
+      </h2>
+
+      <h3 class="font-bold text-gray-800 mb-3">テナント管理 (<code>/super-admin/tenants</code>)</h3>
+
+      <div class="overflow-x-auto">
+        <table class="min-w-full border rounded-lg">
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="px-4 py-3 text-left font-medium text-gray-700">機能</th>
+              <th class="px-4 py-3 text-left font-medium text-gray-700">説明</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y">
+            <tr>
+              <td class="px-4 py-3 font-medium">テナント一覧</td>
+              <td class="px-4 py-3 text-gray-600">全テナントをページング表示</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium">ステータスフィルター</td>
+              <td class="px-4 py-3 text-gray-600">有効/停止中でフィルタリング</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium">テナント停止</td>
+              <td class="px-4 py-3 text-gray-600">テナントを停止状態に変更（全ユーザーがアクセス不可に）</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium">テナント再開</td>
+              <td class="px-4 py-3 text-gray-600">停止中のテナントを再開</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="bg-red-50 border-l-4 border-red-500 p-4 mt-6">
+        <p class="text-red-800 font-bold">テナント停止時の影響</p>
+        <ul class="text-red-700 text-sm mt-2 space-y-1 list-disc list-inside">
+          <li>該当テナントの全ユーザーがアクセス不可になります</li>
+          <li>既存のセッションデータは保持されます（削除されません）</li>
+          <li>テナントオーナーも含め、誰もログインできなくなります</li>
+          <li>再開すれば元通りアクセス可能になります</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- API仕様 -->
+    <section id="api" class="bg-white rounded-lg shadow-md p-6 mb-8">
+      <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+        <span class="text-2xl mr-2">&#128268;</span>
+        API仕様
+      </h2>
+
+      <div class="overflow-x-auto mb-6">
+        <table class="min-w-full border rounded-lg">
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="px-4 py-3 text-left font-medium text-gray-700">メソッド</th>
+              <th class="px-4 py-3 text-left font-medium text-gray-700">パス</th>
+              <th class="px-4 py-3 text-left font-medium text-gray-700">機能</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y">
+            <tr>
+              <td class="px-4 py-3"><span class="bg-green-100 text-green-800 px-2 py-1 rounded text-sm">GET</span></td>
+              <td class="px-4 py-3 font-mono text-sm">/api/v2/super/tenants</td>
+              <td class="px-4 py-3 text-gray-600">全テナント一覧（ページング対応）</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3"><span class="bg-green-100 text-green-800 px-2 py-1 rounded text-sm">GET</span></td>
+              <td class="px-4 py-3 font-mono text-sm">/api/v2/super/tenants/:id</td>
+              <td class="px-4 py-3 text-gray-600">テナント詳細（統計情報含む）</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3"><span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-sm">PATCH</span></td>
+              <td class="px-4 py-3 font-mono text-sm">/api/v2/super/tenants/:id</td>
+              <td class="px-4 py-3 text-gray-600">テナントステータス変更</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="font-bold text-gray-800 mb-3">GET /api/v2/super/tenants クエリパラメータ</h3>
+      <div class="overflow-x-auto mb-6">
+        <table class="min-w-full border rounded-lg">
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="px-4 py-3 text-left font-medium text-gray-700">パラメータ</th>
+              <th class="px-4 py-3 text-left font-medium text-gray-700">型</th>
+              <th class="px-4 py-3 text-left font-medium text-gray-700">デフォルト</th>
+              <th class="px-4 py-3 text-left font-medium text-gray-700">説明</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y">
+            <tr>
+              <td class="px-4 py-3 font-mono text-sm">status</td>
+              <td class="px-4 py-3 text-gray-600">string</td>
+              <td class="px-4 py-3 text-gray-400">-</td>
+              <td class="px-4 py-3 text-gray-600"><code>active</code> または <code>suspended</code></td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-mono text-sm">limit</td>
+              <td class="px-4 py-3 text-gray-600">number</td>
+              <td class="px-4 py-3 text-gray-600">50</td>
+              <td class="px-4 py-3 text-gray-600">取得件数（最大100）</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-mono text-sm">offset</td>
+              <td class="px-4 py-3 text-gray-600">number</td>
+              <td class="px-4 py-3 text-gray-600">0</td>
+              <td class="px-4 py-3 text-gray-600">オフセット</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-mono text-sm">sort</td>
+              <td class="px-4 py-3 text-gray-600">string</td>
+              <td class="px-4 py-3 text-gray-600">createdAt</td>
+              <td class="px-4 py-3 text-gray-600"><code>createdAt</code>, <code>name</code>, <code>updatedAt</code></td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-mono text-sm">order</td>
+              <td class="px-4 py-3 text-gray-600">string</td>
+              <td class="px-4 py-3 text-gray-600">desc</td>
+              <td class="px-4 py-3 text-gray-600"><code>asc</code> または <code>desc</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- セキュリティ -->
+    <section id="security" class="bg-white rounded-lg shadow-md p-6 mb-8">
+      <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+        <span class="text-2xl mr-2">&#128274;</span>
+        セキュリティ
+      </h2>
+
+      <h3 class="font-bold text-gray-800 mb-3">認可の仕組み</h3>
+      <ol class="list-decimal list-inside space-y-2 text-gray-600 mb-6">
+        <li>Firebase認証でログイン（IDトークン取得）</li>
+        <li>APIリクエスト時に<code>Authorization: Bearer &lt;ID Token&gt;</code>ヘッダを付与</li>
+        <li>サーバー側でトークンを検証し、メールアドレスを取得</li>
+        <li><code>SUPER_ADMIN_EMAILS</code>に含まれるか判定</li>
+        <li>含まれない場合は403 Forbidden</li>
+      </ol>
+
+      <div class="overflow-x-auto">
+        <table class="min-w-full border rounded-lg">
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="px-4 py-3 text-left font-medium text-gray-700">項目</th>
+              <th class="px-4 py-3 text-left font-medium text-gray-700">対応</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y">
+            <tr>
+              <td class="px-4 py-3 font-medium">管理者リストの保護</td>
+              <td class="px-4 py-3 text-gray-600">サーバーサイドのみで保持（クライアントに公開しない）</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium">操作ログ</td>
+              <td class="px-4 py-3 text-gray-600">全操作をコンソールログに記録</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium">Firestoreルール</td>
+              <td class="px-4 py-3 text-gray-600">変更不要（API経由のみアクセス）</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- トラブルシューティング -->
+    <section id="troubleshooting" class="bg-white rounded-lg shadow-md p-6 mb-8">
+      <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+        <span class="text-2xl mr-2">&#128295;</span>
+        トラブルシューティング
+      </h2>
+
+      <div class="space-y-4">
+        <details class="border rounded-lg">
+          <summary class="px-4 py-3 cursor-pointer font-medium text-gray-800 hover:bg-gray-50">
+            403 Forbidden が返る
+          </summary>
+          <div class="px-4 py-3 bg-gray-50 text-gray-600">
+            <ol class="list-decimal list-inside space-y-1">
+              <li><code>SUPER_ADMIN_EMAILS</code>が設定されているか確認</li>
+              <li>ログインに使用したメールアドレスが含まれているか確認</li>
+              <li>メールアドレスの大文字/小文字は区別されません（自動で小文字に正規化）</li>
+            </ol>
+          </div>
+        </details>
+
+        <details class="border rounded-lg">
+          <summary class="px-4 py-3 cursor-pointer font-medium text-gray-800 hover:bg-gray-50">
+            「スーパー管理者機能は無効です」と表示される
+          </summary>
+          <div class="px-4 py-3 bg-gray-50 text-gray-600">
+            <code>SUPER_ADMIN_EMAILS</code>環境変数が設定されていません。APIサーバーの環境変数を確認してください。
+          </div>
+        </details>
+
+        <details class="border rounded-lg">
+          <summary class="px-4 py-3 cursor-pointer font-medium text-gray-800 hover:bg-gray-50">
+            認証エラー
+          </summary>
+          <div class="px-4 py-3 bg-gray-50 text-gray-600">
+            <ol class="list-decimal list-inside space-y-1">
+              <li>Firebase認証が正しく設定されているか確認</li>
+              <li><code>AUTH_MODE=firebase</code>が設定されているか確認</li>
+              <li>IDトークンの有効期限が切れていないか確認（再ログインを試す）</li>
+            </ol>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <!-- 開発モードでのテスト -->
+    <section class="bg-white rounded-lg shadow-md p-6 mb-8">
+      <h2 class="text-xl font-bold text-gray-800 mb-4">開発モードでのテスト</h2>
+
+      <p class="text-gray-600 mb-4">
+        <code>AUTH_MODE=dev</code>の場合、<code>X-User-Email</code>ヘッダでスーパー管理者をシミュレートできます。
+      </p>
+
+      <div class="bg-gray-900 rounded-lg p-4">
+        <pre class="text-sm"><code class="text-gray-100"># スーパー管理者としてテナント一覧を取得
+curl -H "X-User-Email: admin@example.com" \
+  http://localhost:8080/api/v2/super/tenants</code></pre>
+      </div>
+
+      <p class="text-gray-500 text-sm mt-4">
+        ※ <code>SUPER_ADMIN_EMAILS</code>に<code>admin@example.com</code>が含まれている必要があります。
+      </p>
+    </section>
+
+  </main>
+
+  <!-- フッター -->
+  <footer class="bg-gray-800 text-gray-300 mt-12">
+    <div class="max-w-6xl mx-auto px-4 py-8">
+      <p class="text-center text-sm">
+        Classroom Check-in - オンライン講座の入退室管理システム
+      </p>
+    </div>
+  </footer>
+</body>
+</html>
