@@ -12,6 +12,14 @@ Meetは使わない可能性があるため、動画視聴の計測を主軸に�
 - 講座: Google Classroom の Course を指す
 
 ## 機能要件
+
+### マルチテナント（ADR-0018/0019）
+- MUST: 複数組織（テナント）のデータを完全に分離できる
+- MUST: セルフサービスでテナント登録ができる（Googleログイン必須）
+- MUST: テナント作成者が自動的にオーナー兼管理者になる
+- MUST: URLパスプレフィックス（`/{tenantId}/...`）でテナントを識別できる
+
+### 認証・入退室
 - MUST: Googleアカウントでログインできる（Firebase Authentication + Googleソーシャルログイン）（ADR-0016）
 - MUST: 講座単位でIN/OUT時刻を記録できる
 - MUST: 入室ボタン押下でIN打刻し、対象のGoogle Classroomへ遷移できる

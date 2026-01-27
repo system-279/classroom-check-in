@@ -1,12 +1,50 @@
-# API仕様（v1）
+# API仕様
 
 ## 認証
-- 認証方式は後日検討（OAuth審査が必要なため）
+- Firebase Authentication + Googleソーシャルログイン（ADR-0016）
 - `AUTH_MODE=dev` の場合は `X-User-Id` / `X-User-Role` ヘッダで疑似認証
 - 管理系APIは admin ロールのみ
 
 ## ベースURL
-- `/api/v1`
+- v1: `/api/v1` （テナント非対応、後方互換用）
+- v2: `/api/v2` （マルチテナント対応）
+
+---
+
+# v2 API（マルチテナント対応）
+
+## テナント登録
+- `POST /api/v2/tenants`
+  - Firebase認証必須
+  - body: `{ name: string }` （組織名）
+  - レスポンス:
+    ```json
+    {
+      "tenantId": "abc12345",
+      "name": "サンプル組織",
+      "adminUrl": "/abc12345/admin",
+      "studentUrl": "/abc12345/student"
+    }
+    ```
+  - セキュリティ:
+    - 予約済みID検証（demo, admin, api等をブロック）
+    - レート制限（5回/時/ユーザー）
+  - 自動処理:
+    - テナントメタデータ作成
+    - オーナーをallowedEmailsに追加
+    - オーナーを管理者ユーザーとして作成
+
+## テナント内API
+テナント内のリソースは以下のパスでアクセス:
+- `/api/v2/{tenantId}/courses`
+- `/api/v2/{tenantId}/sessions/...`
+- `/api/v2/{tenantId}/admin/...`
+
+（v1と同等のエンドポイントがテナントスコープで提供される）
+
+---
+
+# v1 API（後方互換）
 
 ## エンドポイント
 

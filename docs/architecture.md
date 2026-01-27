@@ -15,9 +15,25 @@
 ```
 
 **注**:
+- **マルチテナント対応**: データレベル分離、URLパスプレフィックス（ADR-0018/0019）
 - Classroom API / Forms API連携は廃止。講座・受講者情報は管理画面で手入力（ADR-0014）
 - ユーザー認証はFirebase Authentication + Googleソーシャルログイン（ADR-0016）
 - 動画プレイヤー連携は実装しない（ADR-0015）。IN/OUTは手動入力のみ
+
+## マルチテナント構成（ADR-0018/0019）
+
+```
+[ユーザー] → /{tenantId}/admin/... または /{tenantId}/student/...
+                    ↓
+              [テナントミドルウェア]
+                    ↓
+              tenantId抽出 → Firestore: tenants/{tenantId}/...
+```
+
+- **データ分離**: 単一GCPプロジェクト内でテナント単位にデータ分離
+- **URL構造**: `/{tenantId}/admin/...`、`/{tenantId}/student/...`
+- **セルフサービス登録**: `/register` からテナント作成可能
+- **セキュリティ**: Firestoreセキュリティルール + APIミドルウェアで多層防御
 
 ## コンポーネント案
 - ~~Ingestion Service~~ **廃止**

@@ -1,7 +1,37 @@
 # データモデル案
 
+## マルチテナント構造（ADR-0018）
+
+すべてのデータはテナント単位で分離されます。Firestoreのパス構造:
+
+```
+tenants/{tenantId}/
+  ├── allowed_emails/{id}
+  ├── courses/{id}
+  ├── users/{id}
+  ├── user_settings/{id}
+  ├── sessions/{id}
+  ├── enrollments/{id}
+  ├── notification_policies/{id}
+  └── notification_logs/{id}
+```
+
 ## 主エンティティ
+
 注: Classroom API / Forms API連携は廃止。講座・受講者情報は管理画面で手入力。
+
+### Tenant
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| id | string | テナントID（8文字英数字、自動生成） |
+| name | string | 組織名 |
+| ownerEmail | string | オーナーのメールアドレス |
+| ownerFirebaseUid | string | オーナーのFirebase UID |
+| status | string | active/suspended |
+| createdAt | timestamp | 作成日時 |
+| updatedAt | timestamp | 更新日時 |
+
+注: セルフサービス登録で作成（ADR-0019）。オーナーは自動的に管理者として登録される。
 
 ### AllowedEmail
 | フィールド | 型 | 説明 |
