@@ -112,7 +112,8 @@ export default function SessionPage() {
   }, [courseId, authLoading, isAuthenticated, router, authFetch, isDemo]);
 
   const handleCheckIn = async () => {
-    if (!course || !courseId) return;
+    // ガード条件: 連打防止、既にセッションがある場合は処理しない
+    if (!course || !courseId || actionLoading || session) return;
 
     setActionLoading(true);
     setError(null);
@@ -272,7 +273,7 @@ export default function SessionPage() {
               <Button
                 size="lg"
                 onClick={handleCheckIn}
-                disabled={actionLoading}
+                disabled={actionLoading || !!session}
                 className="w-full max-w-xs bg-green-500 text-white hover:bg-green-600 disabled:bg-green-300"
               >
                 {actionLoading ? "処理中..." : "IN（入室）"}
