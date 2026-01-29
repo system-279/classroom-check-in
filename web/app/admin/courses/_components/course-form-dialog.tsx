@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -111,6 +112,9 @@ export function CourseFormDialog({
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>{isEditing ? "講座を編集" : "新規講座"}</DialogTitle>
+          <DialogDescription>
+            講座の基本情報と公開設定を入力してください
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">

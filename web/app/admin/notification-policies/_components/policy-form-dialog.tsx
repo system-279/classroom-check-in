@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -127,6 +128,9 @@ export function PolicyFormDialog({
           <DialogTitle>
             {isEditing ? "通知ポリシーを編集" : "新規通知ポリシー"}
           </DialogTitle>
+          <DialogDescription>
+            OUT忘れ通知のタイミングと繰り返し設定を行います
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">

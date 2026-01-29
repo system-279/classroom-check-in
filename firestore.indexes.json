@@ -2,7 +2,7 @@
   "indexes": [
     {
       "collectionGroup": "sessions",
-      "queryScope": "COLLECTION",
+      "queryScope": "COLLECTION_GROUP",
       "fields": [
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "lastHeartbeatAt", "order": "ASCENDING" }
@@ -10,7 +10,7 @@
     },
     {
       "collectionGroup": "sessions",
-      "queryScope": "COLLECTION",
+      "queryScope": "COLLECTION_GROUP",
       "fields": [
         { "fieldPath": "courseId", "order": "ASCENDING" },
         { "fieldPath": "userId", "order": "ASCENDING" },
@@ -19,7 +19,7 @@
     },
     {
       "collectionGroup": "sessions",
-      "queryScope": "COLLECTION",
+      "queryScope": "COLLECTION_GROUP",
       "fields": [
         { "fieldPath": "courseId", "order": "ASCENDING" },
         { "fieldPath": "startTime", "order": "DESCENDING" }
@@ -27,7 +27,7 @@
     },
     {
       "collectionGroup": "sessions",
-      "queryScope": "COLLECTION",
+      "queryScope": "COLLECTION_GROUP",
       "fields": [
         { "fieldPath": "userId", "order": "ASCENDING" },
         { "fieldPath": "startTime", "order": "DESCENDING" }
@@ -35,7 +35,7 @@
     },
     {
       "collectionGroup": "sessions",
-      "queryScope": "COLLECTION",
+      "queryScope": "COLLECTION_GROUP",
       "fields": [
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "startTime", "order": "DESCENDING" }
@@ -43,7 +43,7 @@
     },
     {
       "collectionGroup": "sessions",
-      "queryScope": "COLLECTION",
+      "queryScope": "COLLECTION_GROUP",
       "fields": [
         { "fieldPath": "courseId", "order": "ASCENDING" },
         { "fieldPath": "userId", "order": "ASCENDING" },
@@ -52,7 +52,7 @@
     },
     {
       "collectionGroup": "sessions",
-      "queryScope": "COLLECTION",
+      "queryScope": "COLLECTION_GROUP",
       "fields": [
         { "fieldPath": "courseId", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" },
@@ -61,7 +61,7 @@
     },
     {
       "collectionGroup": "sessions",
-      "queryScope": "COLLECTION",
+      "queryScope": "COLLECTION_GROUP",
       "fields": [
         { "fieldPath": "userId", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" },
@@ -70,7 +70,7 @@
     },
     {
       "collectionGroup": "sessions",
-      "queryScope": "COLLECTION",
+      "queryScope": "COLLECTION_GROUP",
       "fields": [
         { "fieldPath": "courseId", "order": "ASCENDING" },
         { "fieldPath": "userId", "order": "ASCENDING" },
@@ -80,7 +80,7 @@
     },
     {
       "collectionGroup": "enrollments",
-      "queryScope": "COLLECTION",
+      "queryScope": "COLLECTION_GROUP",
       "fields": [
         { "fieldPath": "courseId", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
@@ -88,7 +88,7 @@
     },
     {
       "collectionGroup": "enrollments",
-      "queryScope": "COLLECTION",
+      "queryScope": "COLLECTION_GROUP",
       "fields": [
         { "fieldPath": "userId", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
@@ -96,7 +96,7 @@
     },
     {
       "collectionGroup": "enrollments",
-      "queryScope": "COLLECTION",
+      "queryScope": "COLLECTION_GROUP",
       "fields": [
         { "fieldPath": "courseId", "order": "ASCENDING" },
         { "fieldPath": "userId", "order": "ASCENDING" },
@@ -104,8 +104,8 @@
       ]
     },
     {
-      "collectionGroup": "notificationLogs",
-      "queryScope": "COLLECTION",
+      "collectionGroup": "notification_logs",
+      "queryScope": "COLLECTION_GROUP",
       "fields": [
         { "fieldPath": "sessionId", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" },
@@ -113,29 +113,72 @@
       ]
     },
     {
-      "collectionGroup": "notificationPolicies",
-      "queryScope": "COLLECTION",
+      "collectionGroup": "notification_logs",
+      "queryScope": "COLLECTION_GROUP",
       "fields": [
-        { "fieldPath": "scope", "order": "ASCENDING" },
-        { "fieldPath": "active", "order": "ASCENDING" }
+        { "fieldPath": "sessionId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "sentAt", "order": "ASCENDING" }
       ]
     },
     {
-      "collectionGroup": "notificationPolicies",
-      "queryScope": "COLLECTION",
+      "collectionGroup": "notification_policies",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "scope", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "notification_policies",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "scope", "order": "ASCENDING" },
+        { "fieldPath": "active", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "notification_policies",
+      "queryScope": "COLLECTION_GROUP",
       "fields": [
         { "fieldPath": "scope", "order": "ASCENDING" },
         { "fieldPath": "userId", "order": "ASCENDING" },
-        { "fieldPath": "active", "order": "ASCENDING" }
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
     {
-      "collectionGroup": "notificationPolicies",
-      "queryScope": "COLLECTION",
+      "collectionGroup": "notification_policies",
+      "queryScope": "COLLECTION_GROUP",
       "fields": [
         { "fieldPath": "scope", "order": "ASCENDING" },
         { "fieldPath": "courseId", "order": "ASCENDING" },
-        { "fieldPath": "active", "order": "ASCENDING" }
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "courses",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "enabled", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "courses",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "visible", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "courses",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "enabled", "order": "ASCENDING" },
+        { "fieldPath": "visible", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     }
   ],

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -98,6 +99,9 @@ export function UserFormDialog({
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>{isEditing ? "ユーザーを編集" : "新規ユーザー"}</DialogTitle>
+          <DialogDescription>
+            ユーザー情報とロールを設定してください
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
