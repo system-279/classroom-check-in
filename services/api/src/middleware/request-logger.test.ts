@@ -140,7 +140,7 @@ describe("request-logger middleware", () => {
 
     it("ユーザーIDがあればログに含める", () => {
       const req = mockRequest();
-      (req as Request & { user?: { id: string } }).user = { id: "user-456" };
+      (req as Request & { user?: { id: string; role: string } }).user = { id: "user-456", role: "student" };
       const res = mockResponse();
       const next = vi.fn() as NextFunction;
 

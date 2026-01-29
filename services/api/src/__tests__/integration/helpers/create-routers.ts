@@ -139,7 +139,8 @@ export function createSessionsRouter(): Router {
   router.post("/sessions/:id/heartbeat", async (req: Request, res: Response) => {
     try {
       const ds = req.dataSource!;
-      const session = await ds.getSessionById(req.params.id);
+      const sessionId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+      const session = await ds.getSessionById(sessionId);
 
       if (!session) {
         res.status(404).json({ error: "session_not_found" });
@@ -171,7 +172,8 @@ export function createSessionsRouter(): Router {
   router.post("/sessions/:id/check-out", async (req: Request, res: Response) => {
     try {
       const ds = req.dataSource!;
-      const session = await ds.getSessionById(req.params.id);
+      const sessionId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+      const session = await ds.getSessionById(sessionId);
 
       if (!session) {
         res.status(404).json({ error: "session_not_found" });
