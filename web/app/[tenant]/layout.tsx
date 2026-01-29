@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { TenantProvider, useTenant } from "@/lib/tenant-context";
-import { useAuth } from "@/lib/auth-context";
+import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { AuthFetchProvider, useAuthFetch } from "@/lib/auth-fetch-context";
 
 type UserRole = "admin" | "teacher" | "student" | null;
@@ -146,13 +146,16 @@ export default function TenantLayout({
   const params = useParams();
   const tenantId = (params?.tenant as string) ?? "demo";
 
-  // TenantProvider 配下で AuthFetchProvider を再ラップすることで、
-  // テナントIDを含むAPIパス変換が正しく機能する
+  // TenantProvider 配下で AuthProvider/AuthFetchProvider を再ラップすることで、
+  // - AuthProvider: isDemo を TenantContext から取得できる
+  // - AuthFetchProvider: tenantId を含むAPIパス変換が正しく機能する
   return (
     <TenantProvider tenantId={tenantId}>
-      <AuthFetchProvider>
-        <TenantLayoutInner>{children}</TenantLayoutInner>
-      </AuthFetchProvider>
+      <AuthProvider>
+        <AuthFetchProvider>
+          <TenantLayoutInner>{children}</TenantLayoutInner>
+        </AuthFetchProvider>
+      </AuthProvider>
     </TenantProvider>
   );
 }
