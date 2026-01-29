@@ -36,3 +36,4 @@ npm-debug.log*
 .secrets/
 test-results/
 playwright-report/
+coverage/
