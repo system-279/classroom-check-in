@@ -53,11 +53,15 @@ export function CourseCard({ course }: Props) {
         <CardHeader>
           <div className="flex items-start justify-between gap-2">
             <CardTitle className="text-lg">{course.name}</CardTitle>
-            {summary?.hasActiveSession && (
+            {summary?.hasActiveSession ? (
               <span className="shrink-0 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
                 受講中
               </span>
-            )}
+            ) : summary?.isCompleted ? (
+              <span className="shrink-0 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+                受講済み
+              </span>
+            ) : null}
           </div>
           {course.description && (
             <CardDescription className="line-clamp-2">

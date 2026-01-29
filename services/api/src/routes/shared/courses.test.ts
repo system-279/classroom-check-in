@@ -128,6 +128,7 @@ describe("courses router", () => {
         totalDurationSec: 3600,
         sessionCount: 1,
         hasActiveSession: true,
+        isCompleted: true, // ADR-0026
       });
     });
 

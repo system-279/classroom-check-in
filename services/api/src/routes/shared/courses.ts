@@ -70,6 +70,7 @@ router.get("/courses", requireUser, async (req: Request, res: Response) => {
           totalDurationSec: closedSessions.reduce((sum, s) => sum + s.durationSec, 0),
           sessionCount: closedSessions.length,
           hasActiveSession: !!activeSession,
+          isCompleted: closedSessions.length > 0, // ADR-0026: 受講済みフラグ
         },
       };
     });

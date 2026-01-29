@@ -3,6 +3,7 @@ export type SessionSummary = {
   totalDurationSec: number;
   sessionCount: number;
   hasActiveSession: boolean;
+  isCompleted: boolean; // ADR-0026: 受講済みフラグ
 };
 
 export type Course = {

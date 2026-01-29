@@ -109,6 +109,18 @@ router.post("/sessions/check-in", requireUser, async (req: Request, res: Respons
       return;
     }
 
+    // ADR-0026: 同一講座への再入室禁止（closedセッションがある場合はエラー）
+    const userSessions = await ds.getSessions({ userId: req.user!.id, courseId });
+    const closedSession = userSessions.find((s) => s.status === "closed");
+    if (closedSession) {
+      res.status(403).json({
+        error: "already_completed",
+        message: "この講座は受講済みです。再度受講することはできません。",
+        completedSession: formatSession(closedSession),
+      });
+      return;
+    }
+
     // アトミックなチェックイン（排他制御: 同時リクエストによる重複作成を防止）
     const now = new Date();
     const { session, isExisting } = await ds.checkInOrGetExisting(
@@ -486,6 +498,31 @@ router.post("/admin/sessions/:id/close", requireAdmin, async (req: Request, res:
   } catch (error) {
     console.error("Error closing session:", error);
     res.status(500).json({ error: "internal_error", message: "Failed to close session" });
+  }
+});
+
+/**
+ * 管理者向け: セッション削除（リセット）
+ * DELETE /admin/sessions/:id
+ *
+ * ADR-0026: 管理者がセッションを削除して再入室を可能にする
+ */
+router.delete("/admin/sessions/:id", requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const ds = req.dataSource!;
+    const id = req.params.id as string;
+
+    const session = await ds.getSessionById(id);
+    if (!session) {
+      res.status(404).json({ error: "session_not_found", message: "Session not found" });
+      return;
+    }
+
+    await ds.deleteSession(id);
+    res.status(204).send();
+  } catch (error) {
+    console.error("Error deleting session:", error);
+    res.status(500).json({ error: "internal_error", message: "Failed to delete session" });
   }
 });
 

@@ -190,6 +190,7 @@ export default function SessionPage() {
   }
 
   const isSessionActive = session?.status === "open";
+  const isCompleted = course?.sessionSummary?.isCompleted ?? false;
 
   return (
     <div className="space-y-6">
@@ -220,16 +221,35 @@ export default function SessionPage() {
       <Card>
         <CardHeader>
           <CardTitle>
-            {isSessionActive ? "セッション進行中" : "入室"}
+            {isCompleted
+              ? "受講済み"
+              : isSessionActive
+                ? "セッション進行中"
+                : "入室"}
           </CardTitle>
           <CardDescription>
-            {isSessionActive
-              ? "受講中です。終了したら退室ボタンを押してください。"
-              : "INボタンを押すと入室を記録します。"}
+            {isCompleted
+              ? "この講座は受講済みです。"
+              : isSessionActive
+                ? "受講中です。終了したら退室ボタンを押してください。"
+                : "INボタンを押すと入室を記録します。"}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {isSessionActive && session ? (
+          {/* ADR-0026: 受講済み表示 */}
+          {isCompleted && !isSessionActive ? (
+            <div className="flex flex-col items-center gap-4">
+              <AlertBox variant="success" className="w-full max-w-md">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">✓</span>
+                  <span>この講座の受講は完了しています。</span>
+                </div>
+              </AlertBox>
+              {course?.classroomUrl && (
+                <ClassroomLink url={course.classroomUrl} />
+              )}
+            </div>
+          ) : isSessionActive && session ? (
             <>
               <SessionTimer
                 startTime={session.startTime}

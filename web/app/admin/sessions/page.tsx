@@ -81,6 +81,32 @@ export default function SessionsPage() {
     fetchData();
   };
 
+  // ADR-0026: セッション削除（リセット）
+  const handleDelete = async (session: Session) => {
+    const user = users.find((u) => u.id === session.userId);
+    const course = courses.find((c) => c.id === session.courseId);
+    const userName = user?.name || user?.email || session.userId;
+    const courseName = course?.name || session.courseId;
+
+    const confirmed = window.confirm(
+      `セッションを削除しますか？\n\n` +
+      `ユーザー: ${userName}\n` +
+      `講座: ${courseName}\n\n` +
+      `削除すると、このユーザーは再度この講座に入室できるようになります。`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await authFetch(`/api/v1/admin/sessions/${session.id}`, {
+        method: "DELETE",
+      });
+      fetchData();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "削除に失敗しました");
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -147,6 +173,7 @@ export default function SessionsPage() {
           courses={courses}
           users={users}
           onClose={handleClose}
+          onDelete={handleDelete}
         />
       )}
 

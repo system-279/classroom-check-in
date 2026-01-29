@@ -19,9 +19,10 @@ type Props = {
   courses: Course[];
   users: User[];
   onClose: (session: Session) => void;
+  onDelete?: (session: Session) => void; // ADR-0026: セッション削除（リセット）
 };
 
-export function SessionTable({ sessions, courses, users, onClose }: Props) {
+export function SessionTable({ sessions, courses, users, onClose, onDelete }: Props) {
   const getCourseName = (courseId: string) => {
     return courses.find((c) => c.id === courseId)?.name ?? courseId;
   };
@@ -97,15 +98,27 @@ export function SessionTable({ sessions, courses, users, onClose }: Props) {
                 <StatusBadge status={session.status} />
               </TableCell>
               <TableCell>
-                {session.status === "open" && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onClose(session)}
-                  >
-                    終了
-                  </Button>
-                )}
+                <div className="flex gap-1">
+                  {session.status === "open" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onClose(session)}
+                    >
+                      終了
+                    </Button>
+                  )}
+                  {onDelete && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => onDelete(session)}
+                    >
+                      削除
+                    </Button>
+                  )}
+                </div>
               </TableCell>
             </TableRow>
           ))}

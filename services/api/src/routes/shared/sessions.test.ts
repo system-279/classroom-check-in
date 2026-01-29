@@ -193,6 +193,7 @@ describe("sessions router", () => {
       mockDataSource.getCourseById.mockResolvedValue({ id: "course-1", enabled: true, visible: true });
       mockDataSource.getEnrollments.mockResolvedValue([{ id: "e-1" }]);
       mockDataSource.getActiveSession.mockResolvedValue(null);
+      mockDataSource.getSessions.mockResolvedValue([]); // ADR-0026: closedセッションなし
       const newSession = {
         id: "session-new",
         courseId: "course-1",
@@ -217,6 +218,7 @@ describe("sessions router", () => {
       const app = await createTestApp({ id: "user-1", role: "student" });
       mockDataSource.getCourseById.mockResolvedValue({ id: "course-1", enabled: true, visible: true });
       mockDataSource.getEnrollments.mockResolvedValue([{ id: "e-1" }]);
+      mockDataSource.getSessions.mockResolvedValue([]); // ADR-0026: closedセッションなし
       // 同じ講座のアクティブセッションがある
       const existingSession = {
         id: "session-existing",
