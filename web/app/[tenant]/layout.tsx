@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { TenantProvider, useTenant } from "@/lib/tenant-context";
-import { AuthProvider, useAuth } from "@/lib/auth-context";
-import { AuthFetchProvider, useAuthFetch } from "@/lib/auth-fetch-context";
+import { useAuth } from "@/lib/auth-context";
+import { useAuthFetch } from "@/lib/auth-fetch-context";
 
 type UserRole = "admin" | "teacher" | "student" | null;
 
@@ -148,11 +148,7 @@ export default function TenantLayout({
 
   return (
     <TenantProvider tenantId={tenantId}>
-      <AuthProvider>
-        <AuthFetchProvider>
-          <TenantLayoutInner>{children}</TenantLayoutInner>
-        </AuthFetchProvider>
-      </AuthProvider>
+      <TenantLayoutInner>{children}</TenantLayoutInner>
     </TenantProvider>
   );
 }
