@@ -290,3 +290,38 @@
 - 影響:
   - 新規環境変数 `SUPER_ADMIN_EMAILS` の設定が必要
   - テナント停止時、該当テナントの全ユーザーがアクセス不可となる
+
+## ADR-0025: エラーレスポンス形式の統一
+- 状態: 採用
+- 背景:
+  - 各エンドポイントで異なるエラーレスポンス形式が使用されている
+  - クライアント側でのエラーハンドリングが複雑になっている
+  - エラーの分類・追跡が困難
+- 判断:
+  - 統一されたエラーレスポンス形式を採用
+  - `AppError`クラス階層でエラーを型安全に管理
+  - グローバルエラーハンドラーで全エラーを統一処理
+- レスポンス形式:
+  ```json
+  {
+    "error": {
+      "code": "ERROR_CODE",
+      "message": "Human readable message",
+      "details": {}
+    }
+  }
+  ```
+- エラーコード:
+  - `VALIDATION_ERROR` (400): 入力値エラー
+  - `AUTHENTICATION_ERROR` (401): 認証エラー
+  - `FORBIDDEN_ERROR` (403): 権限エラー
+  - `NOT_FOUND` (404): リソース不存在
+  - `CONFLICT_ERROR` (409): 競合エラー
+  - `RATE_LIMIT_ERROR` (429): レート制限
+  - `INTERNAL_ERROR` (500): 内部エラー
+- 実装:
+  - `services/api/src/utils/errors.ts`: AppErrorクラス階層
+  - `services/api/src/middleware/error-handler.ts`: グローバルハンドラー
+- 影響:
+  - 新規エンドポイントはAppErrorを使用すること
+  - クライアントは統一形式でエラーを処理可能

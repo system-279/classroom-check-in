@@ -86,6 +86,7 @@ npm run dev -w @classroom-check-in/web
 - **heartbeat継続**: setInterval方式維持、バックグラウンドでも継続（ADR-0022）
 - **同時セッション**: 1人1セッションのみ許可、複数講座同時禁止（ADR-0023）
 - **スーパー管理者**: 環境変数でメールアドレス指定、全テナント管理（ADR-0024）
+- **エラーレスポンス**: 統一形式でエラーを返す（ADR-0025）
 
 全ADRは`docs/decisions.md`を参照。
 
@@ -154,6 +155,18 @@ npm run dev -w @classroom-check-in/web
   - API: `/api/v2/super/tenants` - 全テナント一覧・詳細・ステータス変更
   - Web: `/super-admin/tenants` - テナント管理画面
   - テナント停止/再開操作が可能
+- **統一エラーハンドリング**（ADR-0025）:
+  - `AppError`クラス階層（BadRequestError, NotFoundError等）
+  - グローバルエラーハンドラーミドルウェア
+  - 統一エラーレスポンス形式: `{ error: { code, message, details? } }`
+- **構造化ログ基盤**:
+  - JSON形式ログ出力（Cloud Logging統合対応）
+  - リクエストログミドルウェア（requestId, duration, tenantId, userId）
+- **テストカバレッジ**:
+  - API: 269テスト（ユニット + 統合テスト）
+  - 通知サービス: 20テスト
+  - E2E: 54テスト（Playwright）
+  - 統合テスト: セッションフロー（ADR-0012, ADR-0023検証）
 
 **スコープ外**（実装予定なし）:
 - Google OAuth（Classroom API連携用）（ADR-0014: 審査コストが高いため実装しない）
