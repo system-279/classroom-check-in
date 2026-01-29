@@ -122,7 +122,40 @@
 - Classroom API連携
 - Forms API連携
 
-## 最新セッション成果（2026-01-27 #2）
+## 最新セッション成果（2026-01-29）
+
+### データとフロントの紐づけ問題修正
+
+**解決した問題**:
+1. **Reactハイドレーションエラー #418**: AuthProvider の二重ネスティングを修正
+2. **受講者画面に講座が表示されない**: スーパー管理者のテナントユーザー優先ロジックを修正
+3. **受講講座ダイアログUX改善**: 一括削除機能、ダイアログ自動クローズ問題を修正
+4. **ナビゲーション表示修正**: ページコンテキストに応じた適切なリンク表示
+5. **ユーザー削除エラーUX改善**: 関連データの詳細（セッション数、受講登録数）を表示
+
+**主要PR**:
+- PR #20-#23: ハイドレーションエラー修正
+- PR #24: 受講講座の一括解除機能
+- PR #25: ダイアログ自動クローズ問題修正
+- PR #26: スーパー管理者テナントユーザー優先修正
+- PR #27: tenant-auth.ts ユニットテスト追加
+- PR #28: ユーザー削除エンドポイント ユニットテスト追加
+
+**テスト追加**:
+- `services/api/src/middleware/tenant-auth.test.ts` (8テスト)
+- `services/api/src/routes/shared/users.test.ts` (5テスト)
+
+**変更ファイル**:
+- `web/app/[tenant]/layout.tsx` - AuthProvider重複削除、ナビゲーション改善
+- `web/lib/auth-context.tsx` - TenantContextからisDemo取得
+- `services/api/src/middleware/tenant-auth.ts` - テナントユーザー優先ロジック
+- `services/api/src/routes/shared/users.ts` - 削除エラー詳細レスポンス
+- `web/lib/api.ts` - ApiError.details追加
+- `web/app/admin/users/_components/delete-confirm-dialog.tsx` - 詳細エラー表示
+
+---
+
+## 前回セッション成果（2026-01-27 #2）
 
 ### スーパー管理者機能の強化
 システム全体を管理するスーパー管理者機能を大幅に拡張。
