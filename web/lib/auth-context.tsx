@@ -15,7 +15,7 @@ import {
   type User,
 } from "firebase/auth";
 import { getFirebaseAuth } from "./firebase";
-import { useDemoMode } from "./demo-mode-context";
+import { useTenantOptional } from "./tenant-context";
 
 type AuthState = {
   user: User | null;
@@ -43,8 +43,9 @@ const DEMO_USER = {
 } as unknown as User;
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  // デモモードかどうかを取得（DemoModeProvider外ではデフォルト値false）
-  const isDemo = useDemoMode();
+  // テナントコンテキストからデモモードを取得（TenantProvider外ではnull）
+  const tenant = useTenantOptional();
+  const isDemo = tenant?.isDemo ?? false;
 
   const [state, setState] = useState<AuthState>({
     user: isDemo ? DEMO_USER : null,

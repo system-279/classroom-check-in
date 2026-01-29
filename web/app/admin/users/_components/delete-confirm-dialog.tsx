@@ -18,6 +18,28 @@ type Props = {
   onDeleted: () => void;
 };
 
+/**
+ * APIエラーレスポンスを解析して、ユーザーフレンドリーなメッセージを返す
+ */
+function parseDeleteError(errorMessage: string): string {
+  // APIからの "Cannot delete user: X session(s) exist" 形式を解析
+  const sessionMatch = errorMessage.match(/(\d+)\s*session\(s\)\s*exist/i);
+  if (sessionMatch) {
+    const count = parseInt(sessionMatch[1], 10);
+    return `このユーザーには ${count} 件のセッションが存在するため削除できません。先にセッションを削除してください。`;
+  }
+
+  // "Cannot delete user: X enrollment(s) exist" 形式を解析
+  const enrollmentMatch = errorMessage.match(/(\d+)\s*enrollment\(s\)\s*exist/i);
+  if (enrollmentMatch) {
+    const count = parseInt(enrollmentMatch[1], 10);
+    return `このユーザーには ${count} 件の受講登録が存在するため削除できません。先に受講登録を解除してください。`;
+  }
+
+  // その他のエラー
+  return errorMessage || "削除に失敗しました";
+}
+
 export function DeleteConfirmDialog({ user, onClose, onDeleted }: Props) {
   const authFetch = useAuthFetch();
   const [deleting, setDeleting] = useState(false);
@@ -36,7 +58,8 @@ export function DeleteConfirmDialog({ user, onClose, onDeleted }: Props) {
       onClose();
       onDeleted();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "削除に失敗しました");
+      const rawMessage = e instanceof Error ? e.message : "削除に失敗しました";
+      setError(parseDeleteError(rawMessage));
     } finally {
       setDeleting(false);
     }

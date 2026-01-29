@@ -19,12 +19,21 @@ router.get("/courses", requireUser, async (req: Request, res: Response) => {
   try {
     const ds = req.dataSource!;
 
+    // デバッグ: ユーザーIDをログ出力
+    console.log("[DEBUG] GET /courses - userId:", req.user!.id, "email:", req.user!.email);
+
     // N+1解消: 講座一覧、受講登録、ユーザーのセッションを並列取得
     const [courses, enrollments, userSessions] = await Promise.all([
       ds.getCourses({ enabled: true, visible: true }),
       ds.getEnrollments({ userId: req.user!.id }),
       ds.getSessions({ userId: req.user!.id }),
     ]);
+
+    // デバッグ: 取得結果をログ出力
+    console.log("[DEBUG] GET /courses - courses:", courses.length, "enrollments:", enrollments.length);
+    if (enrollments.length > 0) {
+      console.log("[DEBUG] GET /courses - enrolledCourseIds:", enrollments.map((e) => e.courseId));
+    }
 
     // 受講登録済みの講座IDセット
     const enrolledCourseIds = new Set(enrollments.map((e) => e.courseId));
