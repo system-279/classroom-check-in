@@ -295,6 +295,10 @@ describe("courses router", () => {
 
       expect(res.status).toBe(409);
       expect(res.body.error).toBe("has_related_data");
+      expect(res.body.details).toEqual({
+        sessionCount: 1,
+        enrollmentCount: 0,
+      });
       expect(mockDataSource.deleteCourse).not.toHaveBeenCalled();
     });
 
@@ -309,7 +313,10 @@ describe("courses router", () => {
 
       expect(res.status).toBe(409);
       expect(res.body.error).toBe("has_related_data");
-      expect(res.body.message).toContain("2 enrollment(s)");
+      expect(res.body.details).toEqual({
+        sessionCount: 0,
+        enrollmentCount: 2,
+      });
     });
 
     it("存在しない講座は404を返す", async () => {

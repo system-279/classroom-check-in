@@ -224,18 +224,17 @@ router.delete("/admin/courses/:id", requireAdmin, async (req: Request, res: Resp
       ds.getEnrollments({ courseId: id }),
     ]);
 
-    if (sessions.length > 0) {
-      res.status(409).json({
-        error: "has_related_data",
-        message: `Cannot delete course: ${sessions.length} session(s) exist`,
-      });
-      return;
-    }
+    const sessionCount = sessions.length;
+    const enrollmentCount = enrollments.length;
 
-    if (enrollments.length > 0) {
+    if (sessionCount > 0 || enrollmentCount > 0) {
       res.status(409).json({
         error: "has_related_data",
-        message: `Cannot delete course: ${enrollments.length} enrollment(s) exist`,
+        message: "Cannot delete course: has related data",
+        details: {
+          sessionCount,
+          enrollmentCount,
+        },
       });
       return;
     }
