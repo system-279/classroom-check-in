@@ -82,7 +82,7 @@ export default function UsersPage() {
   };
 
   const handleEnrollmentSuccess = () => {
-    setEnrollmentDialogUser(null);
+    // データのみ更新（ダイアログは閉じない）
     fetchData();
   };
 
