@@ -194,18 +194,14 @@ router.delete("/admin/users/:id", requireAdmin, async (req: Request, res: Respon
       ds.getEnrollments({ userId: id }),
     ]);
 
-    if (sessions.length > 0) {
+    if (sessions.length > 0 || enrollments.length > 0) {
       res.status(409).json({
         error: "has_related_data",
-        message: `Cannot delete user: ${sessions.length} session(s) exist`,
-      });
-      return;
-    }
-
-    if (enrollments.length > 0) {
-      res.status(409).json({
-        error: "has_related_data",
-        message: `Cannot delete user: ${enrollments.length} enrollment(s) exist`,
+        message: "Cannot delete user: related data exists",
+        details: {
+          sessionCount: sessions.length,
+          enrollmentCount: enrollments.length,
+        },
       });
       return;
     }
