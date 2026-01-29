@@ -122,7 +122,32 @@
 - Classroom API連携
 - Forms API連携
 
-## 最新セッション成果（2026-01-29）
+## 最新セッション成果（2026-01-30）
+
+### インフラ・UX修正
+
+**解決した問題**:
+1. **通知ポリシー作成500エラー**: Firestoreインデックス不足を修正
+   - COLLECTION_GROUPスコープで`notification_policies`インデックスを追加
+   - コレクション名をsnake_caseに統一
+2. **DialogDescription警告**: アクセシビリティ改善
+   - `policy-form-dialog.tsx`, `course-form-dialog.tsx`, `user-form-dialog.tsx`
+3. **講座削除エラーメッセージ日本語化**: ユーザー削除と同じ形式に統一
+   - APIレスポンスに`details`（sessionCount, enrollmentCount）を追加
+   - フロントエンドで詳細を日本語表示
+
+**コミット**:
+- `f7328cc` fix: 講座削除エラーメッセージを日本語化
+- `901ece8` fix: 通知ポリシー作成エラーとアクセシビリティ警告を修正
+
+**変更ファイル**:
+- `firestore.indexes.json` - COLLECTION_GROUPスコープに変更、インデックス追加
+- `services/api/src/routes/shared/courses.ts` - 削除エラーにdetails追加
+- `web/app/admin/courses/_components/delete-confirm-dialog.tsx` - 日本語エラー表示
+
+---
+
+## 前回セッション成果（2026-01-29）
 
 ### データとフロントの紐づけ問題修正
 
