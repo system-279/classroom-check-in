@@ -5,7 +5,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { Request, Response, NextFunction } from "express";
 import { errorHandler, notFoundHandler } from "./error-handler.js";
-import { AppError, NotFoundError, InternalError, ErrorCode } from "../utils/errors.js";
+import { AppError, NotFoundError, ErrorCode } from "../utils/errors.js";
 
 describe("error-handler middleware", () => {
   const mockRequest = () => ({} as Request);
