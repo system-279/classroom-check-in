@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { TenantProvider, useTenant } from "@/lib/tenant-context";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
@@ -16,14 +16,18 @@ interface AuthMeResponse {
 
 /**
  * ナビゲーションコンポーネント
- * ユーザーロールに基づいてリンクを表示
+ * 現在のページパスとユーザーロールに基づいてリンクを表示
  */
 function TenantNav({ isSuperAdminAccess }: { isSuperAdminAccess: boolean }) {
   const { tenantId, isDemo } = useTenant();
   const { user, loading: authLoading } = useAuth();
   const authFetch = useAuthFetch();
+  const pathname = usePathname();
   const [role, setRole] = useState<UserRole>(null);
   const [loading, setLoading] = useState(true);
+
+  // 現在のパスが管理画面かどうか
+  const isOnAdminPage = pathname?.includes(`/${tenantId}/admin`);
 
   useEffect(() => {
     // 認証中または未ログインの場合はスキップ
@@ -49,28 +53,27 @@ function TenantNav({ isSuperAdminAccess }: { isSuperAdminAccess: boolean }) {
     fetchUserRole();
   }, [authFetch, user, authLoading, isDemo]);
 
-  const isAdmin = role === "admin" || role === "teacher";
+  const isAdmin = role === "admin" || role === "teacher" || isSuperAdminAccess;
+
+  // ナビリンクを決定
+  // - 管理画面にいる場合: 「受講者向け」を表示
+  // - 受講者画面にいる場合: 管理者のみ「管理者向け」を表示
+  const showLink = !loading && (isOnAdminPage || isAdmin);
+  const linkHref = isOnAdminPage ? `/${tenantId}/student` : `/${tenantId}/admin`;
+  const linkText = isOnAdminPage ? "受講者向け" : "管理者向け";
 
   return (
     <nav className="flex gap-4 text-sm">
-      <span className="text-muted-foreground">|</span>
-      {/* 管理者・教員のみ表示（スーパー管理者も含む） */}
-      {!loading && isAdmin && (
-        <Link
-          href={`/${tenantId}/admin`}
-          className="text-muted-foreground hover:text-foreground font-medium"
-        >
-          管理者向け
-        </Link>
-      )}
-      {/* 受講者リンクは管理者には非表示 */}
-      {!loading && !isAdmin && !isSuperAdminAccess && (
-        <Link
-          href={`/${tenantId}/student`}
-          className="text-muted-foreground hover:text-foreground font-medium"
-        >
-          受講者向け
-        </Link>
+      {showLink && (
+        <>
+          <span className="text-muted-foreground">|</span>
+          <Link
+            href={linkHref}
+            className="text-muted-foreground hover:text-foreground font-medium"
+          >
+            {linkText}
+          </Link>
+        </>
       )}
     </nav>
   );
