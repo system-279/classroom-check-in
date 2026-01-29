@@ -56,20 +56,6 @@ async function findOrCreateTenantUser(
   const ds = req.dataSource!;
   const { uid, email } = decodedToken;
 
-  // スーパー管理者チェック（許可リストをバイパス）
-  const superAdminAccess = await isSuperAdmin(email);
-  if (superAdminAccess) {
-    // スーパー管理者はテナント内ユーザーとして存在しなくても管理者としてアクセス可能
-    req.isSuperAdminAccess = true;
-    return {
-      id: `super-admin-${uid}`,
-      role: "admin",
-      email: email ?? undefined,
-      firebaseUid: uid,
-      isSuperAdminAccess: true,
-    };
-  }
-
   // firebaseUidでユーザーを検索（テナント内の既存ユーザーは常に許可）
   const existingByUid = await ds.getUserByFirebaseUid(uid);
   if (existingByUid) {
@@ -94,6 +80,20 @@ async function findOrCreateTenantUser(
         firebaseUid: uid,
       };
     }
+  }
+
+  // スーパー管理者チェック（テナント内にユーザーがいない場合のみ）
+  // スーパー管理者はテナント内ユーザーとして存在しなくても管理者としてアクセス可能
+  const superAdminAccess = await isSuperAdmin(email);
+  if (superAdminAccess) {
+    req.isSuperAdminAccess = true;
+    return {
+      id: `super-admin-${uid}`,
+      role: "admin",
+      email: email ?? undefined,
+      firebaseUid: uid,
+      isSuperAdminAccess: true,
+    };
   }
 
   // 新規ユーザーの場合、テナントの許可リストをチェック
@@ -124,7 +124,7 @@ async function findOrCreateTenantUser(
 
 /**
  * 開発モードでのテナントスコープユーザー検索/作成
- * スーパー管理者は許可リストに関係なくアクセス可能
+ * スーパー管理者は許可リストに関係なくアクセス可能（テナント内にユーザーがいない場合のみ）
  */
 async function findOrCreateDevUser(
   req: Request,
@@ -133,7 +133,17 @@ async function findOrCreateDevUser(
 ): Promise<(AuthUser & { isSuperAdminAccess?: boolean }) | null> {
   const ds = req.dataSource!;
 
-  // スーパー管理者チェック（許可リストをバイパス）
+  // メールアドレスで既存ユーザーを検索（テナント内にユーザーがいれば優先）
+  const existingByEmail = await ds.getUserByEmail(email);
+  if (existingByEmail) {
+    return {
+      id: existingByEmail.id,
+      role: existingByEmail.role,
+      email: existingByEmail.email ?? undefined,
+    };
+  }
+
+  // スーパー管理者チェック（テナント内にユーザーがいない場合のみ）
   const superAdminAccess = await isSuperAdmin(email);
   if (superAdminAccess) {
     req.isSuperAdminAccess = true;
@@ -142,16 +152,6 @@ async function findOrCreateDevUser(
       role: "admin",
       email,
       isSuperAdminAccess: true,
-    };
-  }
-
-  // メールアドレスで既存ユーザーを検索
-  const existingByEmail = await ds.getUserByEmail(email);
-  if (existingByEmail) {
-    return {
-      id: existingByEmail.id,
-      role: existingByEmail.role,
-      email: existingByEmail.email ?? undefined,
     };
   }
 
