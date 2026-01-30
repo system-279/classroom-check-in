@@ -122,38 +122,33 @@
 - Classroom API連携
 - Forms API連携
 
-## 最新セッション成果（2026-01-30 #3）
+## 最新セッション成果（2026-01-30 #4）
+
+### 受講者講座登録ダイアログのスクロール問題修正
+- ダイアログ内で講座リストが長い場合にフッター（登録ボタン）が画面外に出てスクロールできない問題を修正
+- `enrollment-dialog.tsx`のflex-colコンテナに`h-full max-h-[85vh]`を追加
+- **コミット**: `124df4c`
+
+### CI/CD権限設定の修正
+- Firestoreインデックスデプロイに必要な権限を追加
+  - `roles/serviceusage.serviceUsageConsumer`
+  - `roles/datastore.indexAdmin`
+- Firestoreインデックスデプロイを非ブロッキングに変更（サービスデプロイと並行実行）
+- **コミット**: `5fc0949`
+
+### 通知ポリシー仕様の確認
+- **グローバルポリシー**: 設定すれば新規講座にも自動適用される
+- 優先順位: user > course > global > デフォルト値
+
+**残タスク**: なし
+
+---
+
+## 前回セッション成果（2026-01-30 #3）
 
 ### 通知ポリシー作成500エラーの完全修正
-
-本番環境で通知ポリシー作成時に発生していた500エラーを修正。
-
-**根本原因**:
-- `firestore.indexes.json`にインデックス定義はあったが、**GCPにデプロイされていなかった**
-- 前回のセッションではファイル更新のみで、`firebase deploy`が実行されていなかった
-
-**対応内容**:
-1. **Firestoreインデックスを手動デプロイ**
-   - `gcloud firestore indexes composite create`で直接作成
-   - `scope + userId + createdAt` (READY)
-   - `scope + courseId + createdAt` (READY)
-   - `courseId + scope + createdAt` (READY) ← 追加
-
-2. **CI/CD自動デプロイ追加**（教訓を活かした対応）
-   - `.github/workflows/deploy.yml`に`deploy-firestore-indexes`ジョブ追加
-   - `firestore.indexes.json`変更時に自動でGCPにデプロイ
-   - 全デプロイジョブがインデックスデプロイ完了後に実行
-
-3. **ドキュメント更新**
-   - `docs/ai-dev-guide.md`にFirestoreインデックスの注意事項を追記
-
-**コミット**:
-- `6274ad0` ci: FirestoreインデックスのCI/CD自動デプロイを追加
-- `0a11b2f` docs: Firestoreインデックスの注意事項を追加
-- `0dcae21` fix: notification_policiesの追加インデックスを定義
-
-**残タスク**:
-- 現場での再試行確認待ち（インデックスはREADY状態）
+- Firestoreインデックスを手動デプロイ（READY状態）
+- CI/CD自動デプロイ追加
 
 ---
 
