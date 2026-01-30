@@ -122,223 +122,77 @@
 - Classroom API連携
 - Forms API連携
 
-## 最新セッション成果（2026-01-30 #2）
+## 最新セッション成果（2026-01-30 #3）
 
-### スーパー管理者テナント編集機能
+### 通知ポリシー作成500エラーの完全修正
 
-スーパー管理者がテナントの組織名・オーナーメールアドレスを編集できる機能を追加。
+本番環境で通知ポリシー作成時に発生していた500エラーを修正。
 
-**新機能**:
-- **PATCH /api/v2/super/tenants/:id** を拡張
-  - `name`: 組織名（1-100文字）
-  - `ownerEmail`: オーナーメールアドレス
-  - `status`: ステータス（既存機能）
-- **テナント編集ダイアログ**: `/super-admin/tenants` から編集ボタンで開く
-- **バリデーション**: 空値チェック、メール形式チェック、変更有無チェック
+**根本原因**:
+- `firestore.indexes.json`にインデックス定義はあったが、**GCPにデプロイされていなかった**
+- 前回のセッションではファイル更新のみで、`firebase deploy`が実行されていなかった
 
-**コミット**:
-- `f3e6ba9` feat: スーパー管理者によるテナント編集機能
+**対応内容**:
+1. **Firestoreインデックスを手動デプロイ**
+   - `gcloud firestore indexes composite create`で直接作成
+   - `scope + userId + createdAt` (READY)
+   - `scope + courseId + createdAt` (READY)
+   - `courseId + scope + createdAt` (READY) ← 追加
 
-**変更ファイル**:
-- `services/api/src/routes/super-admin.ts` - API拡張
-- `services/api/src/routes/super-admin.test.ts` - テスト追加（11件）
-- `web/app/super-admin/tenants/_components/tenant-edit-dialog.tsx` - 新規
-- `web/app/super-admin/tenants/_components/tenant-table.tsx` - 編集ボタン追加
-- `web/app/super-admin/tenants/page.tsx` - ハンドラー追加
+2. **CI/CD自動デプロイ追加**（教訓を活かした対応）
+   - `.github/workflows/deploy.yml`に`deploy-firestore-indexes`ジョブ追加
+   - `firestore.indexes.json`変更時に自動でGCPにデプロイ
+   - 全デプロイジョブがインデックスデプロイ完了後に実行
 
-### Nightly Smoke Test修正
-
-デモモード受講者画面のルーティング問題を修正。
-
-**解決した問題**:
-- `/demo/student/courses` がホームにリダイレクトされていた
-- 原因: `DemoModeProvider`と`TenantProvider`が別コンテキストで、`AuthProvider`が`isDemo`を正しく取得できなかった
-
-**修正**:
-- `DemoModeProvider` → `TenantProvider tenantId="demo"` に変更
-- 不要になった `demo-mode-context.tsx` を削除
+3. **ドキュメント更新**
+   - `docs/ai-dev-guide.md`にFirestoreインデックスの注意事項を追記
 
 **コミット**:
-- `14e9bee` fix: デモモード受講者画面のルーティング修正
-- `dcc7263` chore: 未使用のDemoModeProviderを削除
+- `6274ad0` ci: FirestoreインデックスのCI/CD自動デプロイを追加
+- `0a11b2f` docs: Firestoreインデックスの注意事項を追加
+- `0dcae21` fix: notification_policiesの追加インデックスを定義
+
+**残タスク**:
+- 現場での再試行確認待ち（インデックスはREADY状態）
 
 ---
 
-## 前回セッション成果（2026-01-30）
+## 前回セッション成果（2026-01-30 #2）
+
+### スーパー管理者テナント編集機能
+- **PATCH /api/v2/super/tenants/:id** を拡張（name, ownerEmail編集可能）
+- テナント編集ダイアログ追加
+
+### Nightly Smoke Test修正
+- デモモード受講者画面のルーティング問題を修正
+- `DemoModeProvider`を削除し、`TenantProvider`に統合
+
+---
+
+## 前回セッション成果（2026-01-30 #1）
 
 ### インフラ・UX修正
-
-**解決した問題**:
-1. **通知ポリシー作成500エラー**: Firestoreインデックス不足を修正
-   - COLLECTION_GROUPスコープで`notification_policies`インデックスを追加
-   - コレクション名をsnake_caseに統一
-2. **DialogDescription警告**: アクセシビリティ改善
-   - `policy-form-dialog.tsx`, `course-form-dialog.tsx`, `user-form-dialog.tsx`
-3. **講座削除エラーメッセージ日本語化**: ユーザー削除と同じ形式に統一
-   - APIレスポンスに`details`（sessionCount, enrollmentCount）を追加
-   - フロントエンドで詳細を日本語表示
-
-**コミット**:
-- `f7328cc` fix: 講座削除エラーメッセージを日本語化
-- `901ece8` fix: 通知ポリシー作成エラーとアクセシビリティ警告を修正
-
-**変更ファイル**:
-- `firestore.indexes.json` - COLLECTION_GROUPスコープに変更、インデックス追加
-- `services/api/src/routes/shared/courses.ts` - 削除エラーにdetails追加
-- `web/app/admin/courses/_components/delete-confirm-dialog.tsx` - 日本語エラー表示
+- 通知ポリシー作成エラー: `firestore.indexes.json`更新（※デプロイ漏れ→#3で対応）
+- DialogDescription警告: アクセシビリティ改善
+- 講座削除エラーメッセージ日本語化
 
 ---
 
 ## 前回セッション成果（2026-01-29）
 
 ### データとフロントの紐づけ問題修正
-
-**解決した問題**:
-1. **Reactハイドレーションエラー #418**: AuthProvider の二重ネスティングを修正
-2. **受講者画面に講座が表示されない**: スーパー管理者のテナントユーザー優先ロジックを修正
-3. **受講講座ダイアログUX改善**: 一括削除機能、ダイアログ自動クローズ問題を修正
-4. **ナビゲーション表示修正**: ページコンテキストに応じた適切なリンク表示
-5. **ユーザー削除エラーUX改善**: 関連データの詳細（セッション数、受講登録数）を表示
-
-**主要PR**:
-- PR #20-#23: ハイドレーションエラー修正
-- PR #24: 受講講座の一括解除機能
-- PR #25: ダイアログ自動クローズ問題修正
-- PR #26: スーパー管理者テナントユーザー優先修正
-- PR #27: tenant-auth.ts ユニットテスト追加
-- PR #28: ユーザー削除エンドポイント ユニットテスト追加
-
-**テスト追加**:
-- `services/api/src/middleware/tenant-auth.test.ts` (8テスト)
-- `services/api/src/routes/shared/users.test.ts` (5テスト)
-
-**変更ファイル**:
-- `web/app/[tenant]/layout.tsx` - AuthProvider重複削除、ナビゲーション改善
-- `web/lib/auth-context.tsx` - TenantContextからisDemo取得
-- `services/api/src/middleware/tenant-auth.ts` - テナントユーザー優先ロジック
-- `services/api/src/routes/shared/users.ts` - 削除エラー詳細レスポンス
-- `web/lib/api.ts` - ApiError.details追加
-- `web/app/admin/users/_components/delete-confirm-dialog.tsx` - 詳細エラー表示
+- Reactハイドレーションエラー修正
+- 受講者画面の講座表示問題修正
+- ユーザー削除エラーUX改善
 
 ---
 
-## 前回セッション成果（2026-01-27 #2）
+## 過去セッション成果（アーカイブ）
 
-### スーパー管理者機能の強化
-システム全体を管理するスーパー管理者機能を大幅に拡張。
-
-**新機能**:
-1. **テナント一覧にリンク追加**
-   - 各テナントの「管理」「受講」ボタンを追加
-   - 新規タブで各テナントの画面を開ける
-
-2. **スーパー管理者のUI管理**（`/super-admin/admins`）
-   - Firestoreベースのスーパー管理者管理
-   - 環境変数に加え、UIからも管理者を追加・削除可能
-   - 環境変数リセット時もFirestoreから復元可能
-   - API: `GET/POST/DELETE /api/v2/super/admins`
-
-3. **スーパー管理者の全テナントアクセス**
-   - 許可リストに関係なく全テナントにアクセス可能
-   - テナント内では管理者（admin）権限として扱われる
-   - 「スーパー管理者としてアクセス中」バナー表示
-
-4. **CD設定改善**
-   - GitHub Secretsに `SUPER_ADMIN_EMAILS` 設定
-   - デプロイ時に自動設定されるように修正
-
-**関連ファイル**:
-- `services/api/src/middleware/super-admin.ts` - Firestore管理対応
-- `services/api/src/middleware/tenant-auth.ts` - スーパー管理者バイパス
-- `services/api/src/routes/super-admin.ts` - 管理者管理API追加
-- `web/app/super-admin/admins/page.tsx` - 管理者管理UI
-- `web/app/[tenant]/layout.tsx` - スーパー管理者バナー
-- `.github/workflows/deploy.yml` - SUPER_ADMIN_EMAILS対応
-
----
-
-## 前回セッション成果（2026-01-27）
-
-### テナント登録完了画面と受講者リンク共有UI（PR #17）
-テナント作成後のUXを改善。管理者が受講者にリンクを共有しやすくした。
-
-**API変更**:
-- `POST /api/v2/tenants` レスポンスに `studentUrl` フィールドを追加
-
-**Web UI変更**:
-- テナント登録完了画面: 登録成功後に管理者/受講者リンクを表示
-  - コピーボタンでURLをクリップボードにコピー
-  - 「次のステップ」ガイダンスを表示
-- 管理画面ダッシュボード: 受講者向けリンク共有セクションを追加
-  - `/{tenantId}/student` URLを目立つ位置に表示
-  - ワンクリックでコピー可能
-
----
-
-## 過去セッション成果（2026-01-21）
-
-### セッション管理の残論点解決
-すべての残論点を解決し、実装を完了。
-
-| ADR | タイトル | 決定内容 |
-|-----|---------|---------|
-| ADR-0020 | OUT欠損セッション自動確定 | 48時間経過で自動クローズ |
-| ADR-0021 | タブ閉鎖検知 | スコープ外（ブラウザ制約） |
-| ADR-0022 | Heartbeat継続方式 | setInterval方式維持 |
-| ADR-0023 | 同時複数講座セッション | 1人1セッションのみ許可 |
-
-**実装内容**:
-- `services/notification/src/services/auto-closer.ts` - 48時間自動クローズ
-- `services/api/src/routes/shared/sessions.ts` - 同時セッション禁止
-
-### AlertBox共有コンポーネント
-- `web/components/ui/alert-box.tsx` - DRY原則に準拠した共有コンポーネント
-- Tailwind v4 `@source`ディレクティブ問題を解決
-
-### 残論点の状態
-- `docs/open-questions.md` → **すべて解決済み**
-
-## 前回セッション成果（2026-01-20）
-
-### 退室打刻の必要視聴時間チェック（PR #16）
-必要視聴時間（requiredWatchMin）経過前の退室を防止する機能。
-
-- **API**: `POST /sessions/check-out`
-  - requiredWatchMin経過チェックを追加
-  - 未達の場合は400エラー（`not_enough_time`）
-  - レスポンスに `requiredWatchMin`, `elapsedSec`, `remainingSec` を含む
-- **Web UI**: `/[tenant]/student/session/[courseId]`
-  - プログレスバーで進捗を可視化
-  - 残り時間をリアルタイム表示
-  - 達成時は「✓ 必要視聴時間に達しました」を表示
-  - 未達時は退室ボタンを非活性化+注意文表示
-
-### セルフチェックアウト機能（PR #15）
-OUT忘れ通知を受け取った受講者が、自分で退室時刻を指定して打刻できる機能。
-
-- **API**:
-  - `GET /sessions/self-checkout/:sessionId/info` - セッション情報取得
-  - `POST /sessions/self-checkout` - 退室時刻を指定して打刻
-- **Web UI**: `/[tenant]/student/checkout/[sessionId]`
-- **通知メール**: チェックアウトURLを追加
-
-**バリデーション条件**:
-- 本人のセッションであること
-- セッションがopen状態であること
-- 通知が送信済みであること
-- 入室からrequiredWatchMin経過していること
-- 退室時刻が有効範囲内であること
-
-### Codexレビュー修正（PR #14, #15）
-
-| 優先度 | 問題 | 対応 |
-|--------|------|------|
-| High | user_settings スキーマ不整合 | 通知サービスのスキーマをAPI側に統一 |
-| High | 受講登録なしでcheck-in可能 | check-inエンドポイントで受講登録を検証 |
-| High | stale検出がグローバルポリシーのみ | ポリシー単位でstale判定する方式に変更 |
-| Medium | 関連データありでuser/course削除可能 | 削除前にセッション・受講登録の有無を確認 |
-| Medium | 講座一覧が受講登録でフィルタされない | 受講登録済みの講座のみを返すように修正 |
-| Medium | 通知ポリシーの重複作成可能 | 重複チェックを追加（409エラー） |
+詳細は以下を参照:
+- 2026-01-27: スーパー管理者機能強化、テナント登録UI改善
+- 2026-01-21: セッション管理残論点解決（ADR-0020〜0023）
+- 2026-01-20: 退室打刻の必要視聴時間チェック、セルフチェックアウト機能
 
 ## 開発メモ
 - ドキュメント更新の順序は `docs/ai-dev-guide.md` を参照
