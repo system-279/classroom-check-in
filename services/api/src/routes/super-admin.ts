@@ -5,7 +5,7 @@
  * エンドポイント:
  * - GET /api/v2/super/tenants - 全テナント一覧（ページング対応）
  * - GET /api/v2/super/tenants/:id - テナント詳細（統計情報含む）
- * - PATCH /api/v2/super/tenants/:id - テナント更新（status変更）
+ * - PATCH /api/v2/super/tenants/:id - テナント更新（name, ownerEmail, status）
  */
 
 import { Router, Request, Response } from "express";
@@ -212,19 +212,71 @@ router.get("/tenants/:id", async (req: Request, res: Response) => {
 });
 
 /**
- * テナントを更新（status変更）
+ * テナント更新リクエストの型
+ */
+interface TenantUpdateRequest {
+  name?: string;
+  ownerEmail?: string;
+  status?: TenantStatus;
+}
+
+/**
+ * テナントを更新
  * PATCH /api/v2/super/tenants/:id
  *
  * リクエストボディ:
- * - status: "active" | "suspended" - 新しいステータス
+ * - name: string (1-100文字) - 組織名
+ * - ownerEmail: string (メール形式) - オーナーメールアドレス
+ * - status: "active" | "suspended" - ステータス
+ *
+ * 少なくとも1つのフィールドが必要
  */
 router.patch("/tenants/:id", async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
-    const { status } = req.body as { status?: TenantStatus };
+    const { name, ownerEmail, status } = req.body as TenantUpdateRequest;
 
-    // バリデーション
-    if (!status || !VALID_STATUSES.includes(status)) {
+    // 少なくとも1つのフィールドが必要
+    if (name === undefined && ownerEmail === undefined && status === undefined) {
+      res.status(400).json({
+        error: "no_fields",
+        message: "更新するフィールド（name, ownerEmail, status）を少なくとも1つ指定してください。",
+      });
+      return;
+    }
+
+    // nameのバリデーション
+    if (name !== undefined) {
+      if (typeof name !== "string" || name.trim().length === 0) {
+        res.status(400).json({
+          error: "invalid_name",
+          message: "組織名は空にできません。",
+        });
+        return;
+      }
+      if (name.length > 100) {
+        res.status(400).json({
+          error: "invalid_name",
+          message: "組織名は100文字以内で入力してください。",
+        });
+        return;
+      }
+    }
+
+    // ownerEmailのバリデーション
+    if (ownerEmail !== undefined) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (typeof ownerEmail !== "string" || !emailRegex.test(ownerEmail)) {
+        res.status(400).json({
+          error: "invalid_email",
+          message: "有効なメールアドレス形式で入力してください。",
+        });
+        return;
+      }
+    }
+
+    // statusのバリデーション
+    if (status !== undefined && !VALID_STATUSES.includes(status)) {
       res.status(400).json({
         error: "invalid_status",
         message: "statusは 'active' または 'suspended' を指定してください。",
@@ -245,19 +297,45 @@ router.patch("/tenants/:id", async (req: Request, res: Response) => {
       return;
     }
 
-    const previousStatus = tenantDoc.data()?.status;
+    const previousData = tenantDoc.data()!;
 
-    // ステータス更新
-    const now = new Date();
-    await tenantRef.update({
-      status,
-      updatedAt: now,
-    });
+    // 更新データを構築
+    const updateData: Record<string, unknown> = {
+      updatedAt: new Date(),
+    };
+
+    const changes: string[] = [];
+
+    if (name !== undefined && name !== previousData.name) {
+      updateData.name = name.trim();
+      changes.push(`name: "${previousData.name}" -> "${name.trim()}"`);
+    }
+
+    if (ownerEmail !== undefined && ownerEmail !== previousData.ownerEmail) {
+      updateData.ownerEmail = ownerEmail.toLowerCase();
+      changes.push(`ownerEmail: "${previousData.ownerEmail}" -> "${ownerEmail.toLowerCase()}"`);
+    }
+
+    if (status !== undefined && status !== previousData.status) {
+      updateData.status = status;
+      changes.push(`status: "${previousData.status}" -> "${status}"`);
+    }
+
+    // 実際に変更がある場合のみ更新
+    if (changes.length === 0) {
+      res.status(400).json({
+        error: "no_changes",
+        message: "変更がありません。",
+      });
+      return;
+    }
+
+    await tenantRef.update(updateData);
 
     // 操作ログを出力
     const superAdmin = req.superAdmin;
     console.log(
-      `[SuperAdmin] Tenant status changed: ${id} (${previousStatus} -> ${status}) by ${superAdmin?.email}`
+      `[SuperAdmin] Tenant updated: ${id} - ${changes.join(", ")} by ${superAdmin?.email}`
     );
 
     const updatedDoc = await tenantRef.get();

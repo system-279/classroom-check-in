@@ -13,6 +13,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TenantStatusDialog } from "./tenant-status-dialog";
+import { TenantEditDialog } from "./tenant-edit-dialog";
 
 export interface Tenant {
   id: string;
@@ -26,27 +27,39 @@ export interface Tenant {
 interface TenantTableProps {
   tenants: Tenant[];
   onStatusChange: (id: string, newStatus: "active" | "suspended") => Promise<void>;
+  onEdit: (id: string, data: { name: string; ownerEmail: string }) => Promise<void>;
 }
 
 /**
  * テナント一覧テーブル
  */
-export function TenantTable({ tenants, onStatusChange }: TenantTableProps) {
+export function TenantTable({ tenants, onStatusChange, onEdit }: TenantTableProps) {
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [targetStatus, setTargetStatus] = useState<"active" | "suspended">("active");
 
   const handleStatusClick = (tenant: Tenant, newStatus: "active" | "suspended") => {
     setSelectedTenant(tenant);
     setTargetStatus(newStatus);
-    setDialogOpen(true);
+    setStatusDialogOpen(true);
   };
 
-  const handleConfirm = async () => {
+  const handleEditClick = (tenant: Tenant) => {
+    setSelectedTenant(tenant);
+    setEditDialogOpen(true);
+  };
+
+  const handleStatusConfirm = async () => {
     if (selectedTenant) {
       await onStatusChange(selectedTenant.id, targetStatus);
     }
-    setDialogOpen(false);
+    setStatusDialogOpen(false);
+    setSelectedTenant(null);
+  };
+
+  const handleEditSave = async (id: string, data: { name: string; ownerEmail: string }) => {
+    await onEdit(id, data);
     setSelectedTenant(null);
   };
 
@@ -115,23 +128,32 @@ export function TenantTable({ tenants, onStatusChange }: TenantTableProps) {
                   </div>
                 </TableCell>
                 <TableCell>
-                  {tenant.status === "active" ? (
+                  <div className="flex gap-2">
                     <Button
-                      variant="destructive"
+                      variant="outline"
                       size="sm"
-                      onClick={() => handleStatusClick(tenant, "suspended")}
+                      onClick={() => handleEditClick(tenant)}
                     >
-                      停止
+                      編集
                     </Button>
-                  ) : (
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={() => handleStatusClick(tenant, "active")}
-                    >
-                      再開
-                    </Button>
-                  )}
+                    {tenant.status === "active" ? (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleStatusClick(tenant, "suspended")}
+                      >
+                        停止
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => handleStatusClick(tenant, "active")}
+                      >
+                        再開
+                      </Button>
+                    )}
+                  </div>
                 </TableCell>
               </TableRow>
             ))
@@ -140,11 +162,18 @@ export function TenantTable({ tenants, onStatusChange }: TenantTableProps) {
       </Table>
 
       <TenantStatusDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
+        open={statusDialogOpen}
+        onOpenChange={setStatusDialogOpen}
         tenant={selectedTenant}
         targetStatus={targetStatus}
-        onConfirm={handleConfirm}
+        onConfirm={handleStatusConfirm}
+      />
+
+      <TenantEditDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        tenant={selectedTenant}
+        onSave={handleEditSave}
       />
     </>
   );

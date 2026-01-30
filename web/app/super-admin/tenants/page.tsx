@@ -103,6 +103,23 @@ export default function TenantsPage() {
     }
   };
 
+  const handleEdit = async (id: string, data: { name: string; ownerEmail: string }) => {
+    const idToken = await getIdToken();
+    if (!idToken) {
+      throw new Error("認証トークンを取得できませんでした");
+    }
+
+    await apiFetch(`/api/v2/super/tenants/${id}`, {
+      method: "PATCH",
+      idToken,
+      body: JSON.stringify(data),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    // 再取得
+    await fetchTenants(pagination.offset, statusFilter);
+  };
+
   const handlePrevPage = () => {
     const newOffset = Math.max(0, pagination.offset - LIMIT);
     fetchTenants(newOffset, statusFilter);
@@ -170,6 +187,7 @@ export default function TenantsPage() {
             <TenantTable
               tenants={tenants}
               onStatusChange={handleStatusChange}
+              onEdit={handleEdit}
             />
           )}
 
