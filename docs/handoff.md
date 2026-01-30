@@ -122,7 +122,49 @@
 - Classroom API連携
 - Forms API連携
 
-## 最新セッション成果（2026-01-30）
+## 最新セッション成果（2026-01-30 #2）
+
+### スーパー管理者テナント編集機能
+
+スーパー管理者がテナントの組織名・オーナーメールアドレスを編集できる機能を追加。
+
+**新機能**:
+- **PATCH /api/v2/super/tenants/:id** を拡張
+  - `name`: 組織名（1-100文字）
+  - `ownerEmail`: オーナーメールアドレス
+  - `status`: ステータス（既存機能）
+- **テナント編集ダイアログ**: `/super-admin/tenants` から編集ボタンで開く
+- **バリデーション**: 空値チェック、メール形式チェック、変更有無チェック
+
+**コミット**:
+- `f3e6ba9` feat: スーパー管理者によるテナント編集機能
+
+**変更ファイル**:
+- `services/api/src/routes/super-admin.ts` - API拡張
+- `services/api/src/routes/super-admin.test.ts` - テスト追加（11件）
+- `web/app/super-admin/tenants/_components/tenant-edit-dialog.tsx` - 新規
+- `web/app/super-admin/tenants/_components/tenant-table.tsx` - 編集ボタン追加
+- `web/app/super-admin/tenants/page.tsx` - ハンドラー追加
+
+### Nightly Smoke Test修正
+
+デモモード受講者画面のルーティング問題を修正。
+
+**解決した問題**:
+- `/demo/student/courses` がホームにリダイレクトされていた
+- 原因: `DemoModeProvider`と`TenantProvider`が別コンテキストで、`AuthProvider`が`isDemo`を正しく取得できなかった
+
+**修正**:
+- `DemoModeProvider` → `TenantProvider tenantId="demo"` に変更
+- 不要になった `demo-mode-context.tsx` を削除
+
+**コミット**:
+- `14e9bee` fix: デモモード受講者画面のルーティング修正
+- `dcc7263` chore: 未使用のDemoModeProviderを削除
+
+---
+
+## 前回セッション成果（2026-01-30）
 
 ### インフラ・UX修正
 

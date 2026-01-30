@@ -153,9 +153,9 @@ npm run dev -w @classroom-check-in/web
   - 通知送信済み＋必要視聴時間経過後のみ利用可
 - **スーパー管理者機能**（ADR-0024）:
   - `SUPER_ADMIN_EMAILS`環境変数で管理者メールアドレス指定
-  - API: `/api/v2/super/tenants` - 全テナント一覧・詳細・ステータス変更
+  - API: `/api/v2/super/tenants` - 全テナント一覧・詳細・編集
   - Web: `/super-admin/tenants` - テナント管理画面
-  - テナント停止/再開操作が可能
+  - テナント編集（組織名、オーナーメール）、停止/再開操作が可能
 - **統一エラーハンドリング**（ADR-0025）:
   - `AppError`クラス階層（BadRequestError, NotFoundError等）
   - グローバルエラーハンドラーミドルウェア
@@ -164,7 +164,7 @@ npm run dev -w @classroom-check-in/web
   - JSON形式ログ出力（Cloud Logging統合対応）
   - リクエストログミドルウェア（requestId, duration, tenantId, userId）
 - **テストカバレッジ**:
-  - API: 285テスト（ユニット + 統合テスト）
+  - API: 296テスト（ユニット + 統合テスト）
   - 通知サービス: 20テスト
   - 統合テスト: セッションフロー（ADR-0012, ADR-0023検証）、テナント作成フロー
 - **再入室禁止機能**（ADR-0026）:

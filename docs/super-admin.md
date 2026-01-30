@@ -51,6 +51,7 @@ http://localhost:3000/super-admin
 |------|------|
 | テナント一覧 | 全テナントをページング表示 |
 | ステータスフィルター | 有効/停止中でフィルタリング |
+| テナント編集 | 組織名、オーナーメールアドレスを変更 |
 | テナント停止 | テナントを停止状態に変更 |
 | テナント再開 | 停止中のテナントを再開 |
 
@@ -60,7 +61,7 @@ http://localhost:3000/super-admin
 |---------|------|------|
 | GET | `/api/v2/super/tenants` | 全テナント一覧（ページング対応） |
 | GET | `/api/v2/super/tenants/:id` | テナント詳細（統計情報含む） |
-| PATCH | `/api/v2/super/tenants/:id` | テナントステータス変更 |
+| PATCH | `/api/v2/super/tenants/:id` | テナント更新（name, ownerEmail, status） |
 
 ### GET /api/v2/super/tenants
 
@@ -122,13 +123,60 @@ http://localhost:3000/super-admin
 
 ### PATCH /api/v2/super/tenants/:id
 
+テナント情報を更新します。少なくとも1つのフィールドを指定してください。
+
 **リクエストボディ:**
+
+| フィールド | 型 | 必須 | 説明 |
+|-----------|------|------|------|
+| name | string | - | 組織名（1-100文字） |
+| ownerEmail | string | - | オーナーメールアドレス |
+| status | string | - | `active` または `suspended` |
+
+**リクエスト例（組織名変更）:**
 
 ```json
 {
-  "status": "suspended"
+  "name": "新しい組織名"
 }
 ```
+
+**リクエスト例（複数フィールド変更）:**
+
+```json
+{
+  "name": "新しい組織名",
+  "ownerEmail": "new-owner@example.com",
+  "status": "active"
+}
+```
+
+**レスポンス例:**
+
+```json
+{
+  "tenant": {
+    "id": "abc12345",
+    "name": "新しい組織名",
+    "ownerId": "firebase-uid-xxx",
+    "ownerEmail": "new-owner@example.com",
+    "status": "active",
+    "createdAt": "2026-01-27T10:00:00.000Z",
+    "updatedAt": "2026-01-30T02:30:00.000Z"
+  }
+}
+```
+
+**エラーレスポンス:**
+
+| エラーコード | 説明 |
+|-------------|------|
+| no_fields | 更新フィールドが指定されていない |
+| invalid_name | 組織名が空または100文字超過 |
+| invalid_email | メールアドレス形式が無効 |
+| invalid_status | ステータス値が無効 |
+| no_changes | 変更がない |
+| not_found | テナントが存在しない |
 
 ## 認可の仕組み
 
