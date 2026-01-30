@@ -47,7 +47,8 @@ jobs:
 
   deploy-api:
     name: Deploy API
-    needs: [ci, deploy-firestore-indexes]
+    needs: [ci]
+    # Note: Firestore indexes are deployed independently and don't block service deployment
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -93,7 +94,7 @@ jobs:
 
   deploy-web:
     name: Deploy Web
-    needs: [ci, deploy-firestore-indexes]
+    needs: [ci]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -141,7 +142,7 @@ jobs:
 
   deploy-notification:
     name: Deploy Notification
-    needs: [ci, deploy-firestore-indexes]
+    needs: [ci]
     runs-on: ubuntu-latest
     permissions:
       contents: read
