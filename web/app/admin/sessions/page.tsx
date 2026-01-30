@@ -14,8 +14,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { SessionTable } from "./_components/session-table";
 import { CloseSessionDialog } from "./_components/close-session-dialog";
+import { toCsv, downloadCsv } from "@/lib/csv";
 
 const AUTH_MODE = process.env.NEXT_PUBLIC_AUTH_MODE ?? "dev";
 
@@ -81,6 +83,57 @@ export default function SessionsPage() {
     fetchData();
   };
 
+  const handleDownloadCsv = () => {
+    const getCourseName = (courseId: string) =>
+      courses.find((c) => c.id === courseId)?.name ?? courseId;
+    const getUserName = (userId: string) => {
+      const user = users.find((u) => u.id === userId);
+      return user?.name || user?.email || userId;
+    };
+    const formatDateTime = (dateString: string | null) => {
+      if (!dateString) return "";
+      const date = new Date(dateString);
+      return date.toLocaleString("ja-JP", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    };
+    const formatDurationMin = (seconds: number) => {
+      if (seconds === 0) return "";
+      return Math.round(seconds / 60);
+    };
+    const statusLabel: Record<string, string> = {
+      open: "継続中",
+      closed: "終了",
+      adjusted: "補正済",
+    };
+
+    const csvData = sessions.map((s) => ({
+      userName: getUserName(s.userId),
+      courseName: getCourseName(s.courseId),
+      startTime: formatDateTime(s.startTime),
+      endTime: formatDateTime(s.endTime),
+      durationMin: formatDurationMin(s.durationSec),
+      status: statusLabel[s.status] ?? s.status,
+    }));
+
+    const csv = toCsv(csvData, [
+      { key: "userName", label: "ユーザー" },
+      { key: "courseName", label: "講座" },
+      { key: "startTime", label: "開始日時" },
+      { key: "endTime", label: "終了日時" },
+      { key: "durationMin", label: "滞在時間（分）" },
+      { key: "status", label: "状態" },
+    ]);
+
+    const now = new Date();
+    const dateStr = now.toISOString().slice(0, 10).replace(/-/g, "");
+    downloadCsv(csv, `sessions_${dateStr}.csv`);
+  };
+
   // ADR-0026: セッション削除（リセット）
   const handleDelete = async (session: Session) => {
     const user = users.find((u) => u.id === session.userId);
@@ -113,7 +166,7 @@ export default function SessionsPage() {
         <h1 className="text-2xl font-bold">セッション管理</h1>
       </div>
 
-      <div className="flex gap-4">
+      <div className="flex gap-4 flex-wrap items-center">
         <div className="w-48">
           <Select value={filterCourseId} onValueChange={setFilterCourseId}>
             <SelectTrigger>
@@ -156,6 +209,15 @@ export default function SessionsPage() {
               <SelectItem value="adjusted">補正済</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+        <div className="ml-auto">
+          <Button
+            variant="outline"
+            onClick={handleDownloadCsv}
+            disabled={loading || sessions.length === 0}
+          >
+            CSVダウンロード
+          </Button>
         </div>
       </div>
 

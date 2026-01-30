@@ -146,6 +146,25 @@ describe("courses router", () => {
       expect(res.status).toBe(200);
       expect(res.body.courses).toHaveLength(0);
     });
+
+    it("管理者は受講登録に関わらず全講座を取得できる", async () => {
+      const app = await createTestApp({ id: "admin-1", role: "admin" });
+
+      // 講座は3つあるが、受講登録はなし
+      mockDataSource.getCourses.mockResolvedValue([
+        { id: "course-1", name: "Course 1", enabled: true, visible: true, requiredWatchMin: 63 },
+        { id: "course-2", name: "Course 2", enabled: true, visible: true, requiredWatchMin: 63 },
+        { id: "course-3", name: "Course 3", enabled: true, visible: true, requiredWatchMin: 63 },
+      ]);
+      mockDataSource.getEnrollments.mockResolvedValue([]);
+      mockDataSource.getSessions.mockResolvedValue([]);
+
+      const res = await request(app).get("/courses");
+
+      expect(res.status).toBe(200);
+      // 管理者は受講登録なしでも全3講座を取得可能
+      expect(res.body.courses).toHaveLength(3);
+    });
   });
 
   describe("GET /admin/courses", () => {
