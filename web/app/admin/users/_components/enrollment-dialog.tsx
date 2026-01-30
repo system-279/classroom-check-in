@@ -300,7 +300,7 @@ export function EnrollmentDialog({
   return (
     <Dialog open={!!user} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-h-[85vh] max-w-2xl overflow-hidden p-0">
-        <div className="flex flex-col">
+        <div className="flex h-full max-h-[85vh] flex-col">
           {/* ヘッダー */}
           <div className="border-b bg-gradient-to-r from-slate-50 to-slate-100 px-6 py-5">
             <DialogHeader>
