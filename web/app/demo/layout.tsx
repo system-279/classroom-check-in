@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { DemoModeProvider } from "@/lib/demo-mode-context";
+import { TenantProvider } from "@/lib/tenant-context";
 import { AuthProvider } from "@/lib/auth-context";
 import { AuthFetchProvider } from "@/lib/auth-fetch-context";
 
@@ -11,7 +11,7 @@ export default function DemoLayout({
   children: React.ReactNode;
 }) {
   return (
-    <DemoModeProvider>
+    <TenantProvider tenantId="demo">
       <AuthProvider>
         <AuthFetchProvider>
           <div className="min-h-screen bg-background">
@@ -45,6 +45,6 @@ export default function DemoLayout({
           </div>
         </AuthFetchProvider>
       </AuthProvider>
-    </DemoModeProvider>
+    </TenantProvider>
   );
 }
