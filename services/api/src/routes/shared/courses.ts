@@ -19,8 +19,10 @@ router.get("/courses", requireUser, async (req: Request, res: Response) => {
   try {
     const ds = req.dataSource!;
 
+    const isAdmin = req.user!.role === "admin";
+
     // デバッグ: ユーザーIDをログ出力
-    console.log("[DEBUG] GET /courses - userId:", req.user!.id, "email:", req.user!.email);
+    console.log("[DEBUG] GET /courses - userId:", req.user!.id, "email:", req.user!.email, "isAdmin:", isAdmin);
 
     // N+1解消: 講座一覧、受講登録、ユーザーのセッションを並列取得
     const [courses, enrollments, userSessions] = await Promise.all([
@@ -38,8 +40,10 @@ router.get("/courses", requireUser, async (req: Request, res: Response) => {
     // 受講登録済みの講座IDセット
     const enrolledCourseIds = new Set(enrollments.map((e) => e.courseId));
 
-    // 受講登録済みの講座のみにフィルタリング
-    const enrolledCourses = courses.filter((course) => enrolledCourseIds.has(course.id));
+    // 管理者は全講座を表示、それ以外は受講登録済みの講座のみ
+    const enrolledCourses = isAdmin
+      ? courses
+      : courses.filter((course) => enrolledCourseIds.has(course.id));
 
     // セッションをコース別にグルーピング
     const sessionsByCourse = new Map<string, typeof userSessions>();
