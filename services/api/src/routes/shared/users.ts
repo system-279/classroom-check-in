@@ -82,6 +82,13 @@ router.post("/admin/users", requireAdmin, async (req: Request, res: Response) =>
       role: role ?? "student",
     });
 
+    // ユーザー作成時にallowed_emailsにも自動追加（ADR-0017）
+    // これがないとユーザーはログインできない
+    const isAllowed = await ds.isEmailAllowed(email);
+    if (!isAllowed) {
+      await ds.createAllowedEmail({ email, note: null });
+    }
+
     res.status(201).json({
       user: {
         id: user.id,
