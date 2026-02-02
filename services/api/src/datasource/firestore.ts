@@ -10,6 +10,7 @@ import type {
   SessionFilter,
   EnrollmentFilter,
   NotificationPolicyFilter,
+  AuthErrorLogFilter,
   CourseUpdateData,
   UserUpdateData,
   EnrollmentUpdateData,
@@ -24,6 +25,7 @@ import type {
   NotificationPolicy,
   AllowedEmail,
   UserSettings,
+  AuthErrorLog,
 } from "../types/entities.js";
 
 // Firestore Timestampを Date に変換
@@ -600,6 +602,53 @@ export class FirestoreDataSource implements DataSource {
     return {
       sentAt: toDate(data.sentAt),
       type: data.type ?? "out_missing",
+    };
+  }
+
+  // Auth Error Logs
+  async getAuthErrorLogs(filter?: AuthErrorLogFilter): Promise<AuthErrorLog[]> {
+    let query = this.collection("auth_error_logs").orderBy("occurredAt", "desc");
+
+    if (filter?.email) {
+      query = query.where("email", "==", filter.email);
+    }
+    if (filter?.startDate) {
+      query = query.where("occurredAt", ">=", Timestamp.fromDate(filter.startDate));
+    }
+    if (filter?.endDate) {
+      query = query.where("occurredAt", "<=", Timestamp.fromDate(filter.endDate));
+    }
+
+    const limit = filter?.limit ?? 100;
+    query = query.limit(limit);
+
+    const snapshot = await query.get();
+    return snapshot.docs.map((doc) => this.toAuthErrorLog(doc.id, doc.data()));
+  }
+
+  async createAuthErrorLog(data: Omit<AuthErrorLog, "id">): Promise<AuthErrorLog> {
+    const docRef = this.collection("auth_error_logs").doc();
+    await docRef.set({
+      ...data,
+      occurredAt: Timestamp.fromDate(data.occurredAt),
+    });
+    const doc = await docRef.get();
+    return this.toAuthErrorLog(doc.id, doc.data()!);
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private toAuthErrorLog(id: string, data: any): AuthErrorLog {
+    return {
+      id,
+      email: data.email,
+      tenantId: data.tenantId,
+      errorType: data.errorType,
+      errorMessage: data.errorMessage,
+      path: data.path,
+      method: data.method,
+      userAgent: data.userAgent ?? null,
+      ipAddress: data.ipAddress ?? null,
+      occurredAt: toDate(data.occurredAt),
     };
   }
 }

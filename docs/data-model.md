@@ -7,6 +7,7 @@
 ```
 tenants/{tenantId}/
   ├── allowed_emails/{id}
+  ├── auth_error_logs/{id}
   ├── courses/{id}
   ├── users/{id}
   ├── user_settings/{id}
@@ -42,6 +43,22 @@ tenants/{tenantId}/
 | createdAt | timestamp | 作成日時 |
 
 注: 新規ユーザーのログインを制限するための許可リスト。このリストに含まれるメールアドレスのみ新規登録が可能。既存ユーザーは許可リストに関係なくアクセス可能。
+
+### AuthErrorLog
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| id | string | 内部ID |
+| email | string | 試行したメールアドレス |
+| tenantId | string | テナントID |
+| errorType | string | エラー種別（tenant_access_denied等） |
+| errorMessage | string | エラーメッセージ |
+| path | string | リクエストパス |
+| method | string | HTTPメソッド |
+| userAgent | string | ユーザーエージェント（任意） |
+| ipAddress | string | IPアドレス（任意） |
+| occurredAt | timestamp | 発生日時 |
+
+注: 許可されていないアカウントでのログイン試行を記録。管理者がユーザーサポートを行う際の参照用。
 
 ### User
 | フィールド | 型 | 説明 |

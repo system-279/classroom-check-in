@@ -48,6 +48,12 @@ export default function TenantAdminLayout({
         >
           アクセス許可
         </Link>
+        <Link
+          href={`/${tenantId}/admin/auth-errors`}
+          className="text-muted-foreground hover:text-foreground"
+        >
+          認証エラー
+        </Link>
       </nav>
       {children}
     </div>

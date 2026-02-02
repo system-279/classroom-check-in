@@ -9,6 +9,7 @@ import type {
   SessionFilter,
   EnrollmentFilter,
   NotificationPolicyFilter,
+  AuthErrorLogFilter,
   CourseUpdateData,
   UserUpdateData,
   EnrollmentUpdateData,
@@ -24,6 +25,7 @@ import type {
   NotificationPolicy,
   AllowedEmail,
   UserSettings,
+  AuthErrorLog,
 } from "../types/entities.js";
 
 // デモ用初期データ
@@ -564,5 +566,20 @@ export class InMemoryDataSource implements DataSource {
   } | null> {
     // デモモードでは通知ログは存在しない扱い
     return null;
+  }
+
+  // Auth Error Logs
+  async getAuthErrorLogs(_filter?: AuthErrorLogFilter): Promise<AuthErrorLog[]> {
+    // デモモードでは認証エラーログは空
+    return [];
+  }
+
+  async createAuthErrorLog(data: Omit<AuthErrorLog, "id">): Promise<AuthErrorLog> {
+    this.throwIfReadOnly();
+    // デモモードでは実際には保存しないが、インターフェースに合わせてオブジェクトを返す
+    return {
+      ...data,
+      id: `auth-error-${Date.now()}`,
+    };
   }
 }

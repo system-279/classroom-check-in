@@ -39,6 +39,12 @@ export default function DemoAdminLayout({
         >
           アクセス許可
         </Link>
+        <Link
+          href="/demo/admin/auth-errors"
+          className="text-muted-foreground hover:text-foreground"
+        >
+          認証エラー
+        </Link>
       </nav>
       {children}
     </div>

@@ -10,6 +10,7 @@ import { usersRouter } from "./users.js";
 import { enrollmentsRouter } from "./enrollments.js";
 import { notificationPoliciesRouter } from "./notification-policies.js";
 import { allowedEmailsRouter } from "./allowed-emails.js";
+import { authErrorsRouter } from "./auth-errors.js";
 
 /**
  * 全ての共通ルーターを統合したルーター
@@ -25,6 +26,7 @@ export function createSharedRouter(): Router {
   router.use(enrollmentsRouter);
   router.use(notificationPoliciesRouter);
   router.use(allowedEmailsRouter);
+  router.use(authErrorsRouter);
 
   return router;
 }
@@ -36,3 +38,4 @@ export { usersRouter } from "./users.js";
 export { enrollmentsRouter } from "./enrollments.js";
 export { notificationPoliciesRouter } from "./notification-policies.js";
 export { allowedEmailsRouter } from "./allowed-emails.js";
+export { authErrorsRouter } from "./auth-errors.js";

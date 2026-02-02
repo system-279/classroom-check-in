@@ -43,6 +43,12 @@ export default function AdminLayout({
             >
               アクセス許可
             </Link>
+            <Link
+              href="/admin/auth-errors"
+              className="text-muted-foreground hover:text-foreground"
+            >
+              認証エラー
+            </Link>
           </nav>
         </div>
       </header>

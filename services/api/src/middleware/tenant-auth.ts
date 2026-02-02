@@ -8,6 +8,7 @@ import { getApps, initializeApp, cert } from "firebase-admin/app";
 import { getAuth, type DecodedIdToken } from "firebase-admin/auth";
 import type { AuthUser } from "./auth.js";
 import { isSuperAdmin } from "./super-admin.js";
+import { logger } from "../utils/logger.js";
 
 // Express Request を拡張（スーパー管理者フラグ）
 declare global {
@@ -38,10 +39,62 @@ if (authMode === "firebase" && getApps().length === 0) {
  * アクセス拒否エラー
  */
 export class TenantAccessDeniedError extends Error {
-  constructor(message: string) {
+  email?: string;
+  tenantId?: string;
+
+  constructor(message: string, email?: string, tenantId?: string) {
     super(message);
     this.name = "TenantAccessDeniedError";
+    this.email = email;
+    this.tenantId = tenantId;
   }
+}
+
+/**
+ * テナントアクセス拒否エラーをログ出力してレスポンスを返す
+ * Firestoreに認証エラーログを保存（非同期、エラーでも処理を止めない）
+ */
+async function handleTenantAccessDenied(
+  error: TenantAccessDeniedError,
+  req: Request,
+  res: Response
+): Promise<void> {
+  const tenantId = error.tenantId ?? req.tenantContext?.tenantId ?? "unknown";
+  const email = error.email ?? "unknown";
+
+  logger.warn("Tenant access denied", {
+    errorType: "tenant_access_denied",
+    tenantId,
+    email,
+    path: req.path,
+    method: req.method,
+    userAgent: req.header("user-agent"),
+  });
+
+  // Firestoreに認証エラーログを保存（非同期、失敗しても処理を止めない）
+  if (req.dataSource) {
+    try {
+      await req.dataSource.createAuthErrorLog({
+        email,
+        tenantId,
+        errorType: "tenant_access_denied",
+        errorMessage: error.message,
+        path: req.path,
+        method: req.method,
+        userAgent: req.header("user-agent") ?? null,
+        ipAddress: req.ip ?? null,
+        occurredAt: new Date(),
+      });
+    } catch (logError) {
+      // ログ保存失敗は警告のみ、レスポンスには影響させない
+      logger.warn("Failed to save auth error log", { error: logError });
+    }
+  }
+
+  res.status(403).json({
+    error: "tenant_access_denied",
+    message: error.message,
+  });
 }
 
 /**
@@ -101,7 +154,9 @@ async function findOrCreateTenantUser(
   if (!allowed) {
     const tenantId = req.tenantContext?.tenantId ?? "unknown";
     throw new TenantAccessDeniedError(
-      `このメールアドレス (${email ?? "未設定"}) はテナント「${tenantId}」へのアクセスが許可されていません。管理者に連絡してください。`
+      `このメールアドレス (${email ?? "未設定"}) はテナント「${tenantId}」へのアクセスが許可されていません。管理者に連絡してください。`,
+      email ?? undefined,
+      tenantId
     );
   }
 
@@ -160,7 +215,9 @@ async function findOrCreateDevUser(
   if (!allowed) {
     const tenantId = req.tenantContext?.tenantId ?? "unknown";
     throw new TenantAccessDeniedError(
-      `このメールアドレス (${email}) はテナント「${tenantId}」へのアクセスが許可されていません。`
+      `このメールアドレス (${email}) はテナント「${tenantId}」へのアクセスが許可されていません。`,
+      email,
+      tenantId
     );
   }
 
@@ -230,10 +287,8 @@ export const tenantAwareAuthMiddleware = async (
           }
         } catch (error) {
           if (error instanceof TenantAccessDeniedError) {
-            return res.status(403).json({
-              error: "tenant_access_denied",
-              message: error.message,
-            });
+            await handleTenantAccessDenied(error, req, res);
+            return;
           }
           throw error;
         }
@@ -250,10 +305,8 @@ export const tenantAwareAuthMiddleware = async (
         }
       } catch (error) {
         if (error instanceof TenantAccessDeniedError) {
-          return res.status(403).json({
-            error: "tenant_access_denied",
-            message: error.message,
-          });
+          await handleTenantAccessDenied(error, req, res);
+          return;
         }
         throw error;
       }
@@ -274,10 +327,8 @@ export const tenantAwareAuthMiddleware = async (
       req.user = await findOrCreateTenantUser(req, decodedToken);
     } catch (error) {
       if (error instanceof TenantAccessDeniedError) {
-        return res.status(403).json({
-          error: "tenant_access_denied",
-          message: error.message,
-        });
+        await handleTenantAccessDenied(error, req, res);
+        return;
       }
       // トークン検証失敗時は req.user を設定しない（401はrequireUserで処理）
       console.error("Firebase token verification failed:", error);
