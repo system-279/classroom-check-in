@@ -2,6 +2,7 @@
  * users.ts のユニットテスト
  *
  * テスト対象:
+ * - POST /admin/users のユーザー作成とallowed_emails自動追加
  * - DELETE /admin/users/:id の関連データチェックと詳細レスポンス
  */
 
@@ -11,9 +12,13 @@ import type { Request, Response } from "express";
 // DataSource のモック型
 type MockDataSource = {
   getUserById: Mock;
+  getUserByEmail: Mock;
+  createUser: Mock;
   getSessions: Mock;
   getEnrollments: Mock;
   deleteUser: Mock;
+  isEmailAllowed: Mock;
+  createAllowedEmail: Mock;
 };
 
 // テスト用リクエスト作成ヘルパー
@@ -49,11 +54,149 @@ function createMockResponse(): {
 function createMockDataSource(): MockDataSource {
   return {
     getUserById: vi.fn(),
+    getUserByEmail: vi.fn(),
+    createUser: vi.fn(),
     getSessions: vi.fn(),
     getEnrollments: vi.fn(),
     deleteUser: vi.fn(),
+    isEmailAllowed: vi.fn(),
+    createAllowedEmail: vi.fn(),
   };
 }
+
+describe("POST /admin/users", () => {
+  let mockDataSource: MockDataSource;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockDataSource = createMockDataSource();
+  });
+
+  // ハンドラのロジックを抽出してテスト
+  async function createUserHandler(req: Partial<Request>, res: Partial<Response>) {
+    const ds = req.dataSource!;
+    const { email, name, role } = req.body as { email: string; name?: string; role?: "admin" | "teacher" | "student" };
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      (res.status as Mock)(400).json({ error: "invalid_email", message: "Valid email is required" });
+      return;
+    }
+
+    const existing = await ds.getUserByEmail(email);
+    if (existing) {
+      (res.status as Mock)(409).json({ error: "email_exists", message: "User with this email already exists" });
+      return;
+    }
+
+    const user = await ds.createUser({
+      email,
+      name: name ?? null,
+      role: role ?? "student",
+    });
+
+    // ユーザー作成時にallowed_emailsにも自動追加（ADR-0017）
+    const isAllowed = await ds.isEmailAllowed(email);
+    if (!isAllowed) {
+      await ds.createAllowedEmail({ email, note: null });
+    }
+
+    (res.status as Mock)(201).json({ user });
+  }
+
+  it("ユーザー作成時にallowed_emailsにも自動追加される", async () => {
+    const newUser = {
+      id: "user-1",
+      email: "new@example.com",
+      name: "New User",
+      role: "student",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    mockDataSource.getUserByEmail.mockResolvedValue(null);
+    mockDataSource.createUser.mockResolvedValue(newUser);
+    mockDataSource.isEmailAllowed.mockResolvedValue(false);
+    mockDataSource.createAllowedEmail.mockResolvedValue({ id: "allowed-1", email: "new@example.com", note: null, createdAt: new Date() });
+
+    const req = {
+      body: { email: "new@example.com", name: "New User", role: "student" },
+      dataSource: mockDataSource as unknown as Request["dataSource"],
+      user: { id: "admin-1", role: "admin" },
+    } as Partial<Request>;
+    const { res, statusMock } = createMockResponse();
+
+    await createUserHandler(req, res);
+
+    expect(mockDataSource.createUser).toHaveBeenCalledWith({
+      email: "new@example.com",
+      name: "New User",
+      role: "student",
+    });
+    expect(mockDataSource.createAllowedEmail).toHaveBeenCalledWith({
+      email: "new@example.com",
+      note: null,
+    });
+    expect(statusMock).toHaveBeenCalledWith(201);
+  });
+
+  it("allowed_emailsに既に存在する場合は重複追加しない", async () => {
+    const newUser = {
+      id: "user-1",
+      email: "existing@example.com",
+      name: "Existing User",
+      role: "student",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    mockDataSource.getUserByEmail.mockResolvedValue(null);
+    mockDataSource.createUser.mockResolvedValue(newUser);
+    mockDataSource.isEmailAllowed.mockResolvedValue(true);
+
+    const req = {
+      body: { email: "existing@example.com", name: "Existing User" },
+      dataSource: mockDataSource as unknown as Request["dataSource"],
+      user: { id: "admin-1", role: "admin" },
+    } as Partial<Request>;
+    const { res, statusMock } = createMockResponse();
+
+    await createUserHandler(req, res);
+
+    expect(mockDataSource.createAllowedEmail).not.toHaveBeenCalled();
+    expect(statusMock).toHaveBeenCalledWith(201);
+  });
+
+  it("roleに関係なくallowed_emailsにはemail+noteで追加される", async () => {
+    const newUser = {
+      id: "user-1",
+      email: "admin@example.com",
+      name: "Admin User",
+      role: "admin" as const,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    mockDataSource.getUserByEmail.mockResolvedValue(null);
+    mockDataSource.createUser.mockResolvedValue(newUser);
+    mockDataSource.isEmailAllowed.mockResolvedValue(false);
+    mockDataSource.createAllowedEmail.mockResolvedValue({ id: "allowed-1", email: "admin@example.com", note: null, createdAt: new Date() });
+
+    const req = {
+      body: { email: "admin@example.com", name: "Admin User", role: "admin" },
+      dataSource: mockDataSource as unknown as Request["dataSource"],
+      user: { id: "admin-1", role: "admin" },
+    } as Partial<Request>;
+    const { res } = createMockResponse();
+
+    await createUserHandler(req, res);
+
+    // roleはusersコレクションに保存され、allowed_emailsにはemail+noteのみ
+    expect(mockDataSource.createAllowedEmail).toHaveBeenCalledWith({
+      email: "admin@example.com",
+      note: null,
+    });
+  });
+});
 
 describe("DELETE /admin/users/:id", () => {
   let mockDataSource: MockDataSource;
