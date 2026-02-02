@@ -11,6 +11,7 @@ import type {
   NotificationPolicy,
   AllowedEmail,
   UserSettings,
+  AuthErrorLog,
 } from "../types/entities.js";
 
 export interface CourseFilter {
@@ -34,6 +35,13 @@ export interface NotificationPolicyFilter {
   courseId?: string;
   userId?: string;
   active?: boolean;
+}
+
+export interface AuthErrorLogFilter {
+  email?: string;
+  startDate?: Date;
+  endDate?: Date;
+  limit?: number;
 }
 
 /**
@@ -120,6 +128,21 @@ export interface DataSource {
     sentAt: Date;
     type: string;
   } | null>;
+
+  // Auth Error Logs
+  /**
+   * 認証エラーログ一覧を取得
+   * @param filter フィルタ条件
+   * @returns 認証エラーログの配列
+   */
+  getAuthErrorLogs(filter?: AuthErrorLogFilter): Promise<AuthErrorLog[]>;
+
+  /**
+   * 認証エラーログを作成
+   * @param data 認証エラーログデータ
+   * @returns 作成された認証エラーログ
+   */
+  createAuthErrorLog(data: Omit<AuthErrorLog, "id">): Promise<AuthErrorLog>;
 }
 
 /**

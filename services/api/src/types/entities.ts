@@ -79,3 +79,16 @@ export interface UserSettings {
   timezone: string;
   updatedAt: Date;
 }
+
+export interface AuthErrorLog {
+  id: string;
+  email: string;
+  tenantId: string;
+  errorType: string;
+  errorMessage: string;
+  path: string;
+  method: string;
+  userAgent: string | null;
+  ipAddress: string | null;
+  occurredAt: Date;
+}
