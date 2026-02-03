@@ -347,3 +347,21 @@
 - 影響:
   - 既にclosedセッションを持つユーザーは再入室不可
   - 必要に応じて管理者がリセット可能
+
+## ADR-0027: ユーザー作成時のallowed_emails自動追加
+- 状態: 採用
+- 背景:
+  - 管理画面「受講者管理」→「新規作成」でユーザーを登録しても、受講者がログインできない問題が発生
+  - 原因: `POST /admin/users`が`users`コレクションのみに追加し、`allowed_emails`への追加を行っていなかった
+  - ADR-0017により、新規ユーザーは`allowed_emails`に事前登録されていないとログイン不可
+- 判断:
+  - `POST /admin/users`でユーザー作成時、`allowed_emails`にも自動追加する
+  - 既に`allowed_emails`に存在する場合は重複追加しない
+- 実装:
+  - `services/api/src/routes/shared/users.ts`: createAllowedEmail呼び出し追加
+  - ユニットテスト追加（3件）
+- 影響:
+  - 管理画面で受講者を登録後、即座にログイン可能
+  - 「受講者管理」と「アクセス許可」の整合性が自動的に保たれる
+- 関連ADR:
+  - ADR-0017: アクセス許可リスト（allowed_emails）

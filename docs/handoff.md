@@ -122,7 +122,36 @@
 - Classroom API連携
 - Forms API連携
 
-## 最新セッション成果（2026-01-30 #5）
+## 最新セッション成果（2026-02-03）
+
+### ユーザー作成時のallowed_emails自動追加バグ修正（ADR-0027）
+- **問題**: 管理画面「受講者管理」→「新規作成」で登録したユーザーがログインできない
+- **原因**: `POST /admin/users`が`users`コレクションのみ追加し、`allowed_emails`への追加を行っていなかった
+- **修正**: ユーザー作成時に`allowed_emails`へも自動追加するように修正
+- **ファイル**: `services/api/src/routes/shared/users.ts`、`users.test.ts`
+- **PR**: #31
+
+### 認証エラー履歴機能
+- 管理画面に「認証エラー」ページを追加
+- 許可されていないメールでのログイン試行を記録・閲覧可能
+- **ファイル**: `services/api/src/routes/shared/auth-errors.ts`、`web/app/admin/auth-errors/page.tsx`
+- **PR**: #30
+
+### CLAUDE.md再発防止策追記
+- ユーザー作成時は`allowed_emails`への追加も必須であることを明記
+- E2Eフローの検証を行うことを追記
+
+### 緊急対応
+- テナント`t9e6gvio`の10名（fuku-no-tane.comドメイン）を`allowed_emails`に手動追加済み
+
+### テスト結果
+- **APIテスト**: 310件 ✅（CI通過）
+
+**残タスク**: なし
+
+---
+
+## 前回セッション成果（2026-01-30 #5）
 
 ### セッション管理CSVダウンロード機能
 - セッション管理画面にCSVダウンロードボタンを追加
