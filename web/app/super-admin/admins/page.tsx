@@ -136,7 +136,7 @@ export default function SuperAdminManagementPage() {
 
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return "-";
-    return new Date(dateStr).toLocaleString("ja-JP");
+    return new Date(dateStr).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" });
   };
 
   return (

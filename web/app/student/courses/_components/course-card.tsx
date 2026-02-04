@@ -30,6 +30,7 @@ function formatDate(isoString: string | null): string {
   if (!isoString) return "-";
   const date = new Date(isoString);
   return date.toLocaleDateString("ja-JP", {
+    timeZone: "Asia/Tokyo",
     month: "short",
     day: "numeric",
   });

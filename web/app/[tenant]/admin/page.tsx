@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useTenant } from "@/lib/tenant-context";
 import { Button } from "@/components/ui/button";
@@ -39,9 +39,12 @@ function CopyButton({ text }: { text: string }) {
 export default function TenantAdminPage() {
   const { tenantId, isDemo } = useTenant();
 
-  // フルURLを生成（クライアントサイドでのみ実行）
-  const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
-  const studentUrl = `${baseUrl}/${tenantId}/student`;
+  // フルURLを生成（ハイドレーション後にクライアントサイドで更新）
+  const [studentUrl, setStudentUrl] = useState(`/${tenantId}/student`);
+
+  useEffect(() => {
+    setStudentUrl(`${window.location.origin}/${tenantId}/student`);
+  }, [tenantId]);
 
   return (
     <div className="space-y-6">

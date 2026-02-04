@@ -66,6 +66,7 @@ export function TenantTable({ tenants, onStatusChange, onEdit }: TenantTableProp
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return "-";
     return new Date(dateStr).toLocaleString("ja-JP", {
+      timeZone: "Asia/Tokyo",
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
