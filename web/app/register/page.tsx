@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
@@ -83,10 +83,15 @@ function RegistrationComplete({
 }) {
   const router = useRouter();
 
-  // フルURLを生成（クライアントサイドでのみ実行）
-  const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
-  const fullAdminUrl = `${baseUrl}${adminUrl}`;
-  const fullStudentUrl = `${baseUrl}${studentUrl}`;
+  // フルURLを生成（ハイドレーション後にクライアントサイドで更新）
+  const [fullAdminUrl, setFullAdminUrl] = useState(adminUrl);
+  const [fullStudentUrl, setFullStudentUrl] = useState(studentUrl);
+
+  useEffect(() => {
+    const baseUrl = window.location.origin;
+    setFullAdminUrl(`${baseUrl}${adminUrl}`);
+    setFullStudentUrl(`${baseUrl}${studentUrl}`);
+  }, [adminUrl, studentUrl]);
 
   return (
     <main className="min-h-screen bg-background flex items-center justify-center p-4">
