@@ -45,7 +45,7 @@ export function AllowedEmailTable({ allowedEmails, onDelete }: Props) {
                 {item.note ?? "-"}
               </TableCell>
               <TableCell className="text-muted-foreground">
-                {new Date(item.createdAt).toLocaleString("ja-JP")}
+                {new Date(item.createdAt).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })}
               </TableCell>
               <TableCell>
                 <DeleteConfirmDialog

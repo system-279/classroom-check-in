@@ -20,6 +20,7 @@ function formatDuration(seconds: number): string {
 function formatDateTime(isoString: string): string {
   const date = new Date(isoString);
   return date.toLocaleString("ja-JP", {
+    timeZone: "Asia/Tokyo",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
