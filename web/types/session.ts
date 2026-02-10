@@ -12,7 +12,7 @@ export type Session = {
   source: SessionSource;
   confidence: number | null;
   status: SessionStatus;
-  lastHeartbeatAt: string;
+  lastHeartbeatAt: string | null;
 };
 
 export type CheckInRequest = {
