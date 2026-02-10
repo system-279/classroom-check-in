@@ -4,7 +4,7 @@
  */
 
 export type UserRole = "admin" | "teacher" | "student";
-export type SessionStatus = "open" | "closed";
+export type SessionStatus = "open" | "closed" | "adjusted";
 export type NotificationScope = "global" | "course" | "user";
 
 export interface Course {
