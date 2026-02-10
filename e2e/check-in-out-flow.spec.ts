@@ -1,4 +1,6 @@
 import { test, expect, type APIRequestContext } from "@playwright/test";
+import { initializeApp, cert, getApps, deleteApp } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
 
 /**
  * 入退室フルフローE2Eテスト（Firestoreエミュレータ使用）
@@ -19,10 +21,10 @@ import { test, expect, type APIRequestContext } from "@playwright/test";
 
 const API_BASE = process.env.API_BASE_URL || "http://localhost:8080";
 
-// 動的テナントID生成（並列実行時の衝突回避）
-const TENANT_ID = `test-e2e-${Date.now()}`;
-const TEST_COURSE_NAME = `E2Eテスト講座-${TENANT_ID}`;
-const TEST_USER_EMAIL = `e2e-student-${TENANT_ID}@example.com`;
+// 既存のテスト用テナントを使用（テナント作成APIは認証が必要なため）
+const TENANT_ID = process.env.TEST_TENANT_ID || "6shh0riw";
+const TEST_COURSE_NAME = `E2Eテスト講座-${Date.now()}`;
+const TEST_USER_EMAIL = `e2e-student-${Date.now()}@example.com`;
 const TEST_USER_NAME = `E2Eテスト受講者`;
 
 // 管理者用ヘッダー（テナントAPI用にx-user-email追加）
@@ -85,6 +87,40 @@ test.describe("入退室フルフロー", () => {
       );
     }
 
+    // 0. Firestoreエミュレータにテナントとallowed_emailsを作成
+    console.log(`エミュレータにテナント ${TENANT_ID} を作成中...`);
+
+    // Firebase Admin初期化（エミュレータ用、APIサーバーと同じプロジェクトIDを使用）
+    const projectId = process.env.GCLOUD_PROJECT || process.env.FIREBASE_PROJECT || "classroom-checkin-279";
+    if (getApps().length === 0) {
+      initializeApp({
+        projectId,
+      });
+    }
+    const db = getFirestore();
+
+    // テナントドキュメント作成
+    await db.collection("tenants").doc(TENANT_ID).set({
+      organizationName: "E2Eテスト組織",
+      ownerEmail: "admin-e2e@example.com",
+      status: "active",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    // allowed_emailsに管理者とテスト受講者を追加
+    await db.collection("tenants").doc(TENANT_ID).collection("allowed_emails").doc("admin-e2e@example.com").set({
+      email: "admin-e2e@example.com",
+      addedAt: new Date(),
+    });
+
+    await db.collection("tenants").doc(TENANT_ID).collection("allowed_emails").doc(TEST_USER_EMAIL).set({
+      email: TEST_USER_EMAIL,
+      addedAt: new Date(),
+    });
+
+    console.log(`テナント ${TENANT_ID} とallowed_emailsを作成しました`);
+
     // 1. テスト用講座を作成（requiredWatchMin=1 → 1分で退室可能）
     const courseRes = await apiRequest(
       request,
@@ -98,6 +134,13 @@ test.describe("入退室フルフロー", () => {
         visible: true,
       }
     );
+    if (!courseRes.ok()) {
+      const errorBody = await courseRes.text();
+      console.error(`講座作成失敗: ${courseRes.status()} ${courseRes.statusText()}`);
+      console.error(`レスポンス: ${errorBody}`);
+      console.error(`リクエストURL: ${API_BASE}/api/v2/${TENANT_ID}/admin/courses`);
+      console.error(`ヘッダー:`, ADMIN_HEADERS);
+    }
     expect(courseRes.ok()).toBeTruthy();
     const courseBody = await courseRes.json();
     courseId = courseBody.course.id;
@@ -113,6 +156,11 @@ test.describe("入退室フルフロー", () => {
         role: "student",
       }
     );
+    if (!userRes.ok()) {
+      const errorBody = await userRes.text();
+      console.error(`ユーザー作成失敗: ${userRes.status()} ${userRes.statusText()}`);
+      console.error(`レスポンス: ${errorBody}`);
+    }
     expect(userRes.ok()).toBeTruthy();
     const userBody = await userRes.json();
     userId = userBody.user.id;
@@ -128,6 +176,11 @@ test.describe("入退室フルフロー", () => {
         role: "student",
       }
     );
+    if (!enrollRes.ok()) {
+      const errorBody = await enrollRes.text();
+      console.error(`enrollment作成失敗: ${enrollRes.status()} ${enrollRes.statusText()}`);
+      console.error(`レスポンス: ${errorBody}`);
+    }
     expect(enrollRes.ok()).toBeTruthy();
     const enrollBody = await enrollRes.json();
     enrollmentId = enrollBody.enrollment.id;
@@ -219,6 +272,30 @@ test.describe("入退室フルフロー", () => {
       }
     } catch (e) {
       console.warn("Failed to delete allowed_emails:", e);
+    }
+
+    // 6. Firestoreエミュレータからテナントとallowed_emailsを削除
+    try {
+      console.log(`エミュレータからテナント ${TENANT_ID} を削除中...`);
+      const db = getFirestore();
+
+      // allowed_emailsサブコレクションを削除
+      const allowedEmailsSnapshot = await db
+        .collection("tenants")
+        .doc(TENANT_ID)
+        .collection("allowed_emails")
+        .get();
+
+      for (const doc of allowedEmailsSnapshot.docs) {
+        await doc.ref.delete();
+      }
+
+      // テナントドキュメントを削除
+      await db.collection("tenants").doc(TENANT_ID).delete();
+
+      console.log(`テナント ${TENANT_ID} を削除しました`);
+    } catch (e) {
+      console.warn("Failed to delete tenant from Firestore:", e);
     }
   });
 

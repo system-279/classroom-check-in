@@ -1,5 +1,6 @@
 import cors from "cors";
 import express from "express";
+import { initializeApp, getApps } from "firebase-admin/app";
 import { authMiddleware } from "./middleware/auth.js";
 import { tenantAwareAuthMiddleware } from "./middleware/tenant-auth.js";
 import {
@@ -16,6 +17,13 @@ import { isValidEmail, isValidTimezone } from "./utils/validation.js";
 // 旧デモルーター（後方互換性のため一時的に維持）
 import { demoRouter } from "./routes/demo.js";
 
+// Firebase Admin初期化（エミュレータ対応）
+const projectId = process.env.GCLOUD_PROJECT || process.env.FIREBASE_PROJECT || "classroom-checkin-279";
+if (getApps().length === 0) {
+  initializeApp({ projectId });
+  console.log(`Firebase Admin initialized with projectId: ${projectId}`);
+}
+
 const app = express();
 
 // CORS設定: 本番環境ではCORS_ORIGINの設定を必須とする
@@ -28,6 +36,12 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json());
+
+// リクエストログミドルウェア（デバッグ用）
+app.use((req, _res, next) => {
+  console.log(`[${req.method}] ${req.url}`);
+  next();
+});
 
 // デモモード設定（環境変数で制御）
 const DEMO_ENABLED = process.env.DEMO_ENABLED === "true";
