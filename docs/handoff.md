@@ -41,17 +41,19 @@
 
 ## 実装済み範囲
 - APIの主要エンドポイント: `services/api/src/index.ts`
-  - `/api/v1/courses`（N+1解消済み: 講座一覧とセッションを並列取得）
-  - `/api/v1/sessions/active|check-in|heartbeat|check-out`
+  - `/api/v2/:tenant/courses`（N+1解消済み: 講座一覧とセッションを並列取得）
+  - `/api/v2/:tenant/sessions/active|check-in|heartbeat|check-out`
     - check-in: Firestoreトランザクションで排他制御（同時リクエスト対応）
     - check-out: durationSec負値防止（Math.max(0, ...)）
-  - `/api/v1/admin/courses`
-  - `/api/v1/admin/users` - ユーザー管理（CRUD）
-  - `/api/v1/admin/users/:id/settings` - ユーザー設定管理
-  - `/api/v1/admin/enrollments` - 受講登録管理
-  - `/api/v1/admin/sessions` - セッション一覧・強制終了
-  - `/api/v1/admin/notification-policies` - 通知ポリシー管理
-- 認証は `AUTH_MODE=dev` でヘッダ疑似認証
+  - `/api/v2/:tenant/admin/courses`
+  - `/api/v2/:tenant/admin/users` - ユーザー管理（CRUD）
+  - `/api/v2/:tenant/admin/users/:id/settings` - ユーザー設定管理
+  - `/api/v2/:tenant/admin/enrollments` - 受講登録管理
+  - `/api/v2/:tenant/admin/sessions` - セッション一覧・強制終了
+  - `/api/v2/:tenant/admin/notification-policies` - 通知ポリシー管理
+  - `/api/v2/tenants` - テナント登録・一覧
+  - `/api/v2/super/tenants` - スーパー管理者API
+- 認証は Firebase Authentication + テナント対応認証ミドルウェア
 - GCPプロジェクト: `classroom-checkin-279`（Firestore, Cloud Run等有効化済み）
 - **管理画面UI**: `web/app/admin/`
   - 講座管理（一覧・作成・編集・削除）
