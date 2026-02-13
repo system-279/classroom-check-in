@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useAuthFetch } from "@/lib/auth-fetch-context";
 import { useAuth } from "@/lib/auth-context";
+import { useTenantOptional } from "@/lib/tenant-context";
 import type { Course } from "@/types/course";
 import { CourseTable } from "./_components/course-table";
 import { CourseFormDialog } from "./_components/course-form-dialog";
@@ -13,6 +14,7 @@ const AUTH_MODE = process.env.NEXT_PUBLIC_AUTH_MODE ?? "dev";
 
 export default function CoursesPage() {
   const router = useRouter();
+  const tenant = useTenantOptional();
   const authFetch = useAuthFetch();
   const { user, loading: authLoading } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
@@ -37,7 +39,7 @@ export default function CoursesPage() {
   useEffect(() => {
     // Firebase認証モードで未認証の場合はホームへリダイレクト
     if (AUTH_MODE === "firebase" && !authLoading && !user) {
-      router.push("/");
+      router.push(tenant ? `/${tenant.tenantId}` : "/");
       return;
     }
     if (AUTH_MODE === "firebase" && authLoading) {

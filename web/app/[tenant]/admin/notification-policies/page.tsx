@@ -1,1 +1,1 @@
-export { default } from "@/app/admin/notification-policies/page";
+export { default } from "@/app/admin/notification-policies/page-content";

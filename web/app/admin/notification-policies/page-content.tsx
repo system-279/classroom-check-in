@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useAuthFetch } from "@/lib/auth-fetch-context";
 import { useAuth } from "@/lib/auth-context";
+import { useTenantOptional } from "@/lib/tenant-context";
 import type { NotificationPolicy } from "@/types/notification-policy";
 import type { Course } from "@/types/course";
 import type { User } from "@/types/user";
@@ -15,6 +16,7 @@ const AUTH_MODE = process.env.NEXT_PUBLIC_AUTH_MODE ?? "dev";
 
 export default function NotificationPoliciesPage() {
   const router = useRouter();
+  const tenant = useTenantOptional();
   const authFetch = useAuthFetch();
   const { user: authUser, loading: authLoading } = useAuth();
   const [policies, setPolicies] = useState<NotificationPolicy[]>([]);
@@ -50,7 +52,7 @@ export default function NotificationPoliciesPage() {
 
   useEffect(() => {
     if (AUTH_MODE === "firebase" && !authLoading && !authUser) {
-      router.push("/");
+      router.push(tenant ? `/${tenant.tenantId}` : "/");
       return;
     }
     if (AUTH_MODE === "firebase" && authLoading) {

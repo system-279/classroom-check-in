@@ -1,1 +1,1 @@
-export { default } from "@/app/admin/sessions/page";
+export { default } from "@/app/admin/sessions/page-content";

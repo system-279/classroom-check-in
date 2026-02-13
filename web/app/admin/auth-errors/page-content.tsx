@@ -6,12 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuthFetch } from "@/lib/auth-fetch-context";
 import { useAuth } from "@/lib/auth-context";
+import { useTenantOptional } from "@/lib/tenant-context";
 import type { AuthErrorLog } from "@/types/auth-error-log";
 
 const AUTH_MODE = process.env.NEXT_PUBLIC_AUTH_MODE ?? "dev";
 
 export default function AuthErrorsPage() {
   const router = useRouter();
+  const tenant = useTenantOptional();
   const authFetch = useAuthFetch();
   const { user, loading: authLoading } = useAuth();
   const [authErrors, setAuthErrors] = useState<AuthErrorLog[]>([]);
@@ -48,7 +50,7 @@ export default function AuthErrorsPage() {
   useEffect(() => {
     // Firebase認証モードで未認証の場合はホームへリダイレクト
     if (AUTH_MODE === "firebase" && !authLoading && !user) {
-      router.push("/");
+      router.push(tenant ? `/${tenant.tenantId}` : "/");
       return;
     }
     if (AUTH_MODE === "firebase" && authLoading) {

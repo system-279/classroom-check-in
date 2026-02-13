@@ -1,1 +1,1 @@
-export { default } from "@/app/admin/allowed-emails/page";
+export { default } from "@/app/admin/allowed-emails/page-content";

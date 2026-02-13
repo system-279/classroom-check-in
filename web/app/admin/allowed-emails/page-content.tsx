@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useAuthFetch } from "@/lib/auth-fetch-context";
 import { useAuth } from "@/lib/auth-context";
+import { useTenantOptional } from "@/lib/tenant-context";
 import type { AllowedEmail } from "@/types/allowed-email";
 import { AllowedEmailTable } from "./_components/allowed-email-table";
 import { AddEmailDialog } from "./_components/add-email-dialog";
@@ -13,6 +14,7 @@ const AUTH_MODE = process.env.NEXT_PUBLIC_AUTH_MODE ?? "dev";
 
 export default function AllowedEmailsPage() {
   const router = useRouter();
+  const tenant = useTenantOptional();
   const authFetch = useAuthFetch();
   const { user, loading: authLoading } = useAuth();
   const [allowedEmails, setAllowedEmails] = useState<AllowedEmail[]>([]);
@@ -38,7 +40,7 @@ export default function AllowedEmailsPage() {
   useEffect(() => {
     // Firebase認証モードで未認証の場合はホームへリダイレクト
     if (AUTH_MODE === "firebase" && !authLoading && !user) {
-      router.push("/");
+      router.push(tenant ? `/${tenant.tenantId}` : "/");
       return;
     }
     if (AUTH_MODE === "firebase" && authLoading) {

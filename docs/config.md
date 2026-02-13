@@ -114,7 +114,7 @@ gcloud run services update api \
 
 | サービス名 | ソース | エンドポイント |
 |-----------|--------|---------------|
-| `api` | `services/api` | `/api/v1/*` |
+| `api` | `services/api` | `/api/v2/*` |
 | `notification` | `services/notification` | `/run`, `/healthz` |
 
 ## デプロイコマンド例
