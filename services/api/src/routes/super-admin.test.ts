@@ -3,6 +3,7 @@
  *
  * テスト対象:
  * - PATCH /tenants/:id - テナント更新（name, ownerEmail, status）
+ * - DELETE /tenants/:id - テナント削除（サブコレクション含む完全削除）
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -16,12 +17,14 @@ const {
   mockFirestoreDoc,
   mockFirestoreCollection,
   mockFirestoreCount,
+  mockRecursiveDelete,
 } = vi.hoisted(() => ({
   mockFirestoreGet: vi.fn(),
   mockFirestoreUpdate: vi.fn(),
   mockFirestoreDoc: vi.fn(),
   mockFirestoreCollection: vi.fn(),
   mockFirestoreCount: vi.fn(),
+  mockRecursiveDelete: vi.fn(),
 }));
 
 // モック設定
@@ -46,6 +49,7 @@ vi.mock("firebase-admin/firestore", () => ({
         get: vi.fn().mockResolvedValue({ data: () => ({ count: 0 }) }),
       }),
     })),
+    recursiveDelete: mockRecursiveDelete,
   })),
 }));
 
@@ -342,6 +346,59 @@ describe("super-admin router", () => {
       expect(res.body.tenant.name).toBe("New Name");
       expect(res.body.tenant.ownerEmail).toBe("new@example.com");
       expect(res.body.tenant.status).toBe("suspended");
+    });
+  });
+
+  describe("DELETE /tenants/:id", () => {
+    it("テナントが存在しない場合は404を返す", async () => {
+      const app = await createTestApp();
+      mockFirestoreGet.mockResolvedValue({ exists: false });
+
+      const res = await request(app).delete("/tenants/non-existent");
+
+      expect(res.status).toBe(404);
+      expect(res.body.error).toBe("not_found");
+    });
+
+    it("テナントを正常に削除できる", async () => {
+      const app = await createTestApp();
+      mockFirestoreGet.mockResolvedValue({
+        exists: true,
+        data: () => ({
+          id: "tenant-1",
+          name: "Test Org",
+          ownerEmail: "owner@example.com",
+          status: "active",
+        }),
+      });
+      mockRecursiveDelete.mockResolvedValue(undefined);
+
+      const res = await request(app).delete("/tenants/tenant-1");
+
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe("テナントを削除しました。");
+      expect(res.body.deletedTenant.id).toBe("tenant-1");
+      expect(res.body.deletedTenant.name).toBe("Test Org");
+      expect(mockRecursiveDelete).toHaveBeenCalled();
+    });
+
+    it("recursiveDeleteが失敗した場合は500を返す", async () => {
+      const app = await createTestApp();
+      mockFirestoreGet.mockResolvedValue({
+        exists: true,
+        data: () => ({
+          id: "tenant-1",
+          name: "Test Org",
+          ownerEmail: "owner@example.com",
+          status: "active",
+        }),
+      });
+      mockRecursiveDelete.mockRejectedValue(new Error("Firestore error"));
+
+      const res = await request(app).delete("/tenants/tenant-1");
+
+      expect(res.status).toBe(500);
+      expect(res.body.error).toBe("internal_error");
     });
   });
 });
