@@ -120,6 +120,25 @@ export default function TenantsPage() {
     await fetchTenants(pagination.offset, statusFilter);
   };
 
+  const handleDelete = async (id: string) => {
+    try {
+      const idToken = await getIdToken();
+      if (!idToken) {
+        throw new Error("認証トークンを取得できませんでした");
+      }
+
+      await apiFetch(`/api/v2/super/tenants/${id}`, {
+        method: "DELETE",
+        idToken,
+      });
+
+      // 再取得
+      await fetchTenants(pagination.offset, statusFilter);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "テナントの削除に失敗しました");
+    }
+  };
+
   const handlePrevPage = () => {
     const newOffset = Math.max(0, pagination.offset - LIMIT);
     fetchTenants(newOffset, statusFilter);
@@ -188,6 +207,7 @@ export default function TenantsPage() {
               tenants={tenants}
               onStatusChange={handleStatusChange}
               onEdit={handleEdit}
+              onDelete={handleDelete}
             />
           )}
 

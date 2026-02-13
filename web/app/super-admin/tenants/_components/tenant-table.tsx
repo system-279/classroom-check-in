@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TenantStatusDialog } from "./tenant-status-dialog";
 import { TenantEditDialog } from "./tenant-edit-dialog";
+import { TenantDeleteDialog } from "./tenant-delete-dialog";
 
 export interface Tenant {
   id: string;
@@ -28,15 +29,17 @@ interface TenantTableProps {
   tenants: Tenant[];
   onStatusChange: (id: string, newStatus: "active" | "suspended") => Promise<void>;
   onEdit: (id: string, data: { name: string; ownerEmail: string }) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
 }
 
 /**
  * テナント一覧テーブル
  */
-export function TenantTable({ tenants, onStatusChange, onEdit }: TenantTableProps) {
+export function TenantTable({ tenants, onStatusChange, onEdit, onDelete }: TenantTableProps) {
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [targetStatus, setTargetStatus] = useState<"active" | "suspended">("active");
 
   const handleStatusClick = (tenant: Tenant, newStatus: "active" | "suspended") => {
@@ -60,6 +63,19 @@ export function TenantTable({ tenants, onStatusChange, onEdit }: TenantTableProp
 
   const handleEditSave = async (id: string, data: { name: string; ownerEmail: string }) => {
     await onEdit(id, data);
+    setSelectedTenant(null);
+  };
+
+  const handleDeleteClick = (tenant: Tenant) => {
+    setSelectedTenant(tenant);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (selectedTenant) {
+      await onDelete(selectedTenant.id);
+    }
+    setDeleteDialogOpen(false);
     setSelectedTenant(null);
   };
 
@@ -154,6 +170,14 @@ export function TenantTable({ tenants, onStatusChange, onEdit }: TenantTableProp
                         再開
                       </Button>
                     )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+                      onClick={() => handleDeleteClick(tenant)}
+                    >
+                      削除
+                    </Button>
                   </div>
                 </TableCell>
               </TableRow>
@@ -175,6 +199,13 @@ export function TenantTable({ tenants, onStatusChange, onEdit }: TenantTableProp
         onOpenChange={setEditDialogOpen}
         tenant={selectedTenant}
         onSave={handleEditSave}
+      />
+
+      <TenantDeleteDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        tenant={selectedTenant}
+        onConfirm={handleDeleteConfirm}
       />
     </>
   );

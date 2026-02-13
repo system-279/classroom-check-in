@@ -6,6 +6,7 @@
  * - GET /api/v2/super/tenants - 全テナント一覧（ページング対応）
  * - GET /api/v2/super/tenants/:id - テナント詳細（統計情報含む）
  * - PATCH /api/v2/super/tenants/:id - テナント更新（name, ownerEmail, status）
+ * - DELETE /api/v2/super/tenants/:id - テナント削除（サブコレクション含む完全削除）
  */
 
 import { Router, Request, Response } from "express";
@@ -357,6 +358,59 @@ router.patch("/tenants/:id", async (req: Request, res: Response) => {
     res.status(500).json({
       error: "internal_error",
       message: "テナントの更新に失敗しました。",
+    });
+  }
+});
+
+/**
+ * テナントを削除（サブコレクション含む完全削除）
+ * DELETE /api/v2/super/tenants/:id
+ *
+ * 削除対象:
+ * - テナントメタデータ（tenants/:id）
+ * - 全サブコレクション（users, courses, enrollments, sessions,
+ *   notification_policies, user_settings, allowed_emails,
+ *   notification_logs, auth_error_logs）
+ */
+router.delete("/tenants/:id", async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string;
+    const db = getFirestore();
+
+    // テナントの存在確認
+    const tenantRef = db.collection("tenants").doc(id);
+    const tenantDoc = await tenantRef.get();
+    if (!tenantDoc.exists) {
+      res.status(404).json({
+        error: "not_found",
+        message: "テナントが見つかりません。",
+      });
+      return;
+    }
+
+    const tenantData = tenantDoc.data()!;
+
+    // テナント配下の全サブコレクションを再帰的に削除
+    await db.recursiveDelete(tenantRef);
+
+    // 操作ログを出力
+    const superAdmin = req.superAdmin;
+    console.log(
+      `[SuperAdmin] Tenant deleted: ${id} (${tenantData.name}) by ${superAdmin?.email}`
+    );
+
+    res.json({
+      message: "テナントを削除しました。",
+      deletedTenant: {
+        id,
+        name: tenantData.name ?? "",
+      },
+    });
+  } catch (error) {
+    console.error("Error deleting tenant:", error);
+    res.status(500).json({
+      error: "internal_error",
+      message: "テナントの削除に失敗しました。",
     });
   }
 });
