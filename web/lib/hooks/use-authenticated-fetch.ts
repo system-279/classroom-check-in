@@ -54,7 +54,7 @@ export function useAuthenticatedFetch() {
 
       // Firebase認証モードで未認証の場合はホームへリダイレクト
       if (AUTH_MODE === "firebase" && !authLoading && !user) {
-        router.push("/");
+        router.push(tenant ? `/${tenant.tenantId}` : "/");
         throw new Error("認証が必要です");
       }
 

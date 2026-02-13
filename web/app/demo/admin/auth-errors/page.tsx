@@ -1,1 +1,1 @@
-export { default } from "@/app/admin/auth-errors/page";
+export { default } from "@/app/admin/auth-errors/page-content";

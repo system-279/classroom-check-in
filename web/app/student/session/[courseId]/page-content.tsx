@@ -60,7 +60,7 @@ export default function SessionPage() {
     if (!isDemo) {
       // Firebase認証モードで未認証の場合はホームへリダイレクト
       if (AUTH_MODE === "firebase" && !authLoading && !isAuthenticated) {
-        router.push("/");
+        router.push(tenant ? `/${tenant.tenantId}` : "/");
         return;
       }
 
