@@ -219,6 +219,10 @@
               <td class="px-4 py-3 font-medium">管理/受講リンク</td>
               <td class="px-4 py-3 text-gray-600">各テナントの管理画面・受講者画面へ直接アクセス</td>
             </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium text-red-600">テナント削除</td>
+              <td class="px-4 py-3 text-gray-600">テナントと全サブコレクション（講座・セッション・ユーザー等）を完全に削除。テナントID手入力による誤操作防止付き</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -257,6 +261,16 @@
           <li>既存のセッションデータは保持されます（削除されません）</li>
           <li>テナントオーナーも含め、誰もログインできなくなります</li>
           <li>再開すれば元通りアクセス可能になります</li>
+        </ul>
+      </div>
+
+      <div class="bg-red-100 border-l-4 border-red-700 p-4 mt-4">
+        <p class="text-red-900 font-bold">テナント削除時の影響（不可逆）</p>
+        <ul class="text-red-800 text-sm mt-2 space-y-1 list-disc list-inside">
+          <li>テナントと全サブコレクション（講座・セッション・ユーザー・通知ポリシー等）が完全に削除されます</li>
+          <li><strong>この操作は取り消せません</strong></li>
+          <li>誤操作防止のため、削除時にテナントIDの手入力による確認が必要です</li>
+          <li>操作ログがサーバーに記録されます</li>
         </ul>
       </div>
     </section>
@@ -307,6 +321,11 @@
               <td class="px-4 py-3"><span class="bg-red-100 text-red-800 px-2 py-1 rounded text-sm">DELETE</span></td>
               <td class="px-4 py-3 font-mono text-sm">/api/v2/super/admins/:email</td>
               <td class="px-4 py-3 text-gray-600">スーパー管理者削除</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3"><span class="bg-red-100 text-red-800 px-2 py-1 rounded text-sm">DELETE</span></td>
+              <td class="px-4 py-3 font-mono text-sm">/api/v2/super/tenants/:id</td>
+              <td class="px-4 py-3 text-gray-600">テナント完全削除（全サブコレクション含む）</td>
             </tr>
           </tbody>
         </table>
