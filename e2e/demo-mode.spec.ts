@@ -4,12 +4,11 @@ test.describe("デモモード", () => {
   // Cloud Runコールドスタート対応: API呼び出しを伴うテストのタイムアウトを延長
   test.setTimeout(30_000);
 
-  test.describe("トップページ", () => {
+  test.describe("デモトップページ", () => {
     test("デモリンクが表示される", async ({ page }) => {
-      await page.goto("/");
-      // ログインページまたはホームページにデモリンクがあること
-      const demoLink = page.locator('a[href="/demo/admin"]');
-      await expect(demoLink).toBeVisible();
+      await page.goto("/demo");
+      await expect(page.getByRole("link", { name: "管理画面を見る" })).toBeVisible();
+      await expect(page.getByRole("link", { name: "受講者画面を見る" })).toBeVisible();
     });
   });
 
