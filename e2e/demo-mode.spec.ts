@@ -1,6 +1,9 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("デモモード", () => {
+  // Cloud Runコールドスタート対応: API呼び出しを伴うテストのタイムアウトを延長
+  test.setTimeout(30_000);
+
   test.describe("トップページ", () => {
     test("デモリンクが表示される", async ({ page }) => {
       await page.goto("/");
@@ -18,32 +21,31 @@ test.describe("デモモード", () => {
 
     test("講座一覧が表示される", async ({ page }) => {
       await page.goto("/demo/admin/courses");
-      await expect(page.locator("h1")).toContainText("講座管理");
-      // テーブルまたはデータが表示されるまで待機
+      await expect(page.locator("h1")).toContainText("講座管理", { timeout: 15_000 });
       await page.waitForLoadState("networkidle");
     });
 
     test("ユーザー一覧が表示される", async ({ page }) => {
       await page.goto("/demo/admin/users");
-      await expect(page.locator("h1")).toContainText("受講者管理");
+      await expect(page.locator("h1")).toContainText("受講者管理", { timeout: 15_000 });
       await page.waitForLoadState("networkidle");
     });
 
     test("セッション一覧が表示される", async ({ page }) => {
       await page.goto("/demo/admin/sessions");
-      await expect(page.locator("h1")).toContainText("セッション管理");
+      await expect(page.locator("h1")).toContainText("セッション管理", { timeout: 15_000 });
       await page.waitForLoadState("networkidle");
     });
 
     test("通知ポリシー一覧が表示される", async ({ page }) => {
       await page.goto("/demo/admin/notification-policies");
-      await expect(page.locator("h1")).toContainText("通知ポリシー");
+      await expect(page.locator("h1")).toContainText("通知ポリシー", { timeout: 15_000 });
       await page.waitForLoadState("networkidle");
     });
 
     test("アクセス許可一覧が表示される", async ({ page }) => {
       await page.goto("/demo/admin/allowed-emails");
-      await expect(page.locator("h1")).toContainText("アクセス許可");
+      await expect(page.locator("h1")).toContainText("アクセス許可", { timeout: 15_000 });
       await page.waitForLoadState("networkidle");
     });
   });
@@ -51,7 +53,7 @@ test.describe("デモモード", () => {
   test.describe("受講者画面デモ", () => {
     test("講座一覧が表示される", async ({ page }) => {
       await page.goto("/demo/student/courses");
-      await expect(page.locator("h1")).toContainText("講座");
+      await expect(page.locator("h1")).toContainText("講座", { timeout: 15_000 });
       await page.waitForLoadState("networkidle");
     });
   });

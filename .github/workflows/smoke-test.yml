@@ -36,11 +36,14 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      - name: Health check
+      - name: Health check and warm up
         run: |
           echo "Checking API health..."
           curl -sf https://api-102013220292.asia-northeast1.run.app/api/health
           echo " - API OK"
+          echo "Warming up demo API (Cold Start対策)..."
+          curl -sf -o /dev/null https://api-102013220292.asia-northeast1.run.app/api/v2/demo/courses
+          echo " - Demo API warm"
           echo "Checking Web availability..."
           curl -sf -o /dev/null -w "%{http_code}" ${{ env.BASE_URL }}/
           echo " - Web OK"
