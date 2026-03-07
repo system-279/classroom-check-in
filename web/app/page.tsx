@@ -39,9 +39,17 @@ export default function HomePage() {
           >
             Googleでログイン
           </button>
-          <p className="mt-4 pt-4 border-t text-xs text-muted-foreground">
-            ログインして開始してください
-          </p>
+          <div className="mt-4 pt-4 border-t space-y-2">
+            <p className="text-xs text-muted-foreground">
+              ログインして開始してください
+            </p>
+            <Link
+              href="/demo/admin"
+              className="block text-sm text-muted-foreground hover:text-primary hover:underline"
+            >
+              デモを見る →
+            </Link>
+          </div>
         </section>
       </main>
     );
