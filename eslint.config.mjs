@@ -14,6 +14,7 @@ export default [
       "**/.next/**",
       "**/build/**",
       "**/coverage/**",
+      ".playwright-mcp/**",
     ],
   },
 
