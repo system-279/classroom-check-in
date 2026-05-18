@@ -36,14 +36,30 @@ interface EmailCheckResult {
   foundInTenants: PerTenantResult[];
 }
 
+const MAX_EMAILS = 20;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 function parseEmails(input: string | undefined): string[] {
   if (!input) {
     throw new Error("CHECK_EMAILS env var (or argv[2]) is required: comma-separated emails");
   }
-  return input
+  const raw = input
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
+
+  const deduped = Array.from(new Set(raw));
+
+  if (deduped.length > MAX_EMAILS) {
+    throw new Error(`Too many emails: ${deduped.length} (max ${MAX_EMAILS})`);
+  }
+
+  const invalid = deduped.filter((e) => !EMAIL_REGEX.test(e));
+  if (invalid.length > 0) {
+    throw new Error(`Invalid email format: ${invalid.length} entry/entries`);
+  }
+
+  return deduped;
 }
 
 async function checkEmail(
@@ -124,7 +140,7 @@ async function main(): Promise<void> {
       console.log(`  -> 該当メールはアクセス許可リスト/受講者管理どちらにも未登録`);
     } else {
       for (const t of result.foundInTenants) {
-        console.log(`  tenantId=${t.tenantId} (name="${t.tenantName}", status=${t.tenantStatus})`);
+        console.log(`  tenantId=${t.tenantId} (name=${JSON.stringify(t.tenantName)}, status=${t.tenantStatus})`);
         console.log(
           `    inAllowedEmails=${t.inAllowedEmails}, inUsers=${t.inUsers}, userHasFirebaseUid=${t.userHasFirebaseUid}`
         );

@@ -26,6 +26,7 @@ jobs:
   check:
     name: Check user status
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -48,4 +49,4 @@ jobs:
         env:
           GCLOUD_PROJECT: ${{ env.GCP_PROJECT_ID }}
           CHECK_EMAILS: ${{ inputs.emails }}
-        run: npx tsx scripts/check-user-status.ts
+        run: npm exec -- tsx scripts/check-user-status.ts
