@@ -1,6 +1,6 @@
 # Classroom Check-in Handoff
 
-最終更新: 2026-03-08 00:35 JST
+最終更新: 2026-05-19 JST
 
 ## 現在のフェーズ
 
@@ -10,13 +10,12 @@
 
 | 日付 | コミット | 内容 |
 |------|----------|------|
+| 2026-05-19 | PR #41 | 受講者ログイン状態確認用 workflow_dispatch ツール追加（ADR-0028） |
 | 2026-03-08 | PR #40 | ログイン画面からデモリンク削除、E2Eテストを/demoページに変更 |
 | 2026-03-08 | PR #39 | Smoke Testコールドスタート対策（タイムアウト延長+ウォームアップ）+lint設定修正 |
 | 2026-03-08 | PR #37 | 未ログイン画面にデモリンクを追加（Nightly Smoke Test修正） |
 | 2026-02-14 | PR #36 | スーパー管理者テナント削除機能追加、ログイン画面リンク整理 |
 | 2026-02-14 | PR #35 | レガシールート・API削除、テナントURL未認証リダイレクト修正 |
-| 2026-02-10 | 222542d | E2Eテスト修正 - useHeartbeatをテナントAPI対応に変更 |
-| 2026-02-10 | b97cc14 | Firestoreエミュレータを使用するテナントE2Eテスト実装（#34） |
 
 ## MVP実装状況
 
@@ -33,10 +32,12 @@
 | セルフチェックアウト | ✅完了 | 受講者が退室時刻を指定 |
 | 再入室禁止 | ✅完了 | 同一講座への再入室ブロック |
 | デモモード | ✅完了 | 読み取り専用 |
+| ログイン障害調査ツール | ✅完了 | workflow_dispatch、ADR-0028 |
 
 ## 次のアクション候補
 
 1. **新機能検討** - 運用フィードバックに基づく改善
+2. **typo 検出スクリプト拡張**（任意） - `check-user-status` に「ドメイン部分一致」「ローカル部分一致」モード追加で typo 候補を自動検出
 
 ## デプロイ済みインフラ
 
@@ -46,6 +47,24 @@
 | Web | https://web-102013220292.asia-northeast1.run.app |
 | Notification | https://notification-102013220292.asia-northeast1.run.app |
 | Docs | https://system-279.github.io/classroom-check-in/ |
+
+## 運用ツール
+
+| ツール | 起動経路 | 用途 |
+|------|----------|------|
+| Check User Login Status | GitHub Actions → workflow_dispatch | 受講者ログイン障害時、全テナント横断で `allowed_emails` / `users` 登録状況確認（ADR-0028） |
+| Nightly Smoke Test | Cron (毎日) | デモ画面のE2E動作確認 |
+| Deploy to Cloud Run | main push 時自動 | api / web / notification の自動デプロイ |
+
+## CI Service Account 権限
+
+`github-actions@classroom-checkin-279.iam.gserviceaccount.com`:
+
+- roles/artifactregistry.writer
+- roles/datastore.indexAdmin
+- **roles/datastore.viewer** （2026-05-19 追加、ADR-0028）
+- roles/run.admin
+- roles/serviceusage.serviceUsageConsumer
 
 ## テスト状況
 
@@ -57,27 +76,29 @@
 | Nightly Smoke Test | 9件 | ✅Pass |
 | 合計 | 348件 | ✅Pass |
 
-## 今回のセッション詳細（2026-03-08）
+## 今回のセッション詳細（2026-05-19）
 
 ### 完了した作業
 
-✅ **未ログイン画面にデモリンク追加（PR #37）**
-- Firebase認証モードの未ログイン画面（早期return）にデモリンクがなく、Nightly Smoke Testが失敗していた
-- `web/app/page.tsx` の未ログイン画面に「デモを見る →」リンクを追加
+✅ **受講者ログイン障害調査ツール追加（PR #41, ADR-0028）**
+- 福の種様より「2名がログインできない」問い合わせを起点に、本番 Firestore 確認手順を恒久化
+- workflow_dispatch + CI SA（Workload Identity Federation）で全テナント横断検索
+- 出力規範: PII 最小化（メアドとテナント名/ID は出力可、ユーザー名/firebaseUid は出さない）
+- セーフガード: email 形式バリデーション・重複排除・20件上限・workflow timeout 5分
+- Codex review で指摘の4点（tsx 固定/timeout/email validation/JSON エスケープ）を反映後マージ
 
-✅ **Smoke Testコールドスタート対策（PR #39）**
-- 原因: Cloud Run APIコンテナが深夜スケールダウン → コールドスタートで5秒タイムアウト超過
-- E2Eテスト: `test.setTimeout(30s)`、API依存assertに`timeout: 15_000`追加
-- Smoke Test: health checkステップでデモAPI（`/api/v2/demo/courses`）も叩いてウォームアップ
-- `.playwright-mcp/` をgitignore・eslint ignoreに追加（トレースファイルがlint対象に含まれ3500+エラーになっていた）
+✅ **CI Service Account に roles/datastore.viewer 付与**
+- 既存 CI SA `github-actions@classroom-checkin-279.iam.gserviceaccount.com` に read-only 権限付与
+- 番号単位の明示認可後に実行、不要時は `gcloud projects remove-iam-policy-binding` で即時剥奪可
 
-✅ **ログイン画面からデモリンク削除（PR #40）**
-- 一般ユーザーにとってデモリンクはノイズであるため、PR #37で追加したログイン画面のデモリンクを削除
-- E2Eテスト「デモリンクが表示される」を `/` → `/demo` ページに変更
-- locatorを `a[href="/demo/admin"]` → `getByRole("link", { name: "管理画面を見る" })` に改善（strict mode対応）
-- 手動Smoke Test実行で全9件pass確認済み
+✅ **福の種様問い合わせ調査**
+- 対象2名（`y-mizuno@fuku-no-tane.com`, `c-yazawa@fuku-no-tane.com`）を全7テナント横断検索
+- 結果: いずれのテナントの `allowed_emails` / `users` にも未登録
+- 管理者目視（テナント `t9e6gvio` 受講者管理画面）でも未登録を確認
+- 福の種様への返信は管理者側の登録漏れ / 表記揺れの確認を依頼する形でクローズ
 
 ### システム状態
-✅ Nightly Smoke Test: 連日失敗 → 全件pass復旧
 ✅ CI: Lint/TypeCheck/Build 全pass
+✅ 本番デプロイ: 影響なし（コード追加のみ、ランタイム挙動変化なし）
+✅ Nightly Smoke Test: 直近1m26s で成功
 ✅ 再開可能（コード品質・テスト・ドキュメント整合性確認済み）
