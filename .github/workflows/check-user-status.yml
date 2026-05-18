@@ -1,0 +1,51 @@
+name: Check User Login Status
+
+# 本番Firestore admin SDK アクセスは workflow_dispatch + CI SA で行う運用ルール準拠
+# 参考: memory/feedback_firestore_prod_admin_via_workflow.md
+#
+# 用途: 受講者がログインできない問い合わせが来た際、
+#   全テナント横断で allowed_emails と users に登録されているかを確認する。
+# 出力規範: PII最小（テナント名/IDは出力可、ユーザー名/firebaseUidは出さない）
+
+on:
+  workflow_dispatch:
+    inputs:
+      emails:
+        description: "確認対象メールアドレス（カンマ区切り、例: a@example.com,b@example.com）"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  GCP_PROJECT_ID: classroom-checkin-279
+
+jobs:
+  check:
+    name: Check user status
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Run check script
+        env:
+          GCLOUD_PROJECT: ${{ env.GCP_PROJECT_ID }}
+          CHECK_EMAILS: ${{ inputs.emails }}
+        run: npx tsx scripts/check-user-status.ts
