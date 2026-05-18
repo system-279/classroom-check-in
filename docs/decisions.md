@@ -365,3 +365,22 @@
   - 「受講者管理」と「アクセス許可」の整合性が自動的に保たれる
 - 関連ADR:
   - ADR-0017: アクセス許可リスト（allowed_emails）
+
+## ADR-0028: 受講者ログイン障害調査用 workflow_dispatch ツール
+- 状態: 採用
+- 背景:
+  - 受講者ログイン拒否時、本番 Firestore 確認の標準手順が無く、ローカル ADC 経由が主たる経路だった
+  - 個人権限依存・監査証跡なし・PII 制御なしのアンチパターン
+- 判断:
+  - `workflow_dispatch` + 既存 CI Service Account (Workload Identity Federation) 経由で本番 Firestore を read-only アクセス
+  - 全テナント横断で `allowed_emails` / `users` の登録状況を確認
+  - CI SA に `roles/datastore.viewer` を恒久付与
+- 実装:
+  - `.github/workflows/check-user-status.yml`
+  - `scripts/check-user-status.ts`
+  - PII 最小出力（ユーザー名・firebaseUid 文字列は出力しない）
+- 影響:
+  - 監査証跡が Actions ログに永続化
+  - 個人 ADC への依存解消
+  - 再現性確保、同種調査の再利用容易
+- 詳細: `docs/adr/ADR-0028-user-login-status-check-workflow.md`
